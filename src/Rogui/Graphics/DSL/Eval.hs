@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Rogui.Graphics.DSL.Eval
   ( evalInstructions,
@@ -9,11 +10,12 @@ where
 import Control.Monad.IO.Class
 import Control.Monad.State (MonadState, evalStateT, get, modify)
 import Data.Foldable
+import Data.List
 import Rogui.Graphics.Console (drawBorder, printStrAt)
 import Rogui.Graphics.DSL.Instructions (Colours (..), Instruction (..), Instructions)
 import Rogui.Graphics.Primitives (printCharAt)
 import Rogui.Graphics.Types (Brush, Console)
-import SDL (Renderer, V2 (..))
+import SDL (Metric (signorm), Renderer, V2 (..))
 
 data DrawingState = DrawingState
   { console :: Console,
@@ -49,3 +51,11 @@ eval instruction = do
       modify (\s -> s {position = pos})
     SetColours col ->
       modify (\s -> s {colours = col})
+    DrawLine to ->
+      let dirv = (to - position)
+          step = round @Float @Int <$> signorm (fromIntegral <$> dirv)
+          forCell n = if n == to then Nothing else Just (n, (n + step))
+          cells = to : unfoldr forCell position
+       in if (abs $ sum step) > 1
+            then liftIO $ putStrLn "Will not draw a line that is not straight"
+            else traverse_ (printCharAt renderer console brush front back 0) cells

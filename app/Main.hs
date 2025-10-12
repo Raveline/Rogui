@@ -12,7 +12,7 @@ import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.System
 import Rogui.Graphics.Types
 import Rogui.Types
-import SDL hiding (textureHeight, textureWidth)
+import SDL hiding (drawLine, textureHeight, textureWidth)
 
 data Consoles = Root | LittleModal
   deriving (Eq, Ord)
@@ -55,6 +55,11 @@ draw Rogui {..} =
     strLn TRight "World"
     pencilAt (V2 10 7)
     strLn TCenter "Hello world"
+
+    pencilAt (V2 1 20)
+    setColours (Colours Nothing (Just white))
+    drawLine (V2 20 20)
+    drawLine (V2 1 25)
     setColours (Colours Nothing Nothing)
     withBrush (brushes M.! Drawings)
     glyphAt (V2 1 1) 0

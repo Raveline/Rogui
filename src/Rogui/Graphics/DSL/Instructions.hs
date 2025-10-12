@@ -11,6 +11,7 @@ module Rogui.Graphics.DSL.Instructions
     glyphAt,
     pencilAt,
     setColours,
+    drawLine,
   )
 where
 
@@ -32,6 +33,7 @@ data Instruction
   | DrawGlyph Int
   | MoveTo (V2 Int)
   | SetColours Colours
+  | DrawLine (V2 Int)
 
 type Instructions = DList Instruction
 
@@ -64,3 +66,12 @@ pencilAt at =
 setColours :: (MonadWriter Instructions m) => Colours -> m ()
 setColours colours =
   tell (singleton $ SetColours colours)
+
+-- | A dummy drawline function. This is not an implementation of
+-- Bresenham or nothing of the sort; it will simply put a space
+-- character with the colour background of the pencil,
+-- on each tile at a step calculated between from and to.
+-- This is mostly meant to be used for horizontal highlighting.
+drawLine :: (MonadWriter Instructions m) => V2 Int -> m ()
+drawLine to =
+  tell (singleton $ DrawLine to)
