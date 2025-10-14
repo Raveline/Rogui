@@ -1,5 +1,6 @@
 module Rogui.Graphics
   ( module Rogui.Graphics.DSL.Instructions,
+    module Rogui.Graphics.DSL.Eval,
     module Rogui.Graphics.Console,
     module Rogui.Graphics.Primitives,
     module Rogui.Graphics.Constants,
@@ -10,6 +11,8 @@ where
 
 import Rogui.Graphics.Console
 import Rogui.Graphics.Constants
+import Rogui.Graphics.DSL.Eval
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Primitives
 import Rogui.Graphics.System
+import Rogui.Graphics.Types

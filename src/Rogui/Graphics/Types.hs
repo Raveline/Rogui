@@ -10,12 +10,13 @@ where
 import SDL (Texture, V2)
 
 -- | A virtual console.
--- Widht, int, position are all in pixels.
+-- Width, int, position are all in pixels.
 data Console = Console
   { width :: Int,
     height :: Int,
     position :: V2 Int
   }
+  deriving (Show, Eq)
 
 -- | A tileset and metadata used to be displayed on a console.
 -- All numerical values are in pixels.

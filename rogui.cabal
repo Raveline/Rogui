@@ -53,7 +53,7 @@ extra-doc-files: CHANGELOG.md
 -- extra-source-files:
 
 common warnings
-    ghc-options:        -Wall
+    ghc-options:        -Wall -Werror
     default-extensions: RecordWildCards
 
 library
@@ -62,8 +62,13 @@ library
 
     -- Modules exported by the library.
     exposed-modules:
-        Rogui.Class
+        Rogui.Components
+        Rogui.Components.Core
+        Rogui.Components.Label
+        Rogui.Components.List
+        Rogui.Components.Types
         Rogui.Example
+        Rogui.Graphics
         Rogui.Graphics.Console
         Rogui.Graphics.Constants
         Rogui.Graphics.DSL.Eval
@@ -130,7 +135,7 @@ test-suite rogui-test
     default-language: Haskell2010
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules:    Rogui.Components.Layout
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -146,5 +151,10 @@ test-suite rogui-test
 
     -- Test dependencies.
     build-depends:
-        , base   ^>=4.20.0.0
+        , base         ^>=4.20.0.0
+        , dlist
+        , linear
+        , mtl
         , rogui
+        , tasty
+        , tasty-hunit
