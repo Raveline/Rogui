@@ -31,16 +31,16 @@ data Layout = Vertical | Horizontal
 -- | Draw components aligned vertically.
 -- NB: an unchecked assumption is that everything is done with the same brush
 -- size. Layout won't work if you change brush size.
-vBox :: [Component m] -> Component m
+vBox :: [Component] -> Component
 vBox components = emptyComponent {draw = \size within -> layout size within Vertical components}
 
 -- | Draw components aligned horizontally
 -- NB: an unchecked assumption is that everything is done with the same brush
 -- size. Layout won't work if you change brush size.
-hBox :: [Component m] -> Component m
+hBox :: [Component] -> Component
 hBox components = emptyComponent {draw = \size within -> layout size within Horizontal components}
 
-bordered :: (MonadWriter Instructions m) => Colours -> Component m -> Component m
+bordered :: Colours -> Component -> Component
 bordered colours child =
   let draw' ts console = do
         setColours colours
@@ -48,7 +48,7 @@ bordered colours child =
         draw (padded 1 child) ts console
    in emptyComponent {draw = \size within -> draw' size within}
 
-padded :: (MonadWriter Instructions m) => Int -> Component m -> Component m
+padded :: Int -> Component -> Component
 padded n child =
   let draw' ts@TileSize {..} console = do
         let newConsole =
@@ -77,7 +77,7 @@ pixelToTiles l TileSize {..} (Pixel p) = case l of
   Horizontal -> Tile $ p `div` pixelWidth
   Vertical -> Tile $ p `div` pixelHeight
 
-layout :: (MonadWriter Instructions m) => TileSize -> Console -> Layout -> [Component m] -> m ()
+layout :: TileSize -> Console -> Layout -> [Component] -> Writer Instructions ()
 layout tileSize root@Console {width, height} direction children =
   let toPartition = Pixel $ if direction == Vertical then height else width
       baseStep = if direction == Vertical then V2 0 1 else V2 1 0
@@ -104,14 +104,10 @@ layout tileSize root@Console {width, height} direction children =
         pure currentConsole {position = (position currentConsole) + (baseStep ^* (getPixel $ tilesToPixel direction tileSize newValue))}
    in foldM_ render root children
 
-renderComponents :: (MonadIO m) => Renderer -> Console -> Brush -> Component (WriterT Instructions m) -> m ()
-renderComponents renderer console brush'@Brush {..} Component {..} = do
-  instructions <- execWriterT $ do
-    withConsole console
-    withBrush brush'
-    draw (TileSize tileWidth tileHeight) console
-  evalInstructions
-    renderer
-    console
-    brush'
-    instructions
+renderComponents :: (MonadIO m) => Renderer -> Console -> Brush -> Component -> m ()
+renderComponents renderer console brush'@Brush {..} Component {..} =
+  let instructions = execWriter $ do
+        withConsole console
+        withBrush brush'
+        draw (TileSize tileWidth tileHeight) console
+   in evalInstructions renderer console brush' instructions

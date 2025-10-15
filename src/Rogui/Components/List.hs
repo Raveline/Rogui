@@ -9,7 +9,7 @@ import Rogui.Components.Types (Component (..), emptyComponent)
 import Rogui.Graphics.Console (TextAlign)
 import Rogui.Graphics.DSL.Instructions (Colours, setColours, strLn)
 
-list :: [a] -> (a -> String) -> TextAlign -> Colours -> Colours -> Maybe Int -> Component m
+list :: [a] -> (a -> String) -> TextAlign -> Colours -> Colours -> Maybe Int -> Component
 list items toText baseAlignment baseColour highlightedColours selection =
   let displayItem (item, idx) = do
         if (Just idx == selection)

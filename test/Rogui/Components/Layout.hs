@@ -6,13 +6,13 @@ module Rogui.Components.Layout
   )
 where
 
-import Control.Monad.Writer (Writer, execWriter)
+import Control.Monad.Writer (execWriter)
 import qualified Data.DList as D
 import Data.Maybe (mapMaybe)
 import Linear (V2 (..))
 import Rogui.Components.Core (Layout (Horizontal), layout)
 import Rogui.Components.Types (Component, emptyComponent)
-import Rogui.Graphics.DSL.Instructions (Instruction (..), Instructions)
+import Rogui.Graphics.DSL.Instructions (Instruction (..))
 import Rogui.Graphics.Types
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -34,7 +34,7 @@ testHBoxGreedySplit =
 -- Render a layout, get the Writer result, and filter to only get the
 -- setConsole instructions; this will give the Console in their order
 -- of creation.
-extractConsoles :: Layout -> Console -> [Component (Writer Instructions)] -> [Console]
+extractConsoles :: Layout -> Console -> [Component] -> [Console]
 extractConsoles layout' root components =
   let tiles = TileSize 16 16
       instructions = D.toList $ execWriter (layout tiles root layout' components)

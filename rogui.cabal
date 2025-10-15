@@ -62,6 +62,8 @@ library
 
     -- Modules exported by the library.
     exposed-modules:
+        Rogui.Application.Event
+        Rogui.Application.System
         Rogui.Components
         Rogui.Components.Core
         Rogui.Components.Label
@@ -74,7 +76,6 @@ library
         Rogui.Graphics.DSL.Eval
         Rogui.Graphics.DSL.Instructions
         Rogui.Graphics.Primitives
-        Rogui.Graphics.System
         Rogui.Graphics.Types
         Rogui.Types
 

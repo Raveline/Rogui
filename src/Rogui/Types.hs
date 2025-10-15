@@ -4,12 +4,18 @@ module Rogui.Types
 where
 
 import qualified Data.Map as M
+import Rogui.Application.Event (Event, EventResult)
+import Rogui.Components (Component)
 import Rogui.Graphics.Types
 import SDL (Renderer)
 
-data Rogui rc rb
+data Rogui rc rb state
   = Rogui
   { consoles :: M.Map rc Console,
     brushes :: M.Map rb Brush,
-    renderer :: Renderer
+    rootConsole :: Console,
+    defaultBrush :: Brush,
+    renderer :: Renderer,
+    draw :: state -> Component,
+    onEvent :: Event -> state -> (EventResult, state)
   }

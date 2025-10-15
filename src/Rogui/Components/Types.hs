@@ -10,7 +10,7 @@ module Rogui.Components.Types
   )
 where
 
-import Control.Monad.Writer (MonadWriter)
+import Control.Monad.Writer.Lazy
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Types (Console, TileSize (..))
 
@@ -34,12 +34,12 @@ data Size = Greedy | Fixed Int
 -- Unfortunately, some computation require reasoning in pixel width and
 -- others in tile width. Both element are given as a function to ease
 -- coordinates translation.
-data Component m = Component
-  { draw :: (MonadWriter Instructions m) => TileSize -> Console -> m (),
+data Component = Component
+  { draw :: TileSize -> Console -> Writer Instructions (),
     vSize :: Size,
     hSize :: Size
   }
 
-emptyComponent :: Component m
+emptyComponent :: Component
 emptyComponent =
   Component {draw = \_ _ -> pure (), vSize = Greedy, hSize = Greedy}

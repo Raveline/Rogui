@@ -5,11 +5,21 @@ module Main where
 
 import Control.Monad.Writer
 import Data.Map.Strict qualified as M
+import Rogui.Application.Event
+import Rogui.Application.System
+import Rogui.Components.Core
+import Rogui.Components.Label
+import Rogui.Components.List
+import Rogui.Components.Types
 import Rogui.Example
-import Rogui.Graphics.System
-import Rogui.Graphics.Types
+import Rogui.Graphics
 import Rogui.Types
 import SDL hiding (drawLine, textureHeight, textureWidth)
+
+data State = State
+  { textValue :: String,
+    listOfText :: [String]
+  }
 
 main :: IO ()
 main = do
@@ -18,9 +28,9 @@ main = do
     "RoGUI example"
     (V2 50 38)
     guiMaker
-    appLoop
+    $ State {textValue = "test", listOfText = ["Item 1", "Item 2", "Item 3"]}
 
-guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes)
+guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes State)
 guiMaker renderer root = do
   let modal = Console {width = 400, height = 200, position = V2 (16 * 10) (16 * 10)}
   charset <- loadBrush renderer "terminal_16x16.png" (V2 16 16)
@@ -29,20 +39,28 @@ guiMaker renderer root = do
     Rogui
       { consoles = M.fromList [(Root, root), (LittleModal, modal)],
         brushes = M.fromList [(Charset, charset), (Drawings, tiles)],
-        renderer = renderer
+        rootConsole = root,
+        defaultBrush = charset,
+        draw = renderApp,
+        renderer = renderer,
+        onEvent = baseEventHandler (\_ s -> (ContinueNoRedraw, s))
       }
 
-appLoop :: (MonadIO m) => Rogui Consoles Brushes -> m Bool
-appLoop roGUI = do
-  events <- pollEvents
-  let eventIsQPress event =
-        case eventPayload event of
-          KeyboardEvent keyboardEvent ->
-            keyboardEventKeyMotion keyboardEvent == Pressed
-              && keysymKeycode (keyboardEventKeysym keyboardEvent) == KeycodeQ
-          _ -> False
-      qPressed = any eventIsQPress events
-  -- rendererDrawColor renderer $= V4 0 0 255 255
-  -- renderingThroughInstructions roGUI
-  renderingThroughComponents roGUI
-  pure qPressed
+renderApp :: State -> Component
+renderApp State {..} =
+  let baseColours = Colours (Just white) (Just black)
+      highlighted = Colours (Just black) (Just white)
+   in vBox
+        [ ( label
+              textValue
+              TCenter
+              ( Colours
+                  (Just red)
+                  (Just black)
+              )
+          )
+            { vSize = Fixed 3
+            },
+          hBox
+            [bordered baseColours $ padded 2 $ list listOfText id TLeft baseColours highlighted Nothing]
+        ]
