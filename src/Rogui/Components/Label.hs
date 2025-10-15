@@ -17,7 +17,7 @@ label content baseAlignment colours =
         setColours colours
         case baseAlignment of
           TLeft -> pure ()
-          TRight -> pencilAt $ V2 ((width `div` pixelWidth) - pixelWidth) 0
+          TRight -> pencilAt $ V2 ((width `div` pixelWidth) - 1) 0
           TCenter -> pencilAt $ V2 ((width `div` pixelWidth) `div` 2) 0
         strLn baseAlignment content
    in emptyComponent {draw = draw}

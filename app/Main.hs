@@ -1,4 +1,5 @@
 {-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
@@ -14,11 +15,12 @@ import Rogui.Components.Types
 import Rogui.Example
 import Rogui.Graphics
 import Rogui.Types
-import SDL hiding (drawLine, textureHeight, textureWidth)
+import SDL hiding (Event, drawLine, textureHeight, textureWidth)
 
 data State = State
   { textValue :: String,
-    listOfText :: [String]
+    listOfText :: [String],
+    mousePosition :: (Int, Int)
   }
 
 main :: IO ()
@@ -28,7 +30,7 @@ main = do
     "RoGUI example"
     (V2 50 38)
     guiMaker
-    $ State {textValue = "test", listOfText = ["Item 1", "Item 2", "Item 3"]}
+    $ State {textValue = "test", listOfText = ["Item 1", "Item 2", "Item 3"], mousePosition = (0, 0)}
 
 guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes State)
 guiMaker renderer root = do
@@ -43,8 +45,15 @@ guiMaker renderer root = do
         defaultBrush = charset,
         draw = renderApp,
         renderer = renderer,
-        onEvent = baseEventHandler (\_ s -> (ContinueNoRedraw, s))
+        onEvent = baseEventHandler (eventHandler charset)
       }
+
+eventHandler :: Brush -> State -> Event -> (EventResult, State)
+eventHandler Brush {..} state = \case
+  (MouseEvent (MouseMove SDL.MouseMotionEventData {..})) ->
+    let (SDL.P (V2 x y)) = mouseMotionEventPos
+     in (Continue, state {mousePosition = (fromIntegral x `div` tileWidth, fromIntegral y `div` tileHeight)})
+  _ -> (ContinueNoRedraw, state)
 
 renderApp :: State -> Component
 renderApp State {..} =
@@ -52,6 +61,13 @@ renderApp State {..} =
       highlighted = Colours (Just black) (Just white)
    in vBox
         [ ( label
+              ("Mouse at: " <> show mousePosition)
+              TRight
+              baseColours
+          )
+            { vSize = Fixed 1
+            },
+          ( label
               textValue
               TCenter
               ( Colours
@@ -59,7 +75,7 @@ renderApp State {..} =
                   (Just black)
               )
           )
-            { vSize = Fixed 3
+            { vSize = Fixed 2
             },
           hBox
             [bordered baseColours $ padded 2 $ list listOfText id TLeft baseColours highlighted Nothing]

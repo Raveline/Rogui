@@ -1,5 +1,4 @@
 {-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Rogui.Application.System
@@ -69,7 +68,7 @@ appLoop roGUI@Rogui {..} state = do
 
 processEvent :: Rogui rc rb s -> (EventResult, s) -> Event -> (EventResult, s)
 processEvent Rogui {..} (currentResult, state) event =
-  let (newResult, newState) = onEvent event state
+  let (newResult, newState) = onEvent state event
    in (currentResult <> newResult, newState)
 
 -- | A default event handler that will:
@@ -78,14 +77,14 @@ processEvent Rogui {..} (currentResult, state) event =
 -- Other events are to be manually
 -- implemented. Feed your own event handler to this so you get an easy way to
 -- leave your applications through common shortcuts.
-baseEventHandler :: (Event -> state -> (EventResult, state)) -> Event -> state -> (EventResult, state)
-baseEventHandler sink event state =
+baseEventHandler :: (state -> Event -> (EventResult, state)) -> state -> Event -> (EventResult, state)
+baseEventHandler sink state event =
   let ctrlC e = SDL.keysymKeycode e == SDL.KeycodeC && (SDL.keyModifierLeftCtrl . SDL.keysymModifier $ e)
    in case event of
-        KeyDown KeyDownDetails {key} -> if ctrlC key then (Halt, state) else sink event state
+        KeyDown KeyDownDetails {key} -> if ctrlC key then (Halt, state) else sink state event
         OtherSDLEvent SDL.QuitEvent -> (Halt, state)
         OtherSDLEvent (SDL.WindowShownEvent _) -> (Continue, state)
-        _ -> sink event state
+        _ -> sink state event
 
 getSDLEvents :: (MonadIO m) => m [Event]
 getSDLEvents =

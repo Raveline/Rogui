@@ -17,5 +17,5 @@ data Rogui rc rb state
     defaultBrush :: Brush,
     renderer :: Renderer,
     draw :: state -> Component,
-    onEvent :: Event -> state -> (EventResult, state)
+    onEvent :: state -> Event -> (EventResult, state)
   }
