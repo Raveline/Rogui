@@ -4,12 +4,14 @@ module Rogui.Application.Event
   ( Event (..),
     EventResult (..),
     MouseEventDetails (..),
+    MouseMoveDetails (..),
     KeyDownDetails (..),
     KeyUpDetails (..),
   )
 where
 
-import SDL (EventPayload, Keysym, MouseButtonEventData, MouseMotionEventData)
+import SDL (EventPayload, Keysym, MouseButtonEventData)
+import SDL.Vect (V2)
 
 data Event
   = KeyDown KeyDownDetails
@@ -27,8 +29,14 @@ data KeyUpDetails = KeyUpDetails
   }
 
 data MouseEventDetails
-  = MouseMove MouseMotionEventData
+  = MouseMove MouseMoveDetails
   | MouseClick MouseButtonEventData
+
+data MouseMoveDetails = MouseMoveDetails
+  { relativeMouseMotion :: V2 Int,
+    absoluteMousePosition :: V2 Int,
+    defaultTileSizePosition :: V2 Int
+  }
 
 data EventResult
   = Continue

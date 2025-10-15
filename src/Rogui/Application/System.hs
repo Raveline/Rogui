@@ -16,6 +16,7 @@ import Rogui.Application.Event
 import Rogui.Components (renderComponents)
 import Rogui.Graphics.Types (Brush (..), Console (..), TileSize (..))
 import Rogui.Types (Rogui (..))
+import SDL (MouseMotionEventData (MouseMotionEventData))
 import SDL qualified
 import SDL.Image qualified as SDL
 import SDL.Internal.Numbered qualified as Numbered
@@ -56,7 +57,7 @@ boot TileSize {..} title (SDL.V2 widthInTiles heightInTiles) guiBuilder initialS
 
 appLoop :: (MonadIO m) => Rogui rc rb s -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
-  events <- getSDLEvents
+  events <- getSDLEvents defaultBrush
   let (finalResult, updatedState) = foldl' (processEvent roGUI) (ContinueNoRedraw, state) events
   when (finalResult == Continue) $ do
     SDL.clear renderer
@@ -86,13 +87,18 @@ baseEventHandler sink state event =
         OtherSDLEvent (SDL.WindowShownEvent _) -> (Continue, state)
         _ -> sink state event
 
-getSDLEvents :: (MonadIO m) => m [Event]
-getSDLEvents =
+getSDLEvents :: (MonadIO m) => Brush -> m [Event]
+getSDLEvents Brush {..} =
   let toRoguiEvent (SDL.Event _timestamp payload) = case payload of
         SDL.KeyboardEvent ke -> case (SDL.keyboardEventKeyMotion ke) of
           SDL.Pressed -> KeyDown $ KeyDownDetails (SDL.keyboardEventRepeat ke) (SDL.keyboardEventKeysym ke)
           SDL.Released -> KeyUp . KeyUpDetails $ SDL.keyboardEventKeysym ke
-        SDL.MouseMotionEvent me -> MouseEvent (MouseMove me)
+        SDL.MouseMotionEvent MouseMotionEventData {..} ->
+          let (SDL.P mousePos) = mouseMotionEventPos
+              absoluteMousePosition@(SDL.V2 x y) = fromIntegral <$> mousePos
+              defaultTileSizePosition = SDL.V2 (x `div` tileWidth) (y `div` tileHeight)
+              relativeMouseMotion = fromIntegral <$> mouseMotionEventRelMotion
+           in MouseEvent . MouseMove $ MouseMoveDetails {..}
         SDL.MouseButtonEvent me -> MouseEvent (MouseClick me)
         e -> OtherSDLEvent e
    in fmap (fmap toRoguiEvent) SDL.pollEvents

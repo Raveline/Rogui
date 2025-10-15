@@ -20,7 +20,7 @@ import SDL hiding (Event, drawLine, textureHeight, textureWidth)
 data State = State
   { textValue :: String,
     listOfText :: [String],
-    mousePosition :: (Int, Int)
+    mousePosition :: V2 Int
   }
 
 main :: IO ()
@@ -30,7 +30,7 @@ main = do
     "RoGUI example"
     (V2 50 38)
     guiMaker
-    $ State {textValue = "test", listOfText = ["Item 1", "Item 2", "Item 3"], mousePosition = (0, 0)}
+    $ State {textValue = "test", listOfText = ["Item 1", "Item 2", "Item 3"], mousePosition = V2 0 0}
 
 guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes State)
 guiMaker renderer root = do
@@ -45,23 +45,22 @@ guiMaker renderer root = do
         defaultBrush = charset,
         draw = renderApp,
         renderer = renderer,
-        onEvent = baseEventHandler (eventHandler charset)
+        onEvent = baseEventHandler eventHandler
       }
 
-eventHandler :: Brush -> State -> Event -> (EventResult, State)
-eventHandler Brush {..} state = \case
-  (MouseEvent (MouseMove SDL.MouseMotionEventData {..})) ->
-    let (SDL.P (V2 x y)) = mouseMotionEventPos
-     in (Continue, state {mousePosition = (fromIntegral x `div` tileWidth, fromIntegral y `div` tileHeight)})
+eventHandler :: State -> Event -> (EventResult, State)
+eventHandler state = \case
+  MouseEvent (MouseMove MouseMoveDetails {..}) -> (Continue, state {mousePosition = defaultTileSizePosition})
   _ -> (ContinueNoRedraw, state)
 
 renderApp :: State -> Component
 renderApp State {..} =
   let baseColours = Colours (Just white) (Just black)
       highlighted = Colours (Just black) (Just white)
+      (V2 x y) = mousePosition
    in vBox
         [ ( label
-              ("Mouse at: " <> show mousePosition)
+              ("Mouse at: " <> show (x, y))
               TRight
               baseColours
           )
