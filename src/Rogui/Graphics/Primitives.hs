@@ -36,7 +36,7 @@ charIdToPosition Brush {..} tileId =
   let numberOfColumns = textureWidth `div` tileWidth
       x = tileId `mod` numberOfColumns
       y = tileId `div` numberOfColumns
-   in fromIntegral <$> Rectangle (P $ V2 (x * tileWidth) (y * tileWidth)) (V2 tileWidth tileHeight)
+   in fromIntegral <$> Rectangle (P $ V2 (x * tileWidth) (y * tileHeight)) (V2 tileWidth tileHeight)
 
 printCharAt ::
   (MonadIO m) =>
