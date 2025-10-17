@@ -9,7 +9,7 @@ module Rogui.Components.List
   )
 where
 
-import Rogui.Application.Event (Event (..), KeyDownDetails (..))
+import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (..), fireEvent, modifyState)
 import Rogui.Components.Types (Component (..), emptyComponent)
 import Rogui.Graphics.Console (TextAlign)
 import Rogui.Graphics.DSL.Instructions (Colours, setColours, strLn)
@@ -32,10 +32,22 @@ list items toText baseAlignment baseColour highlightedColours ListState {..} =
         strLn baseAlignment (toText item)
    in emptyComponent {draw = \_ _ -> mapM_ displayItem (zip items [0 ..])}
 
-handleListEvent :: Int -> Event -> ListState -> ListState
-handleListEvent len event state@ListState {selection} = case event of
+handleListEvent :: Int -> Event -> ListState -> (ListState -> s -> s) -> EventHandlingM s ()
+handleListEvent len event state@ListState {selection} modifier = case event of
   KeyDown KeyDownDetails {key} -> case SDL.keysymKeycode key of
-    SDL.KeycodeDown -> state {selection = Just $ min (len - 1) (maybe 0 (+ 1) selection)}
-    SDL.KeycodeUp -> state {selection = Just $ max 0 (maybe 0 (\n -> (n - 1)) selection)}
-    _ -> state
-  _ -> state
+    SDL.KeycodeDown ->
+      let newIndex = maybe 0 (+ 1) selection
+       in if newIndex >= len
+            then do
+              fireEvent FocusNext
+              modifyState . modifier $ state {selection = Nothing}
+            else modifyState (modifier $ state {selection = Just newIndex})
+    SDL.KeycodeUp ->
+      let newIndex = maybe (len - 1) (\n -> (n - 1)) selection
+       in if newIndex >= 0
+            then modifyState (modifier $ state {selection = Just newIndex})
+            else do
+              fireEvent FocusPrev
+              modifyState . modifier $ state {selection = Nothing}
+    _ -> pure ()
+  _ -> pure ()

@@ -8,7 +8,7 @@ import Control.Monad.Writer
 import Data.Map.Strict qualified as M
 import Rogui.Application.Event
 import Rogui.Application.System
-import Rogui.Components.Button (button)
+import Rogui.Components.Button (button, handleButtonEvent)
 import Rogui.Components.Core
 import Rogui.Components.Label
 import Rogui.Components.List
@@ -44,7 +44,7 @@ main = do
         listOfText = ["Item 1", "Item 2", "Item 3"],
         mousePosition = V2 0 0,
         ring = focusRing [List, QuitButton],
-        listState = mkListState
+        listState = mkListState {selection = Just 0}
       }
 
 guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes Name State)
@@ -63,26 +63,30 @@ guiMaker renderer root = do
         onEvent = baseEventHandler (keyPressHandler eventHandler keysHandler)
       }
 
-keysHandler :: M.Map SDL.Keycode (State -> (EventResult, State))
+keysHandler :: M.Map SDL.Keycode (EventHandler State)
 keysHandler =
   M.fromList $
-    [(SDL.KeycodeTab, handleTab)]
+    [(SDL.KeycodeTab, \_ _ -> fireEvent FocusNext)]
 
-handleTab :: State -> (EventResult, State)
-handleTab s =
-  let newRing = focusNext (ring s)
+handleFocusChange :: (FocusRing Name -> FocusRing Name) -> State -> EventHandlingM State ()
+handleFocusChange ringChange s =
+  let newRing = ringChange (ring s)
       -- When focus moves to List and selection is Nothing, initialize
       newListState = case (focusGetCurrent newRing, listState s) of
         (Just List, ListState Nothing offset) -> ListState (Just 0) offset
         _ -> listState s
-   in (Continue, s {ring = newRing, listState = newListState})
+   in redraw (setCurrentState $ s {ring = newRing, listState = newListState})
 
-eventHandler :: State -> Event -> (EventResult, State)
+eventHandler :: EventHandler State
 eventHandler state@State {..} = \case
-  MouseEvent (MouseMove MouseMoveDetails {..}) -> (Continue, state {mousePosition = defaultTileSizePosition})
+  MouseEvent (MouseMove MouseMoveDetails {..}) ->
+    redraw $ setCurrentState $ state {mousePosition = defaultTileSizePosition}
+  FocusNext -> handleFocusChange (focusNext) state
+  FocusPrev -> handleFocusChange (focusPrev) state
   e -> case focusGetCurrent ring of
-    (Just List) -> (Continue, state {listState = handleListEvent (length listOfText) e listState})
-    _ -> (ContinueNoRedraw, state)
+    (Just List) -> handleListEvent (length listOfText) e listState (\newLs s -> s {listState = newLs})
+    (Just QuitButton) -> handleButtonEvent (\_ _ -> halt (pure ())) state e
+    _ -> pure ()
 
 renderApp :: State -> Component Name
 renderApp State {..} =

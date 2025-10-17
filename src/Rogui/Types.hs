@@ -1,13 +1,16 @@
 module Rogui.Types
-  ( Rogui (..),
+  ( EventHandler,
+    Rogui (..),
   )
 where
 
 import qualified Data.Map as M
-import Rogui.Application.Event (Event, EventResult)
+import Rogui.Application.Event (Event, EventHandlingM)
 import Rogui.Components (Component)
 import Rogui.Graphics.Types
 import SDL (Renderer)
+
+type EventHandler state = state -> Event -> EventHandlingM state ()
 
 -- | Rogui is the main datatype used to define an application.
 -- It is parametrics over:
@@ -23,5 +26,5 @@ data Rogui rc rb n state
     defaultBrush :: Brush,
     renderer :: Renderer,
     draw :: state -> Component n,
-    onEvent :: state -> Event -> (EventResult, state)
+    onEvent :: EventHandler state
   }

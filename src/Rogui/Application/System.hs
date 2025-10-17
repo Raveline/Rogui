@@ -11,13 +11,15 @@ where
 
 import Control.Monad
 import Control.Monad.IO.Class
+import Control.Monad.State hiding (state)
 import Data.Map qualified as M
-import Data.Text hiding (foldl')
+import Data.Sequence qualified as Seq
+import Data.Text hiding (foldl', null)
 import Data.Word
 import Rogui.Application.Event
 import Rogui.Components (renderComponents)
 import Rogui.Graphics.Types (Brush (..), Console (..), TileSize (..))
-import Rogui.Types (Rogui (..))
+import Rogui.Types (EventHandler, Rogui (..))
 import SDL (MouseMotionEventData (MouseMotionEventData))
 import SDL qualified
 import SDL.Image qualified as SDL
@@ -59,22 +61,29 @@ boot TileSize {..} title (SDL.V2 widthInTiles heightInTiles) guiBuilder initialS
 
 appLoop :: (MonadIO m) => Rogui rc rb n s -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
-  events <- getSDLEvents defaultBrush
-  let (finalResult, updatedState) = foldl' (processEvent roGUI) (ContinueNoRedraw, state) events
-  when (finalResult == Continue) $ do
+  sdlEvents <- getSDLEvents defaultBrush
+  let baseEventState = EventHandlingState {events = Seq.fromList sdlEvents, currentState = state, result = ContinueNoRedraw}
+      EventHandlingState {result, currentState} = execState (processWithLimit 10 roGUI) baseEventState
+  when (result == Continue) $ do
     SDL.clear renderer
-    let toDraw = draw updatedState
+    let toDraw = draw currentState
     renderComponents renderer rootConsole defaultBrush toDraw
     SDL.present renderer
-  unless (finalResult == Halt) $
-    appLoop roGUI updatedState
+  unless (result == Halt) $
+    appLoop roGUI currentState
 
-processEvent :: Rogui rc rb n s -> (EventResult, s) -> Event -> (EventResult, s)
-processEvent Rogui {..} (currentResult, state) event =
-  let (newResult, newState) = onEvent state event
-   in (currentResult <> newResult, newState)
+processWithLimit :: Int -> Rogui rc rb n s -> EventHandlingM s ()
+processWithLimit 0 _ = pure ()
+processWithLimit n roGUI = do
+  evs <- gets events
+  if null evs
+    then pure ()
+    else traverse (processEvent roGUI) evs >> processWithLimit (n - 1) roGUI
 
-type EventHandler state = state -> Event -> (EventResult, state)
+processEvent :: Rogui rc rb n s -> Event -> EventHandlingM s ()
+processEvent Rogui {..} event = do
+  currentState <- gets currentState
+  onEvent currentState event
 
 -- | A default event handler that will:
 -- - React to ALT+F4, clicking the window cross, or ctrl+C to quit the application
@@ -86,18 +95,18 @@ baseEventHandler :: EventHandler state -> EventHandler state
 baseEventHandler sink state event =
   let ctrlC e = SDL.keysymKeycode e == SDL.KeycodeC && (SDL.keyModifierLeftCtrl . SDL.keysymModifier $ e)
    in case event of
-        KeyDown KeyDownDetails {key} -> if ctrlC key then (Halt, state) else sink state event
-        OtherSDLEvent SDL.QuitEvent -> (Halt, state)
-        OtherSDLEvent (SDL.WindowShownEvent _) -> (Continue, state)
+        KeyDown KeyDownDetails {key} -> if ctrlC key then halt (pure ()) else sink state event
+        OtherSDLEvent SDL.QuitEvent -> halt (pure ())
+        OtherSDLEvent (SDL.WindowShownEvent _) -> redraw (pure ())
         _ -> sink state event
 
 -- | A utility to react to key presses listed in a Map
-keyPressHandler :: EventHandler state -> M.Map SDL.Keycode (state -> (EventResult, state)) -> EventHandler state
+keyPressHandler :: EventHandler state -> M.Map SDL.Keycode (EventHandler state) -> EventHandler state
 keyPressHandler sink keyMap state event =
   case event of
     KeyDown KeyDownDetails {key} ->
       let handler = (SDL.keysymKeycode key) `M.lookup` keyMap
-       in maybe (sink state event) (\h -> h state) handler
+       in maybe (sink state event) (\h -> h state event) handler
     _ -> sink state event
 
 getSDLEvents :: (MonadIO m) => Brush -> m [Event]
