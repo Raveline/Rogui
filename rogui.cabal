@@ -65,11 +65,13 @@ library
         Rogui.Application.Event
         Rogui.Application.System
         Rogui.Components
+        Rogui.Components.Button
         Rogui.Components.Core
         Rogui.Components.Label
         Rogui.Components.List
         Rogui.Components.Types
         Rogui.Example
+        Rogui.FocusRing
         Rogui.Graphics
         Rogui.Graphics.Console
         Rogui.Graphics.Constants
@@ -89,6 +91,7 @@ library
     build-depends:
         , base        ^>=4.20.0.0
         , containers
+        , data-clist
         , dlist
         , mtl
         , sdl2

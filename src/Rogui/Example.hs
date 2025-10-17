@@ -7,7 +7,7 @@ import Control.Monad.Writer
 import Data.Map.Strict qualified as M
 import Rogui.Components (Component (..), Size (..), bordered, hBox, padded, renderComponents, vBox)
 import Rogui.Components.Label (label)
-import Rogui.Components.List (list)
+import Rogui.Components.List (list, mkListState)
 import Rogui.Graphics
 import Rogui.Types
 import SDL hiding (drawLine, textureHeight, textureWidth)
@@ -20,7 +20,7 @@ data Brushes = Charset | Drawings
 
 -- This is not the intended usage, but it's a way to give an example
 -- on how the Graphics instruction layer work.
-renderingThroughInstructions :: (MonadIO m) => Rogui Consoles Brushes s -> m ()
+renderingThroughInstructions :: (MonadIO m) => Rogui Consoles Brushes n s -> m ()
 renderingThroughInstructions Rogui {..} =
   evalInstructions renderer (consoles M.! Root) (brushes M.! Charset) $ execWriter $ do
     withConsole (consoles M.! Root)
@@ -47,7 +47,7 @@ renderingThroughInstructions Rogui {..} =
 
 -- Again, this is a rather constraining way of using the library,
 -- but it gives an example on how to use the Component layer.
-renderingThroughComponents :: (MonadIO m) => Rogui Consoles Brushes s -> m ()
+renderingThroughComponents :: (MonadIO m) => Rogui Consoles Brushes n s -> m ()
 renderingThroughComponents Rogui {..} =
   let baseColours = Colours (Just white) (Just black)
       highlighted = Colours (Just black) (Just white)
@@ -64,8 +64,8 @@ renderingThroughComponents Rogui {..} =
               { vSize = Fixed 3
               },
             hBox
-              [ bordered baseColours $ padded 2 $ list ["Apple", "Banana", "Orange"] id TLeft baseColours highlighted Nothing,
-                bordered baseColours $ list ["Amethyst", "Beryl", "Onyx"] id TLeft baseColours highlighted Nothing
+              [ bordered baseColours $ padded 2 $ list ["Apple", "Banana", "Orange"] id TLeft baseColours highlighted mkListState,
+                bordered baseColours $ list ["Amethyst", "Beryl", "Onyx"] id TLeft baseColours highlighted mkListState
               ]
           ]
    in renderComponents renderer (consoles M.! Root) (brushes M.! Charset) components

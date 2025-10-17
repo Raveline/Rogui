@@ -9,13 +9,19 @@ import Rogui.Components (Component)
 import Rogui.Graphics.Types
 import SDL (Renderer)
 
-data Rogui rc rb state
+-- | Rogui is the main datatype used to define an application.
+-- It is parametrics over:
+-- - Consoles reference enum rc;
+-- - Brushes reference enum rb;
+-- - Components naming enum n;
+-- - And finally a state.
+data Rogui rc rb n state
   = Rogui
   { consoles :: M.Map rc Console,
     brushes :: M.Map rb Brush,
     rootConsole :: Console,
     defaultBrush :: Brush,
     renderer :: Renderer,
-    draw :: state -> Component,
+    draw :: state -> Component n,
     onEvent :: state -> Event -> (EventResult, state)
   }

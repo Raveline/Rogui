@@ -8,11 +8,13 @@ import Control.Monad.Writer
 import Data.Map.Strict qualified as M
 import Rogui.Application.Event
 import Rogui.Application.System
+import Rogui.Components.Button (button)
 import Rogui.Components.Core
 import Rogui.Components.Label
 import Rogui.Components.List
 import Rogui.Components.Types
 import Rogui.Example
+import Rogui.FocusRing
 import Rogui.Graphics
 import Rogui.Types
 import SDL hiding (Event, drawLine, textureHeight, textureWidth)
@@ -20,8 +22,15 @@ import SDL hiding (Event, drawLine, textureHeight, textureWidth)
 data State = State
   { textValue :: String,
     listOfText :: [String],
-    mousePosition :: V2 Int
+    mousePosition :: V2 Int,
+    ring :: FocusRing Name,
+    listState :: ListState
   }
+
+data Name
+  = List
+  | QuitButton
+  deriving (Eq)
 
 main :: IO ()
 main = do
@@ -30,9 +39,15 @@ main = do
     "RoGUI example"
     (V2 50 38)
     guiMaker
-    $ State {textValue = "test", listOfText = ["Item 1", "Item 2", "Item 3"], mousePosition = V2 0 0}
+    $ State
+      { textValue = "test",
+        listOfText = ["Item 1", "Item 2", "Item 3"],
+        mousePosition = V2 0 0,
+        ring = focusRing [List, QuitButton],
+        listState = mkListState
+      }
 
-guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes State)
+guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes Name State)
 guiMaker renderer root = do
   let modal = Console {width = 400, height = 200, position = V2 (16 * 10) (16 * 10)}
   charset <- loadBrush renderer "terminal_16x16.png" (V2 16 16)
@@ -45,15 +60,31 @@ guiMaker renderer root = do
         defaultBrush = charset,
         draw = renderApp,
         renderer = renderer,
-        onEvent = baseEventHandler eventHandler
+        onEvent = baseEventHandler (keyPressHandler eventHandler keysHandler)
       }
 
-eventHandler :: State -> Event -> (EventResult, State)
-eventHandler state = \case
-  MouseEvent (MouseMove MouseMoveDetails {..}) -> (Continue, state {mousePosition = defaultTileSizePosition})
-  _ -> (ContinueNoRedraw, state)
+keysHandler :: M.Map SDL.Keycode (State -> (EventResult, State))
+keysHandler =
+  M.fromList $
+    [(SDL.KeycodeTab, handleTab)]
 
-renderApp :: State -> Component
+handleTab :: State -> (EventResult, State)
+handleTab s =
+  let newRing = focusNext (ring s)
+      -- When focus moves to List and selection is Nothing, initialize
+      newListState = case (focusGetCurrent newRing, listState s) of
+        (Just List, ListState Nothing offset) -> ListState (Just 0) offset
+        _ -> listState s
+   in (Continue, s {ring = newRing, listState = newListState})
+
+eventHandler :: State -> Event -> (EventResult, State)
+eventHandler state@State {..} = \case
+  MouseEvent (MouseMove MouseMoveDetails {..}) -> (Continue, state {mousePosition = defaultTileSizePosition})
+  e -> case focusGetCurrent ring of
+    (Just List) -> (Continue, state {listState = handleListEvent (length listOfText) e listState})
+    _ -> (ContinueNoRedraw, state)
+
+renderApp :: State -> Component Name
 renderApp State {..} =
   let baseColours = Colours (Just white) (Just black)
       highlighted = Colours (Just black) (Just white)
@@ -76,6 +107,6 @@ renderApp State {..} =
           )
             { vSize = Fixed 2
             },
-          hBox
-            [bordered baseColours $ padded 2 $ list listOfText id TLeft baseColours highlighted Nothing]
+          bordered baseColours $ padded 2 $ list listOfText id TLeft baseColours highlighted listState,
+          button "Quit" TCenter baseColours highlighted (focusGetCurrent ring == Just QuitButton)
         ]

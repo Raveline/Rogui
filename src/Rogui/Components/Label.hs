@@ -11,7 +11,7 @@ import Rogui.Graphics.DSL.Instructions (Colours, pencilAt, setColours, strLn)
 import Rogui.Graphics.Types (Console (..))
 import SDL (V2 (..))
 
-label :: String -> TextAlign -> Colours -> Component
+label :: String -> TextAlign -> Colours -> Component n
 label content baseAlignment colours =
   let draw TileSize {..} Console {..} = do
         setColours colours

@@ -34,12 +34,14 @@ data Size = Greedy | Fixed Int
 -- Unfortunately, some computation require reasoning in pixel width and
 -- others in tile width. Both element are given as a function to ease
 -- coordinates translation.
-data Component = Component
+--
+-- Component are parametered over a name which are used to handle focus.  
+data Component name = Component
   { draw :: TileSize -> Console -> Writer Instructions (),
     vSize :: Size,
     hSize :: Size
   }
 
-emptyComponent :: Component
+emptyComponent :: Component name
 emptyComponent =
   Component {draw = \_ _ -> pure (), vSize = Greedy, hSize = Greedy}
