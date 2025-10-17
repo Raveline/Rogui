@@ -20,7 +20,7 @@ button content baseAlignment normalColours focusedColours focused =
    in label content baseAlignment pickColour
 
 -- | Fire the given event when getting enter, focus next and prev on arrows up and down
-handleButtonEvent :: EventHandler state -> EventHandler state
+handleButtonEvent :: EventHandler state e -> EventHandler state e
 handleButtonEvent e =
   let keyHandler =
         M.fromList

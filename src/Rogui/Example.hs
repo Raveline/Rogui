@@ -20,7 +20,7 @@ data Brushes = Charset | Drawings
 
 -- This is not the intended usage, but it's a way to give an example
 -- on how the Graphics instruction layer work.
-renderingThroughInstructions :: (MonadIO m) => Rogui Consoles Brushes n s -> m ()
+renderingThroughInstructions :: (MonadIO m) => Rogui Consoles Brushes n s () -> m ()
 renderingThroughInstructions Rogui {..} =
   evalInstructions renderer (consoles M.! Root) (brushes M.! Charset) $ execWriter $ do
     withConsole (consoles M.! Root)
@@ -47,7 +47,7 @@ renderingThroughInstructions Rogui {..} =
 
 -- Again, this is a rather constraining way of using the library,
 -- but it gives an example on how to use the Component layer.
-renderingThroughComponents :: (MonadIO m) => Rogui Consoles Brushes n s -> m ()
+renderingThroughComponents :: (MonadIO m) => Rogui Consoles Brushes n s () -> m ()
 renderingThroughComponents Rogui {..} =
   let baseColours = Colours (Just white) (Just black)
       highlighted = Colours (Just black) (Just white)

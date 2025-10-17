@@ -45,7 +45,7 @@ loadBrush renderer path (SDL.V2 tileWidth tileHeight) = do
 
 -- Initialize a SDL application and window with the provided tilesize,
 -- giving a window with a size expressed in tiles.
-boot :: (MonadIO m) => TileSize -> Text -> SDL.V2 Int -> (SDL.Renderer -> Console -> m (Rogui rc rb n s)) -> s -> m ()
+boot :: (MonadIO m) => TileSize -> Text -> SDL.V2 Int -> (SDL.Renderer -> Console -> m (Rogui rc rb n s e)) -> s -> m ()
 boot TileSize {..} title (SDL.V2 widthInTiles heightInTiles) guiBuilder initialState = do
   SDL.initializeAll
 
@@ -59,7 +59,7 @@ boot TileSize {..} title (SDL.V2 widthInTiles heightInTiles) guiBuilder initialS
 
   SDL.destroyWindow window
 
-appLoop :: (MonadIO m) => Rogui rc rb n s -> s -> m ()
+appLoop :: (MonadIO m) => Rogui rc rb n s e -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
   sdlEvents <- getSDLEvents defaultBrush
   let baseEventState = EventHandlingState {events = Seq.fromList sdlEvents, currentState = state, result = ContinueNoRedraw}
@@ -72,7 +72,7 @@ appLoop roGUI@Rogui {..} state = do
   unless (result == Halt) $
     appLoop roGUI currentState
 
-processWithLimit :: Int -> Rogui rc rb n s -> EventHandlingM s ()
+processWithLimit :: Int -> Rogui rc rb n s e -> EventHandlingM s e ()
 processWithLimit 0 _ = pure ()
 processWithLimit n roGUI = do
   evs <- gets events
@@ -80,8 +80,9 @@ processWithLimit n roGUI = do
     then pure ()
     else traverse (processEvent roGUI) evs >> processWithLimit (n - 1) roGUI
 
-processEvent :: Rogui rc rb n s -> Event -> EventHandlingM s ()
+processEvent :: Rogui rc rb n s e -> Event e -> EventHandlingM s e ()
 processEvent Rogui {..} event = do
+  _ <- popEvent -- This will remove the event from the queue
   currentState <- gets currentState
   onEvent currentState event
 
@@ -91,7 +92,7 @@ processEvent Rogui {..} event = do
 -- Other events are to be manually
 -- implemented. Feed your own event handler to this so you get an easy way to
 -- leave your applications through common shortcuts.
-baseEventHandler :: EventHandler state -> EventHandler state
+baseEventHandler :: EventHandler state e -> EventHandler state e
 baseEventHandler sink state event =
   let ctrlC e = SDL.keysymKeycode e == SDL.KeycodeC && (SDL.keyModifierLeftCtrl . SDL.keysymModifier $ e)
    in case event of
@@ -101,7 +102,7 @@ baseEventHandler sink state event =
         _ -> sink state event
 
 -- | A utility to react to key presses listed in a Map
-keyPressHandler :: EventHandler state -> M.Map SDL.Keycode (EventHandler state) -> EventHandler state
+keyPressHandler :: EventHandler state e -> M.Map SDL.Keycode (EventHandler state e) -> EventHandler state e
 keyPressHandler sink keyMap state event =
   case event of
     KeyDown KeyDownDetails {key} ->
@@ -109,7 +110,7 @@ keyPressHandler sink keyMap state event =
        in maybe (sink state event) (\h -> h state event) handler
     _ -> sink state event
 
-getSDLEvents :: (MonadIO m) => Brush -> m [Event]
+getSDLEvents :: (MonadIO m) => Brush -> m [Event e]
 getSDLEvents Brush {..} =
   let toRoguiEvent (SDL.Event _timestamp payload) = case payload of
         SDL.KeyboardEvent ke -> case (SDL.keyboardEventKeyMotion ke) of

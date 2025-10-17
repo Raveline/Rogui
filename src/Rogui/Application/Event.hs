@@ -13,6 +13,7 @@ module Rogui.Application.Event
     halt,
     redraw,
     modifyState,
+    fireAppEvent,
     setCurrentState,
     fireEvent,
     popEvent,
@@ -24,7 +25,7 @@ import Data.Sequence (Seq (..), (|>))
 import SDL (EventPayload, Keysym, MouseButtonEventData)
 import SDL.Vect (V2)
 
-data Event
+data Event e
   = KeyDown KeyDownDetails
   | KeyUp KeyUpDetails
   | MouseEvent MouseEventDetails
@@ -32,6 +33,7 @@ data Event
   | FocusPrev
   | FocusNext
   | Quit
+  | AppEvent e
 
 data KeyDownDetails = KeyDownDetails
   { repeat :: Bool,
@@ -69,35 +71,38 @@ instance Semigroup EventResult where
 instance Monoid EventResult where
   mempty = ContinueNoRedraw
 
-data EventHandlingState s = EventHandlingState
-  { events :: Seq Event,
+data EventHandlingState s e = EventHandlingState
+  { events :: Seq (Event e),
     result :: EventResult,
     currentState :: s
   }
 
-setResult :: EventResult -> EventHandlingM s ()
+setResult :: EventResult -> EventHandlingM s e ()
 setResult er =
   modify $ \ehs@EventHandlingState {result} -> ehs {result = result <> er}
 
-halt :: EventHandlingM s () -> EventHandlingM s ()
+halt :: EventHandlingM s e () -> EventHandlingM s e ()
 halt f = setResult Halt >> f
 
-redraw :: EventHandlingM s () -> EventHandlingM s ()
+redraw :: EventHandlingM s e () -> EventHandlingM s e ()
 redraw f = setResult Continue >> f
 
-modifyState :: (state -> state) -> EventHandlingM state ()
+modifyState :: (state -> state) -> EventHandlingM state e ()
 modifyState f =
   modify $ \ehs@EventHandlingState {currentState} -> ehs {currentState = f currentState}
 
-setCurrentState :: state -> EventHandlingM state ()
+setCurrentState :: state -> EventHandlingM state e ()
 setCurrentState s =
   modify $ \ehs -> ehs {currentState = s}
 
-fireEvent :: Event -> EventHandlingM state ()
+fireEvent :: Event e -> EventHandlingM state e ()
 fireEvent e =
   modify $ \ehs@EventHandlingState {events} -> ehs {events = events |> e}
 
-popEvent :: EventHandlingM state (Maybe Event)
+fireAppEvent :: e -> EventHandlingM state e ()
+fireAppEvent e = fireEvent $ AppEvent e
+
+popEvent :: EventHandlingM state e (Maybe (Event e))
 popEvent = do
   currentEvents <- gets events
   case currentEvents of
@@ -106,4 +111,4 @@ popEvent = do
       modify $ \ehs -> ehs {events = rest}
       pure $ Just firstEvent
 
-type EventHandlingM s a = State (EventHandlingState s) a
+type EventHandlingM s e a = State (EventHandlingState s e) a

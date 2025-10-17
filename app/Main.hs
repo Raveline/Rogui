@@ -32,6 +32,8 @@ data Name
   | QuitButton
   deriving (Eq)
 
+data CustomEvent
+
 main :: IO ()
 main = do
   boot
@@ -47,7 +49,7 @@ main = do
         listState = mkListState {selection = Just 0}
       }
 
-guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes Name State)
+guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes Name State CustomEvent)
 guiMaker renderer root = do
   let modal = Console {width = 400, height = 200, position = V2 (16 * 10) (16 * 10)}
   charset <- loadBrush renderer "terminal_16x16.png" (V2 16 16)
@@ -63,12 +65,12 @@ guiMaker renderer root = do
         onEvent = baseEventHandler (keyPressHandler eventHandler keysHandler)
       }
 
-keysHandler :: M.Map SDL.Keycode (EventHandler State)
+keysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent)
 keysHandler =
   M.fromList $
     [(SDL.KeycodeTab, \_ _ -> fireEvent FocusNext)]
 
-handleFocusChange :: (FocusRing Name -> FocusRing Name) -> State -> EventHandlingM State ()
+handleFocusChange :: (FocusRing Name -> FocusRing Name) -> State -> EventHandlingM State CustomEvent ()
 handleFocusChange ringChange s =
   let newRing = ringChange (ring s)
       -- When focus moves to List and selection is Nothing, initialize
@@ -77,7 +79,7 @@ handleFocusChange ringChange s =
         _ -> listState s
    in redraw (setCurrentState $ s {ring = newRing, listState = newListState})
 
-eventHandler :: EventHandler State
+eventHandler :: EventHandler State CustomEvent
 eventHandler state@State {..} = \case
   MouseEvent (MouseMove MouseMoveDetails {..}) ->
     redraw $ setCurrentState $ state {mousePosition = defaultTileSizePosition}

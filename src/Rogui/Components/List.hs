@@ -32,7 +32,7 @@ list items toText baseAlignment baseColour highlightedColours ListState {..} =
         strLn baseAlignment (toText item)
    in emptyComponent {draw = \_ _ -> mapM_ displayItem (zip items [0 ..])}
 
-handleListEvent :: Int -> Event -> ListState -> (ListState -> s -> s) -> EventHandlingM s ()
+handleListEvent :: Int -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlingM s e ()
 handleListEvent len event state@ListState {selection} modifier = case event of
   KeyDown KeyDownDetails {key} -> case SDL.keysymKeycode key of
     SDL.KeycodeDown ->
