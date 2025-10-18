@@ -22,7 +22,7 @@ import Control.Monad.Writer
 import Rogui.Components.Types (Component (..), DrawingContext (..), Size (..), TileSize (..), emptyComponent)
 import Rogui.Graphics.DSL.Eval (evalInstructions)
 import Rogui.Graphics.DSL.Instructions (Colours, Instructions, setColours, withBorder, withBrush, withConsole)
-import Rogui.Graphics.Types (Console (..), Pixel (..), Tile (..), fromBrush, (.*=.), (./.=))
+import Rogui.Graphics.Types (Console (..), Pixel (..), Cell (..), fromBrush, (.*=.), (./.=))
 import Rogui.Types (Rogui (Rogui, defaultBrush, numberOfSteps, renderer, rootConsole))
 import SDL (V2 (..), (^*))
 
@@ -49,7 +49,7 @@ bordered colours child =
         draw (padded 1 child) dc
    in emptyComponent {draw = draw'}
 
-padded :: Tile -> Component n -> Component n
+padded :: Cell -> Component n -> Component n
 padded n child =
   let draw' dc@DrawingContext {..} = do
         let TileSize {..} = tileSize
@@ -65,12 +65,12 @@ padded n child =
    in emptyComponent {draw = draw'}
 
 -- | These are used to clarify units (and avoid silly bugs)
-tilesToPixel :: Layout -> TileSize -> Tile -> Pixel
+tilesToPixel :: Layout -> TileSize -> Cell -> Pixel
 tilesToPixel l TileSize {..} t = case l of
   Horizontal -> pixelWidth .*=. t
   Vertical -> pixelHeight .*=. t
 
-pixelToTiles :: Layout -> TileSize -> Pixel -> Tile
+pixelToTiles :: Layout -> TileSize -> Pixel -> Cell
 pixelToTiles l TileSize {..} p = case l of
   Horizontal -> p ./.= pixelWidth
   Vertical -> p ./.= pixelHeight
@@ -87,7 +87,7 @@ layout direction children dc@DrawingContext {..} =
           Greedy -> 0
           Fixed n -> n
       sumFixed = sum . map (countSize . toScan) $ children
-      greedySize = if numberGreedy > 0 then ((pixelToTiles direction tileSize toPartition) - sumFixed) `div` (Tile numberGreedy) else 0
+      greedySize = if numberGreedy > 0 then ((pixelToTiles direction tileSize toPartition) - sumFixed) `div` (Cell numberGreedy) else 0
       getSize child = case toScan child of
         Fixed n -> n
         Greedy -> greedySize

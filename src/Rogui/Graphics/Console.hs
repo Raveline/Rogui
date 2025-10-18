@@ -10,7 +10,7 @@ import Control.Monad.IO.Class
 import Data.Char (ord)
 import Data.Foldable (traverse_)
 import Rogui.Graphics.Primitives (RGB, printCharAt)
-import Rogui.Graphics.Types (Brush (..), Console (..), Tile (..), (./.=))
+import Rogui.Graphics.Types (Brush (..), Console (..), Cell (..), (./.=))
 import SDL (Renderer, V2 (..), (^*))
 
 vertical437, horizontal437, cornerTopLeft437, cornerTopRight437, cornerBottomLeft437, cornerBottomRight437 :: Int
@@ -43,14 +43,14 @@ drawBorder renderer console@Console {..} brush'@Brush {..} front back = do
 
 -- | Very basic, dummy string printer. Will not check for overflow.
 -- Print from the position given with the alignment given.
-printStrAt :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGB -> Maybe RGB -> TextAlign -> String -> V2 Tile -> m ()
+printStrAt :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGB -> Maybe RGB -> TextAlign -> String -> V2 Cell -> m ()
 printStrAt renderer console brush front back alignment str pos =
   let draw n = printCharAt renderer console brush front back (ord n)
       basePos = case alignment of
-        TCenter -> pos - V2 (Tile $ (length str) `div` 2) 0
-        TRight -> pos - V2 (Tile $ length str) 0
+        TCenter -> pos - V2 (Cell $ (length str) `div` 2) 0
+        TRight -> pos - V2 (Cell $ length str) 0
         _ -> pos
-      next (i, c) = draw c (basePos + (Tile <$> (V2 1 0) ^* i))
+      next (i, c) = draw c (basePos + (Cell <$> (V2 1 0) ^* i))
       indexed = zip [0 ..] str
    in traverse_ next indexed
 

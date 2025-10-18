@@ -14,13 +14,13 @@ import Data.List
 import Rogui.Graphics.Console (drawBorder, printStrAt)
 import Rogui.Graphics.DSL.Instructions (Colours (..), Instruction (..), Instructions)
 import Rogui.Graphics.Primitives (printCharAt)
-import Rogui.Graphics.Types (Brush, Console, Tile (..))
+import Rogui.Graphics.Types (Brush, Console, Cell (..))
 import SDL (Metric (signorm), Renderer, V2 (..))
 
 data DrawingState = DrawingState
   { console :: Console,
     brush :: Brush,
-    position :: V2 Tile,
+    position :: V2 Cell,
     renderer :: Renderer,
     colours :: Colours
   }
@@ -55,7 +55,7 @@ eval instruction = do
       modify (\s -> s {colours = col})
     DrawLine to ->
       let dirv = (to - position)
-          step = Tile <$> round @Float @Int <$> signorm (fromIntegral <$> dirv)
+          step = Cell <$> round @Float @Int <$> signorm (fromIntegral <$> dirv)
           forCell n = if n == to then Nothing else Just (n, (n + step))
           cells = to : unfoldr forCell position
        in if (abs $ sum step) > 1

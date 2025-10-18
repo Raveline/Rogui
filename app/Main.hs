@@ -27,7 +27,7 @@ data State = State
   { gameState :: GameState,
     textValue :: String,
     listOfText :: [String],
-    mousePosition :: V2 Tile,
+    mousePosition :: V2 Cell,
     ring :: FocusRing Name,
     listState :: ListState,
     someText :: String
@@ -51,7 +51,7 @@ tileToGlyphInfo t =
       glyphId = tileToGlyphId t
     }
 
-arbitraryMap :: Array (V2 Tile) TileType
+arbitraryMap :: Array (V2 Cell) TileType
 arbitraryMap =
   let generator = \case
         (V2 3 3) -> Wall

@@ -2,22 +2,22 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
--- | Main types used throughout the library.  Pixel and Tiles newtypes allow to
+-- | Main types used throughout the library.  Pixel and Cell newtypes allow to
 -- ensure we are always measuring the right unit. Operators provided use
--- mnemonics: a '.' sign means pixel, a '=' means tiles. The final sign
+-- mnemonics: a '.' sign means pixel, a '=' means grid cells. The final sign
 -- indicates the result type of the operation. E.g.: `.*.=` means multiply pixel
--- unit by pixel units to find a tile unit. For people who hate custom
+-- unit by pixel units to find a cell count. For people who hate custom
 -- operators, full named functions are given.
 module Rogui.Graphics.Types
   ( Console (..),
     Brush (..),
     TileSize (..),
     Pixel (..),
-    Tile (..),
+    Cell (..),
     (.*=.),
-    pixelTimesTiles,
+    pixelTimesCells,
     (./.=),
-    pixelDivPixelToTile,
+    pixelDivPixelToCells,
     fromBrush,
   )
 where
@@ -28,20 +28,20 @@ import SDL (Texture, V2)
 newtype Pixel = Pixel {getPixel :: Int}
   deriving newtype (Num, Integral, Real, Ord, Eq, Enum, Show)
 
-newtype Tile = Tile {getTile :: Int}
+newtype Cell = Cell {getCell :: Int}
   deriving newtype (Num, Integral, Real, Ord, Eq, Enum, Show, Ix)
 
-(.*=.) :: Pixel -> Tile -> Pixel
-(Pixel p) .*=. (Tile t) = Pixel (p * t)
+(.*=.) :: Pixel -> Cell -> Pixel
+(Pixel p) .*=. (Cell c) = Pixel (p * c)
 
-pixelTimesTiles :: Pixel -> Tile -> Pixel
-pixelTimesTiles = (.*=.)
+pixelTimesCells :: Pixel -> Cell -> Pixel
+pixelTimesCells = (.*=.)
 
-(./.=) :: Pixel -> Pixel -> Tile
-(Pixel p) ./.= (Pixel p2) = Tile $ p `div` p2
+(./.=) :: Pixel -> Pixel -> Cell
+(Pixel p) ./.= (Pixel p2) = Cell $ p `div` p2
 
-pixelDivPixelToTile :: Pixel -> Pixel -> Tile
-pixelDivPixelToTile = (./.=)
+pixelDivPixelToCells :: Pixel -> Pixel -> Cell
+pixelDivPixelToCells = (./.=)
 
 -- | A virtual console.
 -- Width, int, position are all in pixels.

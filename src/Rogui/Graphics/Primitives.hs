@@ -53,7 +53,7 @@ printCharAt ::
   -- want to be able to support more ambitious brushes.
   Int ->
   -- | Logical position in the console (in brush size cells)
-  V2 Tile ->
+  V2 Cell ->
   m ()
 printCharAt renderer Console {..} b@Brush {..} frontColour backColour n at = do
   let cInt x = fromIntegral <$> x

@@ -19,7 +19,7 @@ import Data.Text hiding (foldl', null)
 import Data.Word
 import Rogui.Application.Event
 import Rogui.Components (renderComponents)
-import Rogui.Graphics.Types (Brush (..), Console (..), Pixel, Tile, TileSize (..), (.*=.), (./.=))
+import Rogui.Graphics.Types (Brush (..), Console (..), Pixel, Cell, TileSize (..), (.*=.), (./.=))
 import Rogui.Types (EventHandler, Rogui (..))
 import SDL (MouseMotionEventData (MouseMotionEventData))
 import SDL qualified
@@ -46,7 +46,7 @@ loadBrush renderer path (SDL.V2 tileWidth tileHeight) = do
 
 -- Initialize a SDL application and window with the provided tilesize,
 -- giving a window with a size expressed in tiles.
-boot :: (MonadIO m) => TileSize -> Text -> SDL.V2 Tile -> (SDL.Renderer -> Console -> m (Rogui rc rb n s e)) -> s -> m ()
+boot :: (MonadIO m) => TileSize -> Text -> SDL.V2 Cell -> (SDL.Renderer -> Console -> m (Rogui rc rb n s e)) -> s -> m ()
 boot TileSize {..} title (SDL.V2 widthInTiles heightInTiles) guiBuilder initialState = do
   SDL.initializeAll
 
