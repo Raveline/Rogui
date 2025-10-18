@@ -30,7 +30,7 @@ list items toText baseAlignment baseColour highlightedColours ListState {..} =
           then setColours highlightedColours
           else setColours baseColour
         strLn baseAlignment (toText item)
-   in emptyComponent {draw = \_ _ -> mapM_ displayItem (zip items [0 ..])}
+   in emptyComponent {draw = \_ -> mapM_ displayItem (zip items [0 ..])}
 
 handleListEvent :: Int -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlingM s e ()
 handleListEvent len event state@ListState {selection} modifier = case event of

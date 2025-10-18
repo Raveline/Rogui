@@ -5,8 +5,9 @@ module Rogui.Types
 where
 
 import qualified Data.Map as M
+import Data.Word (Word32)
 import Rogui.Application.Event (Event, EventHandlingM)
-import Rogui.Components (Component)
+import Rogui.Components.Types (Component)
 import Rogui.Graphics.Types
 import SDL (Renderer)
 
@@ -27,5 +28,6 @@ data Rogui rc rb n state e
     defaultBrush :: Brush,
     renderer :: Renderer,
     draw :: state -> Component n,
-    onEvent :: EventHandler state e
+    onEvent :: EventHandler state e,
+    lastTicks :: Word32
   }

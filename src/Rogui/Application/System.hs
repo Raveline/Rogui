@@ -62,15 +62,16 @@ boot TileSize {..} title (SDL.V2 widthInTiles heightInTiles) guiBuilder initialS
 appLoop :: (MonadIO m) => Rogui rc rb n s e -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
   sdlEvents <- getSDLEvents defaultBrush
+  t <- SDL.ticks
   let baseEventState = EventHandlingState {events = Seq.fromList sdlEvents, currentState = state, result = ContinueNoRedraw}
       EventHandlingState {result, currentState} = execState (processWithLimit 10 roGUI) baseEventState
   when (result == Continue) $ do
     SDL.clear renderer
     let toDraw = draw currentState
-    renderComponents renderer rootConsole defaultBrush toDraw
+    renderComponents roGUI toDraw
     SDL.present renderer
   unless (result == Halt) $
-    appLoop roGUI currentState
+    appLoop roGUI {lastTicks = t} currentState
 
 processWithLimit :: Int -> Rogui rc rb n s e -> EventHandlingM s e ()
 processWithLimit 0 _ = pure ()

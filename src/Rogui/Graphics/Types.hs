@@ -4,6 +4,7 @@ module Rogui.Graphics.Types
   ( Console (..),
     Brush (..),
     TileSize (..),
+    fromBrush,
   )
 where
 
@@ -37,3 +38,6 @@ data TileSize = TileSize
   { pixelWidth :: Int,
     pixelHeight :: Int
   }
+
+fromBrush :: Brush -> TileSize
+fromBrush Brush {..} = TileSize tileWidth tileHeight

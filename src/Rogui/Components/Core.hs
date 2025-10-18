@@ -19,11 +19,12 @@ where
 
 import Control.Monad (foldM_)
 import Control.Monad.Writer
-import Rogui.Components.Types (Component (..), Size (..), TileSize (..), emptyComponent)
+import Rogui.Components.Types (Component (..), DrawingContext (..), Size (..), TileSize (..), emptyComponent)
 import Rogui.Graphics.DSL.Eval (evalInstructions)
 import Rogui.Graphics.DSL.Instructions (Colours, Instructions, setColours, withBorder, withBrush, withConsole)
-import Rogui.Graphics.Types (Brush (..), Console (..))
-import SDL (Renderer, V2 (..), (^*))
+import Rogui.Graphics.Types (Console (..), fromBrush)
+import Rogui.Types (Rogui (Rogui, defaultBrush, lastTicks, renderer, rootConsole))
+import SDL (V2 (..), (^*))
 
 data Layout = Vertical | Horizontal
   deriving (Eq)
@@ -32,34 +33,36 @@ data Layout = Vertical | Horizontal
 -- NB: an unchecked assumption is that everything is done with the same brush
 -- size. Layout won't work if you change brush size.
 vBox :: [Component n] -> Component n
-vBox components = emptyComponent {draw = \size within -> layout size within Vertical components}
+vBox components = emptyComponent {draw = layout Vertical components}
 
 -- | Draw components aligned horizontally
 -- NB: an unchecked assumption is that everything is done with the same brush
 -- size. Layout won't work if you change brush size.
 hBox :: [Component n] -> Component n
-hBox components = emptyComponent {draw = \size within -> layout size within Horizontal components}
+hBox components = emptyComponent {draw = layout Horizontal components}
 
 bordered :: Colours -> Component n -> Component n
 bordered colours child =
-  let draw' ts console = do
+  let draw' dc = do
         setColours colours
         withBorder
-        draw (padded 1 child) ts console
-   in emptyComponent {draw = \size within -> draw' size within}
+        draw (padded 1 child) dc
+   in emptyComponent {draw = draw'}
 
 padded :: Int -> Component n -> Component n
 padded n child =
-  let draw' ts@TileSize {..} console = do
-        let newConsole =
+  let draw' dc@DrawingContext {..} = do
+        let TileSize {..} = tileSize
+            Console {..} = console
+            newConsole =
               console
-                { width = width console - (pixelWidth * n),
-                  height = height console - (pixelHeight * n),
-                  position = position console + V2 (pixelWidth * n) (pixelHeight * n)
+                { width = width - (pixelWidth * n),
+                  height = height - (pixelHeight * n),
+                  position = position + V2 (pixelWidth * n) (pixelHeight * n)
                 }
         withConsole newConsole
-        (draw child) ts newConsole
-   in emptyComponent {draw = \size within -> draw' size within}
+        (draw child) dc {console = newConsole}
+   in emptyComponent {draw = draw'}
 
 -- | These are used to clarify units (and avoid silly bugs)
 newtype Pixel = Pixel {getPixel :: Int}
@@ -77,9 +80,10 @@ pixelToTiles l TileSize {..} (Pixel p) = case l of
   Horizontal -> Tile $ p `div` pixelWidth
   Vertical -> Tile $ p `div` pixelHeight
 
-layout :: TileSize -> Console -> Layout -> [Component n] -> Writer Instructions ()
-layout tileSize root@Console {width, height} direction children =
-  let toPartition = Pixel $ if direction == Vertical then height else width
+layout :: Layout -> [Component n] -> DrawingContext -> Writer Instructions ()
+layout direction children dc@DrawingContext {..} =
+  let root@Console {width, height} = console
+      toPartition = Pixel $ if direction == Vertical then height else width
       baseStep = if direction == Vertical then V2 0 1 else V2 1 0
       toScan = if direction == Vertical then vSize else hSize
       numberGreedy = length . filter ((==) Greedy . toScan) $ children
@@ -100,14 +104,14 @@ layout tileSize root@Console {width, height} direction children =
                   width = if direction == Horizontal then (getPixel $ tilesToPixel direction tileSize newValue) else width
                 }
         withConsole drawingConsole
-        draw child tileSize drawingConsole
-        pure currentConsole {position = (position currentConsole) + (baseStep ^* (getPixel $ tilesToPixel direction tileSize newValue))}
+        draw child $ dc {console = drawingConsole}
+        pure $ currentConsole {position = (position currentConsole) + (baseStep ^* (getPixel $ tilesToPixel direction tileSize newValue))}
    in foldM_ render root children
 
-renderComponents :: (MonadIO m) => Renderer -> Console -> Brush -> Component n -> m ()
-renderComponents renderer console brush'@Brush {..} Component {..} =
+renderComponents :: (MonadIO m) => Rogui rc rb n s e -> Component n -> m ()
+renderComponents Rogui {defaultBrush, rootConsole, lastTicks, renderer} Component {..} =
   let instructions = execWriter $ do
-        withConsole console
-        withBrush brush'
-        draw (TileSize tileWidth tileHeight) console
-   in evalInstructions renderer console brush' instructions
+        withConsole rootConsole
+        withBrush defaultBrush
+        draw DrawingContext {tileSize = fromBrush defaultBrush, console = rootConsole, ticks = lastTicks}
+   in evalInstructions renderer rootConsole defaultBrush instructions

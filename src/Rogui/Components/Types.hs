@@ -3,6 +3,7 @@
 
 module Rogui.Components.Types
   ( Component (..),
+    DrawingContext (..),
     Size (..),
     -- Convenience reexport
     TileSize (..),
@@ -11,11 +12,18 @@ module Rogui.Components.Types
 where
 
 import Control.Monad.Writer.Lazy
+import Data.Word (Word32)
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Types (Console, TileSize (..))
 
 data Size = Greedy | Fixed Int
   deriving (Eq)
+
+data DrawingContext = DrawingContext
+  { tileSize :: TileSize,
+    console :: Console,
+    ticks :: Word32
+  }
 
 -- | Components are composable widgets (a bit like Brick, but
 -- in less sophisticated).
@@ -35,13 +43,13 @@ data Size = Greedy | Fixed Int
 -- others in tile width. Both element are given as a function to ease
 -- coordinates translation.
 --
--- Component are parametered over a name which are used to handle focus.  
+-- Component are parametered over a name which are used to handle focus.
 data Component name = Component
-  { draw :: TileSize -> Console -> Writer Instructions (),
+  { draw :: DrawingContext -> Writer Instructions (),
     vSize :: Size,
     hSize :: Size
   }
 
 emptyComponent :: Component name
 emptyComponent =
-  Component {draw = \_ _ -> pure (), vSize = Greedy, hSize = Greedy}
+  Component {draw = \_ -> pure (), vSize = Greedy, hSize = Greedy}

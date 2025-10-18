@@ -5,7 +5,7 @@ module Rogui.Components.Label
   )
 where
 
-import Rogui.Components.Types (Component (..), TileSize (..), emptyComponent)
+import Rogui.Components.Types (Component (..), DrawingContext (..), TileSize (..), emptyComponent)
 import Rogui.Graphics.Console (TextAlign (..))
 import Rogui.Graphics.DSL.Instructions (Colours, pencilAt, setColours, strLn)
 import Rogui.Graphics.Types (Console (..))
@@ -13,7 +13,9 @@ import SDL (V2 (..))
 
 label :: String -> TextAlign -> Colours -> Component n
 label content baseAlignment colours =
-  let draw TileSize {..} Console {..} = do
+  let draw DrawingContext {..} = do
+        let TileSize {..} = tileSize
+            Console {..} = console
         setColours colours
         case baseAlignment of
           TLeft -> pure ()

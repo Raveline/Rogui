@@ -66,7 +66,8 @@ guiMaker renderer root = do
         defaultBrush = charset,
         draw = renderApp,
         renderer = renderer,
-        onEvent = baseEventHandler (keyPressHandler eventHandler keysHandler)
+        onEvent = baseEventHandler (keyPressHandler eventHandler keysHandler),
+        lastTicks = 0
       }
 
 keysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent)
