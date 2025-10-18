@@ -20,3 +20,28 @@ blue = V3 0 0 255
 
 grey :: RGB
 grey = V3 128 128 128
+
+-- | Characters constants for CCSID 437 tileset
+fullBlock :: Int
+fullBlock = 155
+
+lightShade :: Int
+lightShade = 176
+
+mediumShade :: Int
+mediumShade = 177
+
+darkShade :: Int
+darkShade = 178
+
+arrowheadRight :: Int
+arrowheadRight = 10
+
+arrowheadLeft :: Int
+arrowheadLeft = 11
+
+arrowheadTop :: Int
+arrowheadTop = 30
+
+arrowheadBottom :: Int
+arrowheadBottom = 31
