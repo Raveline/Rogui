@@ -12,7 +12,6 @@ module Rogui.Components.Types
 where
 
 import Control.Monad.Writer.Lazy
-import Data.Word (Word32)
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Types (Console, TileSize (..))
 
@@ -22,7 +21,7 @@ data Size = Greedy | Fixed Int
 data DrawingContext = DrawingContext
   { tileSize :: TileSize,
     console :: Console,
-    ticks :: Word32
+    steps :: Int
   }
 
 -- | Components are composable widgets (a bit like Brick, but

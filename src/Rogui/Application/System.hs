@@ -9,6 +9,7 @@ module Rogui.Application.System
   )
 where
 
+import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.State hiding (state)
@@ -63,15 +64,24 @@ appLoop :: (MonadIO m) => Rogui rc rb n s e -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
   sdlEvents <- getSDLEvents defaultBrush
   t <- SDL.ticks
-  let baseEventState = EventHandlingState {events = Seq.fromList sdlEvents, currentState = state, result = ContinueNoRedraw}
+  let reachedStep = t - lastStep > timerStep
+      baseEvents = if reachedStep then Step : sdlEvents else sdlEvents
+      baseEventState = EventHandlingState {events = Seq.fromList baseEvents, currentState = state, result = ContinueNoRedraw}
       EventHandlingState {result, currentState} = execState (processWithLimit 10 roGUI) baseEventState
   when (result == Continue) $ do
     SDL.clear renderer
     let toDraw = draw currentState
     renderComponents roGUI toDraw
     SDL.present renderer
-  unless (result == Halt) $
-    appLoop roGUI {lastTicks = t} currentState
+  unless (result == Halt) $ do
+    liftIO $ threadDelay sleepTime
+    let newRogui =
+          roGUI
+            { lastTicks = t,
+              lastStep = if reachedStep then t else lastStep,
+              numberOfSteps = if reachedStep then numberOfSteps + 1 else numberOfSteps
+            }
+    appLoop newRogui currentState
 
 processWithLimit :: Int -> Rogui rc rb n s e -> EventHandlingM s e ()
 processWithLimit 0 _ = pure ()
@@ -88,11 +98,15 @@ processEvent Rogui {..} event = do
   onEvent currentState event
 
 -- | A default event handler that will:
--- - React to ALT+F4, clicking the window cross, or ctrl+C to quit the application
+--
+-- - React to ALT+F4, clicking the window cross, or ctrl+C to quit the
+-- application
 -- - Ensure that a first render is done on window shown
--- Other events are to be manually
--- implemented. Feed your own event handler to this so you get an easy way to
--- leave your applications through common shortcuts.
+-- - Ensure that rendering is done when Step is reached
+--
+-- Other events are to be manually implemented.  Feed your own event handler to
+-- this so you get an easy way to leave your applications through common
+-- shortcuts.
 baseEventHandler :: EventHandler state e -> EventHandler state e
 baseEventHandler sink state event =
   let ctrlC e = SDL.keysymKeycode e == SDL.KeycodeC && (SDL.keyModifierLeftCtrl . SDL.keysymModifier $ e)
@@ -100,6 +114,7 @@ baseEventHandler sink state event =
         KeyDown KeyDownDetails {key} -> if ctrlC key then halt (pure ()) else sink state event
         OtherSDLEvent SDL.QuitEvent -> halt (pure ())
         OtherSDLEvent (SDL.WindowShownEvent _) -> redraw (pure ())
+        Step -> redraw (pure ())
         _ -> sink state event
 
 -- | A utility to react to key presses listed in a Map

@@ -9,6 +9,7 @@ module Rogui.Graphics.DSL.Instructions
     withBorder,
     withConsole,
     withBrush,
+    glyph,
     glyphAt,
     pencilAt,
     setColours,
@@ -64,6 +65,9 @@ withConsole console =
 withBrush :: (MonadWriter Instructions m) => Brush -> m ()
 withBrush brush =
   tell (singleton $ WithBrush brush)
+
+glyph :: (MonadWriter Instructions m) => Int -> m ()
+glyph glyphId = tell (singleton $ DrawGlyph glyphId)
 
 glyphAt :: (MonadWriter Instructions m) => V2 Int -> Int -> m ()
 glyphAt at glyphId =

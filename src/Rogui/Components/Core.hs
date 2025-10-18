@@ -23,7 +23,7 @@ import Rogui.Components.Types (Component (..), DrawingContext (..), Size (..), T
 import Rogui.Graphics.DSL.Eval (evalInstructions)
 import Rogui.Graphics.DSL.Instructions (Colours, Instructions, setColours, withBorder, withBrush, withConsole)
 import Rogui.Graphics.Types (Console (..), fromBrush)
-import Rogui.Types (Rogui (Rogui, defaultBrush, lastTicks, renderer, rootConsole))
+import Rogui.Types (Rogui (Rogui, defaultBrush, numberOfSteps, renderer, rootConsole))
 import SDL (V2 (..), (^*))
 
 data Layout = Vertical | Horizontal
@@ -109,9 +109,9 @@ layout direction children dc@DrawingContext {..} =
    in foldM_ render root children
 
 renderComponents :: (MonadIO m) => Rogui rc rb n s e -> Component n -> m ()
-renderComponents Rogui {defaultBrush, rootConsole, lastTicks, renderer} Component {..} =
+renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} Component {..} =
   let instructions = execWriter $ do
         withConsole rootConsole
         withBrush defaultBrush
-        draw DrawingContext {tileSize = fromBrush defaultBrush, console = rootConsole, ticks = lastTicks}
+        draw DrawingContext {tileSize = fromBrush defaultBrush, console = rootConsole, steps = numberOfSteps}
    in evalInstructions renderer rootConsole defaultBrush instructions

@@ -23,7 +23,7 @@ grey = V3 128 128 128
 
 -- | Characters constants for CCSID 437 tileset
 fullBlock :: Int
-fullBlock = 155
+fullBlock = 219
 
 lightShade :: Int
 lightShade = 176

@@ -33,6 +33,7 @@ data Event e
   | FocusPrev
   | FocusNext
   | Quit
+  | Step
   | AppEvent e
 
 data KeyDownDetails = KeyDownDetails

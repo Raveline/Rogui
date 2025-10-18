@@ -29,5 +29,15 @@ data Rogui rc rb n state e
     renderer :: Renderer,
     draw :: state -> Component n,
     onEvent :: EventHandler state e,
-    lastTicks :: Word32
+    -- | Constant evaluating the amount of milliseconds since initialisation, taken from SDL.
+    lastTicks :: Word32,
+    -- | Step timer constant used for basic animations, expressed in milliseconds.
+    -- Every time the number of milliseconds reach this, we will fire a Step event.
+    timerStep :: Word32,
+    lastStep :: Word32,
+    -- | Number of steps taken since the beginning of the application.
+    numberOfSteps :: Int,
+    -- | Sleep period at the end of the app loop to leave breathing time to CPU,
+    -- expressed in microseconds (1000)
+    sleepTime :: Int
   }

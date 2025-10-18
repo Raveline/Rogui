@@ -7,7 +7,7 @@ module Rogui.Components.TextInput
   )
 where
 
-import Control.Monad (unless)
+import Control.Monad (unless, when)
 import qualified Data.Text as T
 import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (..), fireEvent, modifyState, redraw)
 import Rogui.Components.Types (Component (..), DrawingContext (..), emptyComponent)
@@ -16,13 +16,15 @@ import SDL (TextInputEventData (textInputEventText))
 import qualified SDL
 
 textInput :: String -> Colours -> Bool -> Component n
-textInput txt colours _focused =
+textInput txt colours focused =
   let draw' DrawingContext {..} = do
         let Console {..} = console
             TileSize {..} = tileSize
         setColours colours
         drawLine (SDL.V2 (width * pixelWidth) 0)
-        strLn TLeft txt
+        str TLeft txt
+        when (focused && steps `mod` 10 < 7) $
+          glyph fullBlock
    in emptyComponent {draw = draw'}
 
 handleTextInputEvent :: Event e -> String -> (String -> s -> s) -> EventHandlingM s e ()
