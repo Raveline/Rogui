@@ -67,6 +67,7 @@ library
         Rogui.Components
         Rogui.Components.Button
         Rogui.Components.Core
+        Rogui.Components.GridTile
         Rogui.Components.Label
         Rogui.Components.List
         Rogui.Components.TextInput
@@ -120,6 +121,7 @@ executable rogui
 
     -- Other library packages from which modules are imported.
     build-depends:
+        , array
         , base        ^>=4.20.0.0
         , containers
         , mtl

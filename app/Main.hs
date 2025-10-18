@@ -1,15 +1,18 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
 import Control.Monad.Writer
+import Data.Array.IArray (Array, genArray, (!))
 import Data.Map.Strict qualified as M
 import Rogui.Application.Event
 import Rogui.Application.System
 import Rogui.Components.Button (button, handleButtonEvent)
 import Rogui.Components.Core
+import Rogui.Components.GridTile (GlyphInfo (..), gridTile)
 import Rogui.Components.Label
 import Rogui.Components.List
 import Rogui.Components.TextInput
@@ -21,13 +24,41 @@ import Rogui.Types
 import SDL hiding (Event, drawLine, textureHeight, textureWidth)
 
 data State = State
-  { textValue :: String,
+  { gameState :: GameState,
+    textValue :: String,
     listOfText :: [String],
     mousePosition :: V2 Int,
     ring :: FocusRing Name,
     listState :: ListState,
     someText :: String
   }
+
+data GameState = PlayingGame | UI
+
+data Tile
+  = Floor
+  | Wall
+
+tileToGlyphId :: Tile -> Int
+tileToGlyphId = \case
+  Floor -> 5
+  Wall -> 78
+
+tileToGlyphInfo :: Tile -> GlyphInfo
+tileToGlyphInfo t =
+  GlyphInfo
+    { colours = Colours Nothing Nothing,
+      glyphId = tileToGlyphId t
+    }
+
+arbitraryMap :: Array (V2 Int) Tile
+arbitraryMap =
+  let generator = \case
+        (V2 3 3) -> Wall
+        (V2 8 3) -> Wall
+        (V2 18 3) -> Wall
+        _ -> Floor
+   in genArray ((V2 0 0), (V2 20 20)) generator
 
 data Name
   = List
@@ -45,7 +76,8 @@ main = do
     (V2 50 38)
     guiMaker
     $ State
-      { textValue = "test",
+      { gameState = PlayingGame,
+        textValue = "test",
         listOfText = ["Item 1", "Item 2", "Item 3"],
         mousePosition = V2 0 0,
         ring = focusRing [List, TextInput, QuitButton],
@@ -57,14 +89,14 @@ guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes 
 guiMaker renderer root = do
   let modal = Console {width = 400, height = 200, position = V2 (16 * 10) (16 * 10)}
   charset <- loadBrush renderer "terminal_16x16.png" (V2 16 16)
-  tiles <- loadBrush renderer "supermarket.png" (V2 16 16)
+  tiles <- loadBrush renderer "punyworld-dungeon-tileset.png" (V2 16 16)
   pure $
     Rogui
       { consoles = M.fromList [(Root, root), (LittleModal, modal)],
         brushes = M.fromList [(Charset, charset), (Drawings, tiles)],
         rootConsole = root,
         defaultBrush = charset,
-        draw = renderApp,
+        draw = renderApp tiles,
         renderer = renderer,
         onEvent = baseEventHandler (keyPressHandler eventHandler keysHandler),
         lastTicks = 0,
@@ -100,8 +132,13 @@ eventHandler state@State {..} = \case
     (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
     _ -> pure ()
 
-renderApp :: State -> Component Name
-renderApp State {..} =
+renderApp :: Brush -> State -> Component Name
+renderApp tiles s@State {gameState} = case gameState of
+  PlayingGame -> gridTile tiles (V2 10 10) (V2 20 20) ((!) arbitraryMap) tileToGlyphInfo (V2 0 0)
+  UI -> renderUI s
+
+renderUI :: State -> Component Name
+renderUI State {..} =
   let baseColours = Colours (Just white) (Just black)
       highlighted = Colours (Just black) (Just white)
       textColours = Colours (Just white) (Just grey)
