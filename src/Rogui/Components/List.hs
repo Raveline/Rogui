@@ -9,7 +9,7 @@ module Rogui.Components.List
   )
 where
 
-import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (..), fireEvent, modifyState)
+import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (..), fireEvent, modifyState, redraw)
 import Rogui.Components.Types (Component (..), emptyComponent)
 import Rogui.Graphics.Console (TextAlign)
 import Rogui.Graphics.DSL.Instructions (Colours, setColours, strLn)
@@ -41,13 +41,13 @@ handleListEvent len event state@ListState {selection} modifier = case event of
             then do
               fireEvent FocusNext
               modifyState . modifier $ state {selection = Nothing}
-            else modifyState (modifier $ state {selection = Just newIndex})
+            else redraw . modifyState . modifier $ state {selection = Just newIndex}
     SDL.KeycodeUp ->
       let newIndex = maybe (len - 1) (\n -> (n - 1)) selection
        in if newIndex >= 0
             then modifyState (modifier $ state {selection = Just newIndex})
             else do
               fireEvent FocusPrev
-              modifyState . modifier $ state {selection = Nothing}
+              redraw . modifyState . modifier $ state {selection = Nothing}
     _ -> pure ()
   _ -> pure ()

@@ -12,6 +12,7 @@ import Rogui.Components.Button (button, handleButtonEvent)
 import Rogui.Components.Core
 import Rogui.Components.Label
 import Rogui.Components.List
+import Rogui.Components.TextInput
 import Rogui.Components.Types
 import Rogui.Example
 import Rogui.FocusRing
@@ -24,11 +25,13 @@ data State = State
     listOfText :: [String],
     mousePosition :: V2 Int,
     ring :: FocusRing Name,
-    listState :: ListState
+    listState :: ListState,
+    someText :: String
   }
 
 data Name
   = List
+  | TextInput
   | QuitButton
   deriving (Eq)
 
@@ -45,8 +48,9 @@ main = do
       { textValue = "test",
         listOfText = ["Item 1", "Item 2", "Item 3"],
         mousePosition = V2 0 0,
-        ring = focusRing [List, QuitButton],
-        listState = mkListState {selection = Just 0}
+        ring = focusRing [List, TextInput, QuitButton],
+        listState = mkListState {selection = Just 0},
+        someText = ""
       }
 
 guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes Name State CustomEvent)
@@ -88,12 +92,14 @@ eventHandler state@State {..} = \case
   e -> case focusGetCurrent ring of
     (Just List) -> handleListEvent (length listOfText) e listState (\newLs s -> s {listState = newLs})
     (Just QuitButton) -> handleButtonEvent (\_ _ -> halt (pure ())) state e
+    (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
     _ -> pure ()
 
 renderApp :: State -> Component Name
 renderApp State {..} =
   let baseColours = Colours (Just white) (Just black)
       highlighted = Colours (Just black) (Just white)
+      textColours = Colours (Just white) (Just grey)
       (V2 x y) = mousePosition
    in vBox
         [ ( label
@@ -114,5 +120,11 @@ renderApp State {..} =
             { vSize = Fixed 2
             },
           bordered baseColours $ padded 2 $ list listOfText id TLeft baseColours highlighted listState,
-          button "Quit" TCenter baseColours highlighted (focusGetCurrent ring == Just QuitButton)
+          textInput someText textColours (focusGetCurrent ring == Just TextInput),
+          button
+            "Quit"
+            TCenter
+            baseColours
+            highlighted
+            (focusGetCurrent ring == Just QuitButton)
         ]

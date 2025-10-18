@@ -69,6 +69,7 @@ library
         Rogui.Components.Core
         Rogui.Components.Label
         Rogui.Components.List
+        Rogui.Components.TextInput
         Rogui.Components.Types
         Rogui.Example
         Rogui.FocusRing

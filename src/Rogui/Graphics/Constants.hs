@@ -17,3 +17,6 @@ green = V3 0 255 0
 
 blue :: RGB
 blue = V3 0 0 255
+
+grey :: RGB
+grey = V3 128 128 128
