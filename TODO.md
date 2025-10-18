@@ -8,7 +8,7 @@ Medium priority:
 
 [X] Add utilities to set vSize and hSize
 [ ] Add a TextConsole component to display game logs
-[ ] Add a progressbar component
+[X] Add a progressbar component
 [ ] Support viewport for components that exceed their console size
 [ ] See how Modal can be integrated in this
 

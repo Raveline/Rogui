@@ -15,6 +15,7 @@ import Rogui.Components.Core
 import Rogui.Components.GridTile (GlyphInfo (..), gridTile)
 import Rogui.Components.Label
 import Rogui.Components.List
+import Rogui.Components.ProgressBar
 import Rogui.Components.TextInput
 import Rogui.Components.Types
 import Rogui.Example
@@ -77,7 +78,7 @@ main = do
     60
     guiMaker
     $ State
-      { gameState = UI,
+      { gameState = PlayingGame,
         textValue = "test",
         listOfText = ["Item 1", "Item 2", "Item 3"],
         mousePosition = V2 0 0,
@@ -134,9 +135,18 @@ eventHandler state@State {..} = \case
     _ -> pure ()
 
 renderApp :: Brush -> State -> Component Name
-renderApp tiles s@State {gameState} = case gameState of
-  PlayingGame -> gridTile tiles (V2 10 10) (V2 20 20) ((!) arbitraryMap) tileToGlyphInfo (V2 0 0)
-  UI -> renderUI s
+renderApp tiles s@State {gameState} =
+  let baseColours = Colours (Just white) (Just black)
+   in case gameState of
+        PlayingGame ->
+          vBox
+            [ vSize (Fixed 1) $
+                hBox
+                  [ progressBar 0 20 10 baseColours baseColours fullBlock lightShade
+                  ],
+              gridTile tiles (V2 10 10) (V2 20 20) ((!) arbitraryMap) tileToGlyphInfo (V2 0 0)
+            ]
+        UI -> renderUI s
 
 renderUI :: State -> Component Name
 renderUI State {..} =

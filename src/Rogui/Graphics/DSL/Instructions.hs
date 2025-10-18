@@ -12,6 +12,7 @@ module Rogui.Graphics.DSL.Instructions
     glyph,
     glyphAt,
     pencilAt,
+    movePencilBy,
     setColours,
     drawHorizontalLine,
   )

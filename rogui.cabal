@@ -70,6 +70,7 @@ library
         Rogui.Components.GridTile
         Rogui.Components.Label
         Rogui.Components.List
+        Rogui.Components.ProgressBar
         Rogui.Components.TextInput
         Rogui.Components.Types
         Rogui.Example
