@@ -38,8 +38,6 @@ renderingThroughInstructions Rogui {..} =
 
     pencilAt (V2 1 20)
     setColours (Colours Nothing (Just white))
-    drawLine (V2 20 20)
-    drawLine (V2 1 25)
     setColours (Colours Nothing Nothing)
     withBrush (brushes M.! Drawings)
     glyphAt (V2 1 1) 0

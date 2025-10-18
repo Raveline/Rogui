@@ -13,7 +13,7 @@ module Rogui.Graphics.DSL.Instructions
     glyphAt,
     pencilAt,
     setColours,
-    drawLine,
+    drawHorizontalLine,
   )
 where
 
@@ -21,7 +21,7 @@ import Control.Monad.Writer (MonadWriter (tell))
 import Data.DList
 import Rogui.Graphics.Console (TextAlign (..))
 import Rogui.Graphics.Primitives (RGB)
-import Rogui.Graphics.Types (Brush, Console, Cell (..))
+import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (V2 (..))
 
 data Colours = Colours {front :: Maybe RGB, back :: Maybe RGB}
@@ -36,7 +36,7 @@ data Instruction
   | MoveTo (V2 Cell)
   | MoveBy (V2 Cell)
   | SetColours Colours
-  | DrawLine (V2 Cell)
+  | DrawHorizontalLine Cell Int
 
 type Instructions = DList Instruction
 
@@ -86,11 +86,9 @@ setColours :: (MonadWriter Instructions m) => Colours -> m ()
 setColours colours =
   tell (singleton $ SetColours colours)
 
--- | A dummy drawline function. This is not an implementation of
--- Bresenham or nothing of the sort; it will simply put a space
--- character with the colour background of the pencil,
--- on each tile at a step calculated between from and to.
--- This is mostly meant to be used for horizontal highlighting.
-drawLine :: (MonadWriter Instructions m) => V2 Cell -> m ()
-drawLine to =
-  tell (singleton $ DrawLine to)
+-- | This is mostly meant to be used for horizontal highlighting.
+-- Draw a line from pencil until the specified cell (included).
+-- The line is drawn with the provided character.
+drawHorizontalLine :: (MonadWriter Instructions m) => Cell -> Int -> m ()
+drawHorizontalLine to glyphId =
+  tell (singleton $ DrawHorizontalLine to glyphId)

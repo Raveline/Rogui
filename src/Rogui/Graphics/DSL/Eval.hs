@@ -10,12 +10,11 @@ where
 import Control.Monad.IO.Class
 import Control.Monad.State (MonadState, evalStateT, get, modify)
 import Data.Foldable
-import Data.List
 import Rogui.Graphics.Console (drawBorder, printStrAt)
 import Rogui.Graphics.DSL.Instructions (Colours (..), Instruction (..), Instructions)
 import Rogui.Graphics.Primitives (printCharAt)
-import Rogui.Graphics.Types (Brush, Console, Cell (..))
-import SDL (Metric (signorm), Renderer, V2 (..))
+import Rogui.Graphics.Types (Brush, Cell (..), Console)
+import SDL (Renderer, V2 (..))
 
 data DrawingState = DrawingState
   { console :: Console,
@@ -53,11 +52,7 @@ eval instruction = do
       modify (\s -> s {position = position + by})
     SetColours col ->
       modify (\s -> s {colours = col})
-    DrawLine to ->
-      let dirv = (to - position)
-          step = Cell <$> round @Float @Int <$> signorm (fromIntegral <$> dirv)
-          forCell n = if n == to then Nothing else Just (n, (n + step))
-          cells = to : unfoldr forCell position
-       in if (abs $ sum step) > 1
-            then liftIO $ putStrLn "Will not draw a line that is not straight"
-            else traverse_ (printCharAt renderer console brush front back 0) cells
+    DrawHorizontalLine to glyph ->
+      let (V2 fromX fromY) = position
+          cells = [(V2 x y) | x <- [fromX .. to], y <- [fromY]]
+       in traverse_ (printCharAt renderer console brush front back glyph) cells
