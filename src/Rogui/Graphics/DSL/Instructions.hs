@@ -5,6 +5,7 @@ module Rogui.Graphics.DSL.Instructions
     Instructions,
     Colours (..),
     strLn,
+    str,
     withBorder,
     withConsole,
     withBrush,
@@ -32,15 +33,25 @@ data Instruction
   | WithBrush Brush
   | DrawGlyph Int
   | MoveTo (V2 Int)
+  | MoveBy (V2 Int)
   | SetColours Colours
   | DrawLine (V2 Int)
 
 type Instructions = DList Instruction
 
+-- | Write the string with the provided alignment, then moves the cursor one
+-- line below.
 strLn :: (MonadWriter Instructions m) => TextAlign -> String -> m ()
 strLn align txt =
   tell (singleton $ DrawString align txt)
     >> tell (singleton NewLine)
+
+-- | Write the string with the alignment, then moves the cursor right
+-- after the last character
+str :: (MonadWriter Instructions m) => TextAlign -> String -> m ()
+str align txt =
+  tell (singleton $ DrawString align txt)
+    >> movePencilBy (V2 (length txt) 0)
 
 withBorder :: (MonadWriter Instructions m) => m ()
 withBorder = tell . singleton $ DrawBorder
@@ -62,6 +73,10 @@ glyphAt at glyphId =
 pencilAt :: (MonadWriter Instructions m) => V2 Int -> m ()
 pencilAt at =
   tell (singleton $ MoveTo at)
+
+movePencilBy :: (MonadWriter Instructions m) => V2 Int -> m ()
+movePencilBy by =
+  tell (singleton $ MoveBy by)
 
 setColours :: (MonadWriter Instructions m) => Colours -> m ()
 setColours colours =

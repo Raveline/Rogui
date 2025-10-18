@@ -49,6 +49,8 @@ eval instruction = do
       printCharAt renderer console brush front back glyphId position
     MoveTo pos ->
       modify (\s -> s {position = pos})
+    MoveBy by ->
+      modify (\s -> s {position = position + by})
     SetColours col ->
       modify (\s -> s {colours = col})
     DrawLine to ->
