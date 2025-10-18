@@ -74,6 +74,7 @@ main = do
     (TileSize 16 16)
     "RoGUI example"
     (V2 50 38)
+    60
     guiMaker
     $ State
       { gameState = UI,
@@ -103,7 +104,7 @@ guiMaker renderer root = do
         timerStep = 100,
         lastStep = 0,
         numberOfSteps = 0,
-        sleepTime = 16667
+        targetFrameTime = 0
       }
 
 keysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent)

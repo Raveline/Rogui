@@ -19,7 +19,7 @@ import Data.Text hiding (foldl', null)
 import Data.Word
 import Rogui.Application.Event
 import Rogui.Components (renderComponents)
-import Rogui.Graphics.Types (Brush (..), Console (..), Pixel, Cell, TileSize (..), (.*=.), (./.=))
+import Rogui.Graphics.Types (Brush (..), Cell, Console (..), Pixel, TileSize (..), (.*=.), (./.=))
 import Rogui.Types (EventHandler, Rogui (..))
 import SDL (MouseMotionEventData (MouseMotionEventData))
 import SDL qualified
@@ -46,25 +46,26 @@ loadBrush renderer path (SDL.V2 tileWidth tileHeight) = do
 
 -- Initialize a SDL application and window with the provided tilesize,
 -- giving a window with a size expressed in tiles.
-boot :: (MonadIO m) => TileSize -> Text -> SDL.V2 Cell -> (SDL.Renderer -> Console -> m (Rogui rc rb n s e)) -> s -> m ()
-boot TileSize {..} title (SDL.V2 widthInTiles heightInTiles) guiBuilder initialState = do
+boot :: (MonadIO m) => TileSize -> Text -> SDL.V2 Cell -> Int -> (SDL.Renderer -> Console -> m (Rogui rc rb n s e)) -> s -> m ()
+boot TileSize {..} title (SDL.V2 widthInTiles heightInTiles) fps guiBuilder initialState = do
   SDL.initializeAll
 
   let windowSize@(SDL.V2 w h) = SDL.V2 (pixelWidth .*=. widthInTiles) (pixelHeight .*=. heightInTiles)
   window <- SDL.createWindow title SDL.defaultWindow {SDL.windowInitialSize = fromIntegral <$> windowSize}
   renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
   let baseConsole = Console {width = w, height = h, position = SDL.V2 0 0}
+      frameTime = 1000 `div` fromIntegral fps -- milliseconds per frame
   gui <- guiBuilder renderer baseConsole
 
-  appLoop gui initialState
+  appLoop gui {targetFrameTime = frameTime} initialState
 
   SDL.destroyWindow window
 
 appLoop :: (MonadIO m) => Rogui rc rb n s e -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
   sdlEvents <- getSDLEvents defaultBrush
-  t <- SDL.ticks
-  let reachedStep = t - lastStep > timerStep
+  frameStart <- SDL.ticks
+  let reachedStep = frameStart - lastStep > timerStep
       baseEvents = if reachedStep then Step : sdlEvents else sdlEvents
       baseEventState = EventHandlingState {events = Seq.fromList baseEvents, currentState = state, result = ContinueNoRedraw}
       EventHandlingState {result, currentState} = execState (processWithLimit 10 roGUI) baseEventState
@@ -74,11 +75,17 @@ appLoop roGUI@Rogui {..} state = do
     renderComponents roGUI toDraw
     SDL.present renderer
   unless (result == Halt) $ do
-    liftIO $ threadDelay sleepTime
+    frameEnd <- SDL.ticks
+    let elapsed = frameStart - frameEnd
+        sleepMs =
+          if elapsed < targetFrameTime
+            then targetFrameTime - elapsed
+            else 0
+    liftIO $ threadDelay (fromIntegral sleepMs * 1000)
     let newRogui =
           roGUI
-            { lastTicks = t,
-              lastStep = if reachedStep then t else lastStep,
+            { lastTicks = frameStart,
+              lastStep = if reachedStep then frameStart else lastStep,
               numberOfSteps = if reachedStep then numberOfSteps + 1 else numberOfSteps
             }
     appLoop newRogui currentState

@@ -37,7 +37,6 @@ data Rogui rc rb n state e
     lastStep :: Word32,
     -- | Number of steps taken since the beginning of the application.
     numberOfSteps :: Int,
-    -- | Sleep period at the end of the app loop to leave breathing time to CPU,
-    -- expressed in microseconds (1000)
-    sleepTime :: Int
+    -- | Internal, milliseconds per frame
+    targetFrameTime :: Word32
   }
