@@ -27,7 +27,7 @@ data State = State
   { gameState :: GameState,
     textValue :: String,
     listOfText :: [String],
-    mousePosition :: V2 Int,
+    mousePosition :: V2 Tile,
     ring :: FocusRing Name,
     listState :: ListState,
     someText :: String
@@ -35,23 +35,23 @@ data State = State
 
 data GameState = PlayingGame | UI
 
-data Tile
+data TileType
   = Floor
   | Wall
 
-tileToGlyphId :: Tile -> Int
+tileToGlyphId :: TileType -> Int
 tileToGlyphId = \case
   Floor -> 5
   Wall -> 78
 
-tileToGlyphInfo :: Tile -> GlyphInfo
+tileToGlyphInfo :: TileType -> GlyphInfo
 tileToGlyphInfo t =
   GlyphInfo
     { colours = Colours Nothing Nothing,
       glyphId = tileToGlyphId t
     }
 
-arbitraryMap :: Array (V2 Int) Tile
+arbitraryMap :: Array (V2 Tile) TileType
 arbitraryMap =
   let generator = \case
         (V2 3 3) -> Wall
@@ -76,7 +76,7 @@ main = do
     (V2 50 38)
     guiMaker
     $ State
-      { gameState = PlayingGame,
+      { gameState = UI,
         textValue = "test",
         listOfText = ["Item 1", "Item 2", "Item 3"],
         mousePosition = V2 0 0,
@@ -162,7 +162,7 @@ renderUI State {..} =
             { vSize = Fixed 2
             },
           bordered baseColours $ padded 2 $ list listOfText id TLeft baseColours highlighted listState,
-          textInput someText textColours (focusGetCurrent ring == Just TextInput),
+          padded 2 $ textInput someText textColours (focusGetCurrent ring == Just TextInput),
           button
             "Quit"
             TCenter

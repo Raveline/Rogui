@@ -33,10 +33,10 @@ setBackColour renderer dest (V3 r g b) = do
 --  |9|10|11|
 charIdToPosition :: Brush -> Int -> Rectangle CInt
 charIdToPosition Brush {..} tileId =
-  let numberOfColumns = textureWidth `div` tileWidth
+  let numberOfColumns = getPixel $ textureWidth `div` tileWidth
       x = tileId `mod` numberOfColumns
       y = tileId `div` numberOfColumns
-   in fromIntegral <$> Rectangle (P $ V2 (x * tileWidth) (y * tileHeight)) (V2 tileWidth tileHeight)
+   in fromIntegral <$> Rectangle (P $ V2 (x * getPixel tileWidth) (y * getPixel tileHeight)) (fromIntegral <$> (V2 tileWidth tileHeight))
 
 printCharAt ::
   (MonadIO m) =>
@@ -53,12 +53,12 @@ printCharAt ::
   -- want to be able to support more ambitious brushes.
   Int ->
   -- | Logical position in the console (in brush size cells)
-  V2 Int ->
+  V2 Tile ->
   m ()
 printCharAt renderer Console {..} b@Brush {..} frontColour backColour n at = do
   let cInt x = fromIntegral <$> x
-      getScreenPos (V2 x y) = V2 (x * tileWidth) (y * tileHeight)
-      realRectangle = Rectangle (P $ cInt $ position + getScreenPos at) (cInt $ V2 tileWidth tileHeight)
+      getScreenPos (V2 x y) = V2 (tileWidth .*=. x) (tileHeight .*=. y)
+      realRectangle = Rectangle (P $ cInt $ (position + getScreenPos at)) (cInt $ V2 tileWidth tileHeight)
   traverse_ (setBackColour renderer realRectangle) backColour
   traverse_ (setFrontColour brush) frontColour
   SDL.copy

@@ -21,7 +21,7 @@ textInput txt colours focused =
         let Console {..} = console
             TileSize {..} = tileSize
         setColours colours
-        drawLine (SDL.V2 (width * pixelWidth) 0)
+        drawLine (SDL.V2 (width ./.= pixelWidth - 1) 0)
         str TLeft txt
         when (focused && steps `mod` 10 < 7) $
           glyph fullBlock

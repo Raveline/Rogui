@@ -22,6 +22,7 @@ where
 
 import Control.Monad.State hiding (state)
 import Data.Sequence (Seq (..), (|>))
+import Rogui.Graphics.Types (Pixel, Tile)
 import SDL (EventPayload, Keysym, MouseButtonEventData)
 import SDL.Vect (V2)
 
@@ -50,9 +51,9 @@ data MouseEventDetails
   | MouseClick MouseButtonEventData
 
 data MouseMoveDetails = MouseMoveDetails
-  { relativeMouseMotion :: V2 Int,
-    absoluteMousePosition :: V2 Int,
-    defaultTileSizePosition :: V2 Int
+  { relativeMouseMotion :: V2 Pixel,
+    absoluteMousePosition :: V2 Pixel,
+    defaultTileSizePosition :: V2 Tile
   }
 
 data EventResult

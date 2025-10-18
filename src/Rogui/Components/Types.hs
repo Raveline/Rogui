@@ -13,9 +13,9 @@ where
 
 import Control.Monad.Writer.Lazy
 import Rogui.Graphics.DSL.Instructions
-import Rogui.Graphics.Types (Console, TileSize (..))
+import Rogui.Graphics.Types (Console, Tile, TileSize (..))
 
-data Size = Greedy | Fixed Int
+data Size = Greedy | Fixed Tile
   deriving (Eq)
 
 data DrawingContext = DrawingContext

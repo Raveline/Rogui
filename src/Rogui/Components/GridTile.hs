@@ -10,6 +10,7 @@ import Data.Foldable (traverse_)
 import Rogui.Components (Component (..), Size (..), emptyComponent)
 import Rogui.Graphics (Brush)
 import Rogui.Graphics.DSL.Instructions
+import Rogui.Graphics.Types (Tile)
 import SDL (V2 (..))
 
 data GlyphInfo = GlyphInfo
@@ -22,7 +23,7 @@ data GlyphInfo = GlyphInfo
 -- tilemap to display, we'll display more.
 -- The first item returned is the top-left most tile, which
 -- can be used to get local coordinates easily.
-computeViewport :: V2 Int -> V2 Int -> V2 Int -> (V2 Int, [V2 Int])
+computeViewport :: V2 Tile -> V2 Tile -> V2 Tile -> (V2 Tile, [V2 Tile])
 computeViewport (V2 viewportWidth viewportHeight) (V2 mapWidth mapHeight) (V2 focusX focusY) =
   let idealFromX = focusX - (viewportWidth `div` 2)
       idealFromY = focusY - (viewportHeight `div` 2)
@@ -33,7 +34,7 @@ computeViewport (V2 viewportWidth viewportHeight) (V2 mapWidth mapHeight) (V2 fo
       allCoords = [V2 x y | x <- [fromX .. toX], y <- [fromY .. toY]]
    in ((V2 fromX fromY), allCoords)
 
-gridTile :: Brush -> V2 Int -> V2 Int -> (V2 Int -> t) -> (t -> GlyphInfo) -> V2 Int -> Component n
+gridTile :: Brush -> V2 Tile -> V2 Tile -> (V2 Tile -> t) -> (t -> GlyphInfo) -> V2 Tile -> Component n
 gridTile tileBrush viewportSize@(V2 viewportWidth viewportHeight) mapSize getTile getTileDisplay focusOn =
   let (from, tilesToPrint) = computeViewport viewportSize mapSize focusOn
       renderAt coords = do

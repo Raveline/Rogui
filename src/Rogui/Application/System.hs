@@ -19,7 +19,7 @@ import Data.Text hiding (foldl', null)
 import Data.Word
 import Rogui.Application.Event
 import Rogui.Components (renderComponents)
-import Rogui.Graphics.Types (Brush (..), Console (..), TileSize (..))
+import Rogui.Graphics.Types (Brush (..), Console (..), Pixel, Tile, TileSize (..), (.*=.), (./.=))
 import Rogui.Types (EventHandler, Rogui (..))
 import SDL (MouseMotionEventData (MouseMotionEventData))
 import SDL qualified
@@ -33,7 +33,7 @@ convertSurface (SDL.Surface s _) pixFmt = do
   surface <- SDL.Surface <$> Raw.convertSurface s fmt 0 <*> pure Nothing
   surface <$ Raw.freeFormat fmt
 
-loadBrush :: (MonadIO m) => SDL.Renderer -> FilePath -> SDL.V2 Int -> m Brush
+loadBrush :: (MonadIO m) => SDL.Renderer -> FilePath -> SDL.V2 Pixel -> m Brush
 loadBrush renderer path (SDL.V2 tileWidth tileHeight) = do
   fontSurface <- SDL.load path
   surface <- convertSurface fontSurface SDL.RGBA8888
@@ -46,11 +46,11 @@ loadBrush renderer path (SDL.V2 tileWidth tileHeight) = do
 
 -- Initialize a SDL application and window with the provided tilesize,
 -- giving a window with a size expressed in tiles.
-boot :: (MonadIO m) => TileSize -> Text -> SDL.V2 Int -> (SDL.Renderer -> Console -> m (Rogui rc rb n s e)) -> s -> m ()
+boot :: (MonadIO m) => TileSize -> Text -> SDL.V2 Tile -> (SDL.Renderer -> Console -> m (Rogui rc rb n s e)) -> s -> m ()
 boot TileSize {..} title (SDL.V2 widthInTiles heightInTiles) guiBuilder initialState = do
   SDL.initializeAll
 
-  let windowSize@(SDL.V2 w h) = SDL.V2 (widthInTiles * pixelWidth) (heightInTiles * pixelHeight)
+  let windowSize@(SDL.V2 w h) = SDL.V2 (pixelWidth .*=. widthInTiles) (pixelHeight .*=. heightInTiles)
   window <- SDL.createWindow title SDL.defaultWindow {SDL.windowInitialSize = fromIntegral <$> windowSize}
   renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
   let baseConsole = Console {width = w, height = h, position = SDL.V2 0 0}
@@ -135,7 +135,7 @@ getSDLEvents Brush {..} =
         SDL.MouseMotionEvent MouseMotionEventData {..} ->
           let (SDL.P mousePos) = mouseMotionEventPos
               absoluteMousePosition@(SDL.V2 x y) = fromIntegral <$> mousePos
-              defaultTileSizePosition = SDL.V2 (x `div` tileWidth) (y `div` tileHeight)
+              defaultTileSizePosition = SDL.V2 (x ./.= tileWidth) (y ./.= tileHeight)
               relativeMouseMotion = fromIntegral <$> mouseMotionEventRelMotion
            in MouseEvent . MouseMove $ MouseMoveDetails {..}
         SDL.MouseButtonEvent me -> MouseEvent (MouseClick me)

@@ -21,7 +21,7 @@ import Control.Monad.Writer (MonadWriter (tell))
 import Data.DList
 import Rogui.Graphics.Console (TextAlign (..))
 import Rogui.Graphics.Primitives (RGB)
-import Rogui.Graphics.Types (Brush, Console)
+import Rogui.Graphics.Types (Brush, Console, Tile (..))
 import SDL (V2 (..))
 
 data Colours = Colours {front :: Maybe RGB, back :: Maybe RGB}
@@ -33,10 +33,10 @@ data Instruction
   | OnConsole Console
   | WithBrush Brush
   | DrawGlyph Int
-  | MoveTo (V2 Int)
-  | MoveBy (V2 Int)
+  | MoveTo (V2 Tile)
+  | MoveBy (V2 Tile)
   | SetColours Colours
-  | DrawLine (V2 Int)
+  | DrawLine (V2 Tile)
 
 type Instructions = DList Instruction
 
@@ -52,7 +52,7 @@ strLn align txt =
 str :: (MonadWriter Instructions m) => TextAlign -> String -> m ()
 str align txt =
   tell (singleton $ DrawString align txt)
-    >> movePencilBy (V2 (length txt) 0)
+    >> movePencilBy (V2 (Tile $ length txt) 0)
 
 withBorder :: (MonadWriter Instructions m) => m ()
 withBorder = tell . singleton $ DrawBorder
@@ -69,16 +69,16 @@ withBrush brush =
 glyph :: (MonadWriter Instructions m) => Int -> m ()
 glyph glyphId = tell (singleton $ DrawGlyph glyphId)
 
-glyphAt :: (MonadWriter Instructions m) => V2 Int -> Int -> m ()
+glyphAt :: (MonadWriter Instructions m) => V2 Tile -> Int -> m ()
 glyphAt at glyphId =
   pencilAt at
     >> tell (singleton $ DrawGlyph glyphId)
 
-pencilAt :: (MonadWriter Instructions m) => V2 Int -> m ()
+pencilAt :: (MonadWriter Instructions m) => V2 Tile -> m ()
 pencilAt at =
   tell (singleton $ MoveTo at)
 
-movePencilBy :: (MonadWriter Instructions m) => V2 Int -> m ()
+movePencilBy :: (MonadWriter Instructions m) => V2 Tile -> m ()
 movePencilBy by =
   tell (singleton $ MoveBy by)
 
@@ -91,6 +91,6 @@ setColours colours =
 -- character with the colour background of the pencil,
 -- on each tile at a step calculated between from and to.
 -- This is mostly meant to be used for horizontal highlighting.
-drawLine :: (MonadWriter Instructions m) => V2 Int -> m ()
+drawLine :: (MonadWriter Instructions m) => V2 Tile -> m ()
 drawLine to =
   tell (singleton $ DrawLine to)
