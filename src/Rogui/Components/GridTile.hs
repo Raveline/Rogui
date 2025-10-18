@@ -44,4 +44,4 @@ gridTile tileBrush viewportSize@(V2 viewportWidth viewportHeight) mapSize getTil
       draw _ = do
         withBrush tileBrush
         traverse_ renderAt tilesToPrint
-   in emptyComponent {draw = draw, hSize = Fixed viewportWidth, vSize = Fixed viewportHeight}
+   in emptyComponent {draw = draw, horizontalSize = Fixed viewportWidth, verticalSize = Fixed viewportHeight}

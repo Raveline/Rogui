@@ -5,9 +5,10 @@ module Rogui.Example where
 
 import Control.Monad.Writer
 import Data.Map.Strict qualified as M
-import Rogui.Components (Component (..), Size (..), bordered, hBox, padded, renderComponents, vBox)
+import Rogui.Components (Size (..), bordered, hBox, padded, renderComponents, vBox)
 import Rogui.Components.Label (label)
 import Rogui.Components.List (list, mkListState)
+import Rogui.Components.Types (vSize)
 import Rogui.Graphics
 import Rogui.Types
 import SDL hiding (drawLine, textureHeight, textureWidth)
@@ -53,16 +54,14 @@ renderingThroughComponents rogui =
       highlighted = Colours (Just black) (Just white)
       components =
         vBox
-          [ ( label
+          [ vSize (Fixed 3) $
+              label
                 "Components demo"
                 TCenter
                 ( Colours
                     (Just red)
                     (Just black)
-                )
-            )
-              { vSize = Fixed 3
-              },
+                ),
             hBox
               [ bordered baseColours $ padded 2 $ list ["Apple", "Banana", "Orange"] id TLeft baseColours highlighted mkListState,
                 bordered baseColours $ list ["Amethyst", "Beryl", "Onyx"] id TLeft baseColours highlighted mkListState

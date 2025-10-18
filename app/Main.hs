@@ -145,23 +145,20 @@ renderUI State {..} =
       textColours = Colours (Just white) (Just grey)
       (V2 x y) = mousePosition
    in vBox
-        [ ( label
+        [ vSize (Fixed 1) $
+            label
               ("Mouse at: " <> show (x, y))
               TRight
-              baseColours
-          )
-            { vSize = Fixed 1
-            },
-          ( label
-              textValue
-              TCenter
-              ( Colours
-                  (Just red)
-                  (Just black)
-              )
-          )
-            { vSize = Fixed 2
-            },
+              baseColours,
+          vSize (Fixed 2) $
+            ( label
+                textValue
+                TCenter
+                ( Colours
+                    (Just red)
+                    (Just black)
+                )
+            ),
           bordered baseColours $ padded 2 $ list listOfText id TLeft baseColours highlighted listState,
           padded 2 $ textInput someText textColours (focusGetCurrent ring == Just TextInput),
           button

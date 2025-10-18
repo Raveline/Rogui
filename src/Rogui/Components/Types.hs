@@ -8,12 +8,14 @@ module Rogui.Components.Types
     -- Convenience reexport
     TileSize (..),
     emptyComponent,
+    vSize,
+    hSize,
   )
 where
 
 import Control.Monad.Writer.Lazy
 import Rogui.Graphics.DSL.Instructions
-import Rogui.Graphics.Types (Console, Cell, TileSize (..))
+import Rogui.Graphics.Types (Cell, Console, TileSize (..))
 
 data Size = Greedy | Fixed Cell
   deriving (Eq)
@@ -45,10 +47,16 @@ data DrawingContext = DrawingContext
 -- Component are parametered over a name which are used to handle focus.
 data Component name = Component
   { draw :: DrawingContext -> Writer Instructions (),
-    vSize :: Size,
-    hSize :: Size
+    verticalSize :: Size,
+    horizontalSize :: Size
   }
 
 emptyComponent :: Component name
 emptyComponent =
-  Component {draw = \_ -> pure (), vSize = Greedy, hSize = Greedy}
+  Component {draw = \_ -> pure (), verticalSize = Greedy, horizontalSize = Greedy}
+
+vSize :: Size -> Component n -> Component n
+vSize size component = component {verticalSize = size}
+
+hSize :: Size -> Component n -> Component n
+hSize size component = component {horizontalSize = size}

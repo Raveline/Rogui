@@ -22,7 +22,7 @@ import Control.Monad.Writer
 import Rogui.Components.Types (Component (..), DrawingContext (..), Size (..), TileSize (..), emptyComponent)
 import Rogui.Graphics.DSL.Eval (evalInstructions)
 import Rogui.Graphics.DSL.Instructions (Colours, Instructions, setColours, withBorder, withBrush, withConsole)
-import Rogui.Graphics.Types (Console (..), Pixel (..), Cell (..), fromBrush, (.*=.), (./.=))
+import Rogui.Graphics.Types (Cell (..), Console (..), Pixel (..), fromBrush, (.*=.), (./.=))
 import Rogui.Types (Rogui (Rogui, defaultBrush, numberOfSteps, renderer, rootConsole))
 import SDL (V2 (..), (^*))
 
@@ -80,7 +80,7 @@ layout direction children dc@DrawingContext {..} =
   let root@Console {width, height} = console
       toPartition = if direction == Vertical then height else width
       baseStep = if direction == Vertical then V2 0 1 else V2 1 0
-      toScan = if direction == Vertical then vSize else hSize
+      toScan = if direction == Vertical then verticalSize else horizontalSize
       numberGreedy = length . filter ((==) Greedy . toScan) $ children
       countSize =
         \case

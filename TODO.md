@@ -1,12 +1,12 @@
 High priority:
 
 [X] Generalize the use of Pixel and Tiles newtype, provide utilities for conversion
-[ ] Let the user decide of a targeted FPS
+[X] Let the user decide of a targeted FPS
 [ ] Fix the problem with displaying entities over the GridTile
 
 Medium priority:
 
-[ ] Add utilities to set vSize and hSize
+[X] Add utilities to set vSize and hSize
 [ ] Add a TextConsole component to display game logs
 [ ] Add a progressbar component
 [ ] Support viewport for components that exceed their console size
