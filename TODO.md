@@ -1,14 +1,11 @@
 High priority:
 
-[X] Generalize the use of Pixel and Tiles newtype, provide utilities for conversion
-[X] Let the user decide of a targeted FPS
-[X] Fix the problem with displaying entities over the GridTile
+[ ] Find how to improve brush access when drawing components
+[ ] Ensure clients don't have to build RoGUI themselves
 
 Medium priority:
 
-[X] Add utilities to set vSize and hSize
 [ ] Add a TextConsole component to display game logs
-[X] Add a progressbar component
 [ ] Support viewport for components that exceed their console size
 [ ] See how Modal can be integrated in this
 

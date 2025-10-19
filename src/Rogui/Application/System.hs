@@ -44,8 +44,6 @@ loadBrush renderer path (SDL.V2 tileWidth tileHeight) = do
   textInfo <- SDL.queryTexture brush
   pure $ Brush {tileWidth, tileHeight, textureWidth = fromIntegral (SDL.textureWidth textInfo), textureHeight = fromIntegral (SDL.textureHeight textInfo), brush}
 
--- Initialize a SDL application and window with the provided tilesize,
--- giving a window with a size expressed in tiles.
 boot :: (MonadIO m) => TileSize -> Text -> SDL.V2 Cell -> Int -> (SDL.Renderer -> Console -> m (Rogui rc rb n s e)) -> s -> m ()
 boot TileSize {..} title (SDL.V2 widthInTiles heightInTiles) fps guiBuilder initialState = do
   SDL.initializeAll

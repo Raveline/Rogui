@@ -5,6 +5,7 @@
 
 module Main where
 
+import Control.Monad (when)
 import Control.Monad.Writer
 import Data.Array.IArray (Array, genArray, (!))
 import Data.Map.Strict qualified as M
@@ -38,6 +39,7 @@ data State = State
   }
 
 data GameState = PlayingGame | UI
+  deriving (Eq)
 
 data TileType
   = Floor
@@ -67,7 +69,7 @@ data Name
   | QuitButton
   deriving (Eq)
 
-data CustomEvent
+data CustomEvent = Move (V2 Cell) | ToggleUI
 
 main :: IO ()
 main = do
@@ -101,7 +103,7 @@ guiMaker renderer root = do
         defaultBrush = charset,
         draw = renderApp tiles charset,
         renderer = renderer,
-        onEvent = baseEventHandler (keyPressHandler eventHandler keysHandler),
+        onEvent = baseEventHandler eventHandler,
         lastTicks = 0,
         timerStep = 100,
         lastStep = 0,
@@ -109,10 +111,51 @@ guiMaker renderer root = do
         targetFrameTime = 0
       }
 
-keysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent)
-keysHandler =
+uiKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent)
+uiKeysHandler =
   M.fromList $
-    [(SDL.KeycodeTab, \_ _ -> fireEvent FocusNext)]
+    [ (SDL.KeycodeTab, \_ _ -> fireEvent FocusNext),
+      (SDL.KeycodeEscape, \_ _ -> fireAppEvent ToggleUI)
+    ]
+
+gameKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent)
+gameKeysHandler =
+  M.fromList $
+    [ (SDL.KeycodeUp, \_ _ -> fireAppEvent . Move $ V2 0 (-1)),
+      (SDL.KeycodeDown, \_ _ -> fireAppEvent . Move $ V2 0 1),
+      (SDL.KeycodeLeft, \_ _ -> fireAppEvent . Move $ V2 (-1) 0),
+      (SDL.KeycodeRight, \_ _ -> fireAppEvent . Move $ V2 1 0),
+      (SDL.KeycodeF1, \_ _ -> fireAppEvent $ ToggleUI)
+    ]
+
+eventHandler :: EventHandler State CustomEvent
+eventHandler state@State {..} e =
+  case gameState of
+    PlayingGame -> keyPressHandler gameEventHandler gameKeysHandler state e
+    UI -> keyPressHandler uiEventHandler uiKeysHandler state e
+
+gameEventHandler :: EventHandler State CustomEvent
+gameEventHandler State {..} = \case
+  (AppEvent (Move dir)) -> do
+    let newPos@(V2 x y) = playerPos + dir
+    when (x >= 0 && y >= 0 && x <= 100 && y <= 100) $
+      modifyState $
+        \s -> s {playerPos = newPos}
+  (AppEvent ToggleUI) -> modifyState $ \s -> s {gameState = UI}
+  _ -> pure ()
+
+uiEventHandler :: EventHandler State CustomEvent
+uiEventHandler state@State {..} = \case
+  MouseEvent (MouseMove MouseMoveDetails {..}) ->
+    redraw $ setCurrentState $ state {mousePosition = defaultTileSizePosition}
+  FocusNext -> handleFocusChange (focusNext) state
+  FocusPrev -> handleFocusChange (focusPrev) state
+  (AppEvent ToggleUI) -> modifyState $ \s -> s {gameState = PlayingGame}
+  e -> case focusGetCurrent ring of
+    (Just List) -> handleListEvent (length listOfText) e listState (\newLs s -> s {listState = newLs})
+    (Just QuitButton) -> handleButtonEvent (\_ _ -> halt (pure ())) state e
+    (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
+    _ -> pure ()
 
 handleFocusChange :: (FocusRing Name -> FocusRing Name) -> State -> EventHandlingM State CustomEvent ()
 handleFocusChange ringChange s =
@@ -122,18 +165,6 @@ handleFocusChange ringChange s =
         (Just List, ListState Nothing offset) -> ListState (Just 0) offset
         _ -> listState s
    in redraw (setCurrentState $ s {ring = newRing, listState = newListState})
-
-eventHandler :: EventHandler State CustomEvent
-eventHandler state@State {..} = \case
-  MouseEvent (MouseMove MouseMoveDetails {..}) ->
-    redraw $ setCurrentState $ state {mousePosition = defaultTileSizePosition}
-  FocusNext -> handleFocusChange (focusNext) state
-  FocusPrev -> handleFocusChange (focusPrev) state
-  e -> case focusGetCurrent ring of
-    (Just List) -> handleListEvent (length listOfText) e listState (\newLs s -> s {listState = newLs})
-    (Just QuitButton) -> handleButtonEvent (\_ _ -> halt (pure ())) state e
-    (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
-    _ -> pure ()
 
 renderApp :: Brush -> Brush -> State -> Component Name
 renderApp tiles charset s@State {gameState, playerPos} =
