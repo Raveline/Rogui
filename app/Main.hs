@@ -12,7 +12,9 @@ import Rogui.Application.Event
 import Rogui.Application.System
 import Rogui.Components.Button (button, handleButtonEvent)
 import Rogui.Components.Core
-import Rogui.Components.GridTile (GlyphInfo (..), gridTile)
+import Rogui.Components.Game.EntitiesLayer (entitiesLayer)
+import Rogui.Components.Game.GridTile
+import Rogui.Components.Game.Utils (GlyphInfo (..), computeMapViewport)
 import Rogui.Components.Label
 import Rogui.Components.List
 import Rogui.Components.ProgressBar
@@ -31,7 +33,8 @@ data State = State
     mousePosition :: V2 Cell,
     ring :: FocusRing Name,
     listState :: ListState,
-    someText :: String
+    someText :: String,
+    playerPos :: V2 Cell
   }
 
 data GameState = PlayingGame | UI
@@ -54,12 +57,9 @@ tileToGlyphInfo t =
 
 arbitraryMap :: Array (V2 Cell) TileType
 arbitraryMap =
-  let generator = \case
-        (V2 3 3) -> Wall
-        (V2 8 3) -> Wall
-        (V2 18 3) -> Wall
-        _ -> Floor
-   in genArray ((V2 0 0), (V2 20 20)) generator
+  let generator (V2 x y) =
+        if (x `mod` 3 == 0) && (y `mod` 3 == 0) then Wall else Floor
+   in genArray ((V2 0 0), (V2 100 100)) generator
 
 data Name
   = List
@@ -84,7 +84,8 @@ main = do
         mousePosition = V2 0 0,
         ring = focusRing [List, TextInput, QuitButton],
         listState = mkListState {selection = Just 0},
-        someText = ""
+        someText = "",
+        playerPos = V2 1 1
       }
 
 guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes Name State CustomEvent)
@@ -98,7 +99,7 @@ guiMaker renderer root = do
         brushes = M.fromList [(Charset, charset), (Drawings, tiles)],
         rootConsole = root,
         defaultBrush = charset,
-        draw = renderApp tiles,
+        draw = renderApp tiles charset,
         renderer = renderer,
         onEvent = baseEventHandler (keyPressHandler eventHandler keysHandler),
         lastTicks = 0,
@@ -134,9 +135,13 @@ eventHandler state@State {..} = \case
     (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
     _ -> pure ()
 
-renderApp :: Brush -> State -> Component Name
-renderApp tiles s@State {gameState} =
+renderApp :: Brush -> Brush -> State -> Component Name
+renderApp tiles charset s@State {gameState, playerPos} =
   let baseColours = Colours (Just white) (Just black)
+      charColours = Colours (Just white) Nothing
+      gridTileSize = (V2 40 30)
+      fullMapSize = (V2 100 100)
+      viewport = computeMapViewport gridTileSize fullMapSize playerPos
    in case gameState of
         PlayingGame ->
           vBox
@@ -144,7 +149,10 @@ renderApp tiles s@State {gameState} =
                 hBox
                   [ progressBar 0 20 10 baseColours baseColours fullBlock lightShade
                   ],
-              gridTile tiles (V2 10 10) (V2 20 20) ((!) arbitraryMap) tileToGlyphInfo (V2 0 0)
+              multiLayeredGrid fullMapSize viewport $
+                [ gridTile tiles gridTileSize ((!) arbitraryMap) tileToGlyphInfo,
+                  entitiesLayer charset [playerPos] (const $ GlyphInfo 1 charColours) id
+                ]
             ]
         UI -> renderUI s
 

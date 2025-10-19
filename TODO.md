@@ -2,7 +2,7 @@ High priority:
 
 [X] Generalize the use of Pixel and Tiles newtype, provide utilities for conversion
 [X] Let the user decide of a targeted FPS
-[ ] Fix the problem with displaying entities over the GridTile
+[X] Fix the problem with displaying entities over the GridTile
 
 Medium priority:
 

@@ -13,12 +13,14 @@ module Rogui.Components.Core
     -- exported for tests
     Layout (..),
     layout,
+    layered,
     padded,
   )
 where
 
 import Control.Monad (foldM_)
 import Control.Monad.Writer
+import Data.Foldable (traverse_)
 import Rogui.Components.Types (Component (..), DrawingContext (..), Size (..), TileSize (..), emptyComponent)
 import Rogui.Graphics.DSL.Eval (evalInstructions)
 import Rogui.Graphics.DSL.Instructions (Colours, Instructions, setColours, withBorder, withBrush, withConsole)
@@ -63,6 +65,12 @@ padded n child =
         withConsole newConsole
         (draw child) dc {console = newConsole}
    in emptyComponent {draw = draw'}
+
+-- | Used for components who share the same DrawingContext.
+-- Typical use-case is the main game area, where one wants to draw
+-- a tileset, plus entities over.
+layered :: [Component n] -> Component n
+layered children = emptyComponent {draw = \dc -> traverse_ (\c -> draw c dc) children}
 
 -- | These are used to clarify units (and avoid silly bugs)
 tilesToPixel :: Layout -> TileSize -> Cell -> Pixel
