@@ -1,8 +1,5 @@
 High priority:
 
-[ ] Find how to improve brush access when drawing components
-[ ] Ensure clients don't have to build RoGUI themselves
-
 Medium priority:
 
 [ ] Add a TextConsole component to display game logs

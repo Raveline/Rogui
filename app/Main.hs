@@ -11,6 +11,7 @@ import Data.Array.IArray (Array, genArray, (!))
 import Data.Map.Strict qualified as M
 import Rogui.Application.Event
 import Rogui.Application.System
+import Rogui.Application.Types (RoguiConfig (..))
 import Rogui.Components.Button (button, handleButtonEvent)
 import Rogui.Components.Core
 import Rogui.Components.Game.EntitiesLayer (entitiesLayer)
@@ -73,11 +74,20 @@ data CustomEvent = Move (V2 Cell) | ToggleUI
 
 main :: IO ()
 main = do
+  let config =
+        RoguiConfig
+          { brushTilesize = TileSize 16 16,
+            appName = "RoGUI example",
+            consoleCellSize = (V2 50 38),
+            targetFPS = 60,
+            rootConsoleReference = Root,
+            defaultBrushReference = Charset,
+            defaultBrushPath = "terminal_16x16.png",
+            drawingFunction = renderApp,
+            eventFunction = baseEventHandler eventHandler
+          }
   boot
-    (TileSize 16 16)
-    "RoGUI example"
-    (V2 50 38)
-    60
+    config
     guiMaker
     $ State
       { gameState = PlayingGame,
@@ -90,26 +100,11 @@ main = do
         playerPos = V2 1 1
       }
 
-guiMaker :: (MonadIO m) => SDL.Renderer -> Console -> m (Rogui Consoles Brushes Name State CustomEvent)
-guiMaker renderer root = do
+guiMaker :: (MonadIO m) => Rogui Consoles Brushes Name State CustomEvent -> m (Rogui Consoles Brushes Name State CustomEvent)
+guiMaker baseGui = do
   let modal = Console {width = 400, height = 200, position = V2 (16 * 10) (16 * 10)}
-  charset <- loadBrush renderer "terminal_16x16.png" (V2 16 16)
-  tiles <- loadBrush renderer "punyworld-dungeon-tileset.png" (V2 16 16)
-  pure $
-    Rogui
-      { consoles = M.fromList [(Root, root), (LittleModal, modal)],
-        brushes = M.fromList [(Charset, charset), (Drawings, tiles)],
-        rootConsole = root,
-        defaultBrush = charset,
-        draw = renderApp tiles charset,
-        renderer = renderer,
-        onEvent = baseEventHandler eventHandler,
-        lastTicks = 0,
-        timerStep = 100,
-        lastStep = 0,
-        numberOfSteps = 0,
-        targetFrameTime = 0
-      }
+  withDrawings <- addBrush Drawings "punyworld-dungeon-tileset.png" (TileSize 16 16) baseGui
+  pure $ addConsole LittleModal modal withDrawings
 
 uiKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent)
 uiKeysHandler =
@@ -166,9 +161,11 @@ handleFocusChange ringChange s =
         _ -> listState s
    in redraw (setCurrentState $ s {ring = newRing, listState = newListState})
 
-renderApp :: Brush -> Brush -> State -> Component Name
-renderApp tiles charset s@State {gameState, playerPos} =
-  let baseColours = Colours (Just white) (Just black)
+renderApp :: M.Map Brushes Brush -> State -> Component Name
+renderApp brushes s@State {gameState, playerPos} =
+  let tiles = brushes M.! Drawings
+      charset = brushes M.! Charset
+      baseColours = Colours (Just white) (Just black)
       charColours = Colours (Just white) Nothing
       gridTileSize = (V2 40 30)
       fullMapSize = (V2 100 100)

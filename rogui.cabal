@@ -64,6 +64,7 @@ library
     exposed-modules:
         Rogui.Application.Event
         Rogui.Application.System
+        Rogui.Application.Types
         Rogui.Components
         Rogui.Components.Button
         Rogui.Components.Core

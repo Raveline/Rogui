@@ -2,10 +2,11 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Rogui.Application.System
-  ( loadBrush,
-    boot,
+  ( boot,
     baseEventHandler,
     keyPressHandler,
+    addBrush,
+    addConsole,
   )
 where
 
@@ -15,11 +16,11 @@ import Control.Monad.IO.Class
 import Control.Monad.State hiding (state)
 import Data.Map qualified as M
 import Data.Sequence qualified as Seq
-import Data.Text hiding (foldl', null)
 import Data.Word
 import Rogui.Application.Event
+import Rogui.Application.Types (RoguiConfig (..))
 import Rogui.Components (renderComponents)
-import Rogui.Graphics.Types (Brush (..), Cell, Console (..), Pixel, TileSize (..), (.*=.), (./.=))
+import Rogui.Graphics.Types (Brush (..), Console (..), TileSize (..), (.*=.), (./.=))
 import Rogui.Types (EventHandler, Rogui (..))
 import SDL (MouseMotionEventData (MouseMotionEventData))
 import SDL qualified
@@ -33,8 +34,8 @@ convertSurface (SDL.Surface s _) pixFmt = do
   surface <- SDL.Surface <$> Raw.convertSurface s fmt 0 <*> pure Nothing
   surface <$ Raw.freeFormat fmt
 
-loadBrush :: (MonadIO m) => SDL.Renderer -> FilePath -> SDL.V2 Pixel -> m Brush
-loadBrush renderer path (SDL.V2 tileWidth tileHeight) = do
+loadBrush :: (MonadIO m) => SDL.Renderer -> FilePath -> TileSize -> m Brush
+loadBrush renderer path TileSize {..} = do
   fontSurface <- SDL.load path
   surface <- convertSurface fontSurface SDL.RGBA8888
   let black :: SDL.V4 Word8
@@ -42,20 +43,54 @@ loadBrush renderer path (SDL.V2 tileWidth tileHeight) = do
   void $ SDL.surfaceColorKey surface SDL.$= pure black
   brush <- SDL.createTextureFromSurface renderer surface
   textInfo <- SDL.queryTexture brush
-  pure $ Brush {tileWidth, tileHeight, textureWidth = fromIntegral (SDL.textureWidth textInfo), textureHeight = fromIntegral (SDL.textureHeight textInfo), brush}
+  pure $
+    Brush
+      { tileWidth = pixelWidth,
+        tileHeight = pixelHeight,
+        textureWidth = fromIntegral (SDL.textureWidth textInfo),
+        textureHeight = fromIntegral (SDL.textureHeight textInfo),
+        brush
+      }
 
-boot :: (MonadIO m) => TileSize -> Text -> SDL.V2 Cell -> Int -> (SDL.Renderer -> Console -> m (Rogui rc rb n s e)) -> s -> m ()
-boot TileSize {..} title (SDL.V2 widthInTiles heightInTiles) fps guiBuilder initialState = do
+addBrush :: (MonadIO m, Ord rb) => rb -> FilePath -> TileSize -> Rogui rc rb n s e -> m (Rogui rc rb n s e)
+addBrush ref path tileSize rogui@Rogui {..} = do
+  brush <- loadBrush renderer path tileSize
+  pure $ rogui {brushes = M.insert ref brush brushes}
+
+addConsole :: (Ord rc) => rc -> Console -> Rogui rc rb n s e -> Rogui rc rb n s e
+addConsole ref console rogui@Rogui {..} =
+  rogui {consoles = M.insert ref console consoles}
+
+boot ::
+  (MonadIO m) => RoguiConfig rc rb n s e -> (Rogui rc rb n s e -> m (Rogui rc rb n s e)) -> s -> m ()
+boot RoguiConfig {..} guiBuilder initialState = do
   SDL.initializeAll
-
+  let TileSize {..} = brushTilesize
+      (SDL.V2 widthInTiles heightInTiles) = consoleCellSize
   let windowSize@(SDL.V2 w h) = SDL.V2 (pixelWidth .*=. widthInTiles) (pixelHeight .*=. heightInTiles)
-  window <- SDL.createWindow title SDL.defaultWindow {SDL.windowInitialSize = fromIntegral <$> windowSize}
+  window <- SDL.createWindow appName SDL.defaultWindow {SDL.windowInitialSize = fromIntegral <$> windowSize}
   renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
+  baseBrush <- loadBrush renderer defaultBrushPath brushTilesize
   let baseConsole = Console {width = w, height = h, position = SDL.V2 0 0}
-      frameTime = 1000 `div` fromIntegral fps -- milliseconds per frame
-  gui <- guiBuilder renderer baseConsole
+      frameTime = 1000 `div` fromIntegral targetFPS -- milliseconds per frame
+      baseRogui =
+        Rogui
+          { consoles = M.singleton rootConsoleReference baseConsole,
+            brushes = M.singleton defaultBrushReference baseBrush,
+            rootConsole = baseConsole,
+            defaultBrush = baseBrush,
+            renderer = renderer,
+            draw = drawingFunction,
+            onEvent = eventFunction,
+            lastTicks = 0,
+            timerStep = 0,
+            lastStep = 0,
+            numberOfSteps = 0,
+            targetFrameTime = frameTime
+          }
+  gui <- guiBuilder baseRogui
 
-  appLoop gui {targetFrameTime = frameTime} initialState
+  appLoop gui initialState
 
   SDL.destroyWindow window
 
@@ -69,7 +104,7 @@ appLoop roGUI@Rogui {..} state = do
       EventHandlingState {result, currentState} = execState (processWithLimit 10 roGUI) baseEventState
   when (result == Continue) $ do
     SDL.clear renderer
-    let toDraw = draw currentState
+    let toDraw = draw brushes currentState
     renderComponents roGUI toDraw
     SDL.present renderer
   unless (result == Halt) $ do

@@ -27,7 +27,7 @@ data Rogui rc rb n state e
     rootConsole :: Console,
     defaultBrush :: Brush,
     renderer :: Renderer,
-    draw :: state -> Component n,
+    draw :: M.Map rb Brush -> state -> Component n,
     onEvent :: EventHandler state e,
     -- | Constant evaluating the amount of milliseconds since initialisation, taken from SDL.
     lastTicks :: Word32,
