@@ -2,9 +2,10 @@ High priority:
 
 Medium priority:
 
-[ ] Add a TextConsole component to display game logs
 [ ] Support viewport for components that exceed their console size
 [ ] See how Modal can be integrated in this
+[ ] Add error handling in boot and loadBrush
+[ ] Make LogConsole scrollable
 
 Low priority:
 

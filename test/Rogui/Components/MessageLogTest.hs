@@ -1,0 +1,133 @@
+{-# LANGUAGE FlexibleContexts #-}
+
+module Rogui.Components.MessageLogTest
+  ( messageLogTests,
+  )
+where
+
+import Control.Monad.Writer (execWriter)
+import qualified Data.DList as D
+import Data.List
+import Data.Maybe (mapMaybe)
+import Linear (V2 (..), V3 (..))
+import Rogui.Components.MessageLog (messageLog)
+import Rogui.Components.Types (Component (..), DrawingContext (..))
+import Rogui.Graphics.DSL.Instructions (Colours (..), Instruction (..))
+import Rogui.Graphics.Primitives (RGB)
+import Rogui.Graphics.Types (Console (..), Pixel (..), TileSize (..))
+import Test.Tasty
+import Test.Tasty.HUnit
+
+testRGB :: RGB
+testRGB = V3 255 255 255
+
+testColours :: Colours
+testColours = Colours (Just testRGB) Nothing
+
+extractStrings :: [Instruction] -> [String]
+extractStrings = mapMaybe extractString
+  where
+    extractString (DrawString _ str) = Just str
+    extractString _ = Nothing
+
+countNewlines :: [Instruction] -> Int
+countNewlines = length . filter isNewLine
+  where
+    isNewLine NewLine = True
+    isNewLine _ = False
+
+renderMessageLog :: [[LogChunk]] -> Int -> Int -> [Instruction]
+renderMessageLog messages widthInCells heightInCells =
+  let console =
+        Console
+          { width = Pixel (widthInCells * 16),
+            height = Pixel (heightInCells * 16),
+            position = V2 (Pixel 0) (Pixel 0)
+          }
+      tileSize = TileSize (Pixel 16) (Pixel 16)
+      dc = DrawingContext {tileSize = tileSize, console = console, steps = 0}
+      component = messageLog messages
+      instructions = execWriter $ draw component dc
+   in D.toList instructions
+
+type LogChunk = (Colours, String)
+
+testSimpleLine :: IO ()
+testSimpleLine =
+  let messages = [[(testColours, "Hello world")]]
+      instructions = renderMessageLog messages 20 10
+      strings = extractStrings instructions
+      newlines = countNewlines instructions
+   in do
+        assertEqual "Should render the text" ["Hello world"] strings
+        assertEqual "Should have one newline" 1 newlines
+
+testWrappedLine :: IO ()
+testWrappedLine =
+  let messages = [[(testColours, "This is a long message that needs to be wrapped")]]
+      instructions = renderMessageLog messages 20 10
+      strings = extractStrings instructions
+      newlines = countNewlines instructions
+   in do
+        assertBool "Should render at least 2 parts" (length strings >= 2)
+        assertBool "Should have at least 2 newlines" (newlines >= 2)
+        let rejoined = unwords strings
+        assertEqual "Content should be preserved" "This is a long message that needs to be wrapped" rejoined
+
+testSuperlongWord :: IO ()
+testSuperlongWord =
+  let _superlong = "Supercalifragilisticexpialidocious"
+      _messages = [[(testColours, _superlong)]]
+      _instructions = renderMessageLog _messages 20 10
+      _strings = extractStrings _instructions
+   in do
+        assertBool "Should handle overlong words gracefully" True
+        assertBool "Should truncate long word" (any (isSuffixOf "...") _strings)
+
+testMultipleMessages :: IO ()
+testMultipleMessages =
+  let messages =
+        [ [(testColours, "First message")],
+          [(testColours, "Second message")],
+          [(testColours, "Third message")]
+        ]
+      instructions = renderMessageLog messages 20 10
+      strings = extractStrings instructions
+      newlines = countNewlines instructions
+   in do
+        -- foldrM renders right-to-left, so newest (last) message appears first
+        assertEqual "Should render all messages (newest first)" ["Third message", "Second message", "First message"] strings
+        assertEqual "Should have three newlines" 3 newlines
+
+testMultiColorChunks :: IO ()
+testMultiColorChunks =
+  let red = V3 255 0 0
+      blue = V3 0 0 255
+      redColours = Colours (Just red) Nothing
+      blueColours = Colours (Just blue) Nothing
+      messages = [[(redColours, "Red text"), (blueColours, "blue text")]]
+      instructions = renderMessageLog messages 20 10
+      strings = extractStrings instructions
+   in do
+        assertEqual "Should render both chunks" ["Red text", "blue text"] strings
+
+testEmptyMessage :: IO ()
+testEmptyMessage =
+  let messages = [[]]
+      instructions = renderMessageLog messages 20 10
+      strings = extractStrings instructions
+   in do
+        -- Empty messages are filtered out
+        assertEqual "Should render nothing for empty messages" [] strings
+
+messageLogTests :: TestTree
+messageLogTests =
+  testGroup
+    "MessageLog"
+    [ testCase "Simple line that fits" testSimpleLine,
+      testCase "Long line that needs wrapping" testWrappedLine,
+      testCase "Superlong word" testSuperlongWord,
+      testCase "Multiple messages" testMultipleMessages,
+      testCase "Multi-color chunks" testMultiColorChunks,
+      testCase "Empty message filtered" testEmptyMessage
+    ]

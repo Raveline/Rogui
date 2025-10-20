@@ -73,6 +73,7 @@ library
         Rogui.Components.Game.Utils
         Rogui.Components.Label
         Rogui.Components.List
+        Rogui.Components.MessageLog
         Rogui.Components.ProgressBar
         Rogui.Components.TextInput
         Rogui.Components.Types
@@ -146,7 +147,9 @@ test-suite rogui-test
     default-language: Haskell2010
 
     -- Modules included in this executable, other than Main.
-    other-modules:    Rogui.Components.Layout
+    other-modules:
+        Rogui.Components.Layout
+        Rogui.Components.MessageLogTest
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

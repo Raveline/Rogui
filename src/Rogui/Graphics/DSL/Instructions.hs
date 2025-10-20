@@ -4,6 +4,7 @@ module Rogui.Graphics.DSL.Instructions
   ( Instruction (..),
     Instructions,
     Colours (..),
+    newLine,
     strLn,
     str,
     withBorder,
@@ -26,6 +27,7 @@ import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (V2 (..))
 
 data Colours = Colours {front :: Maybe RGB, back :: Maybe RGB}
+  deriving (Eq, Show)
 
 data Instruction
   = DrawBorder
@@ -40,6 +42,9 @@ data Instruction
   | DrawHorizontalLine Cell Int
 
 type Instructions = DList Instruction
+
+newLine :: (MonadWriter Instructions m) => m ()
+newLine = tell (singleton NewLine)
 
 -- | Write the string with the provided alignment, then moves the cursor one
 -- line below.
