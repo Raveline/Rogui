@@ -1,30 +1,64 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 
 module Rogui.Components.Types
   ( Component (..),
     DrawingContext (..),
     Size (..),
+    DrawM,
     -- Convenience reexport
     TileSize (..),
     emptyComponent,
+    contextCellWidth,
+    contextCellHeight,
     vSize,
     hSize,
+    changeBrush,
+    changeConsole,
   )
 where
 
+import Control.Monad.State.Strict (StateT, get, modify)
 import Control.Monad.Writer.Lazy
+import Rogui.Graphics (Brush, (./.=))
 import Rogui.Graphics.DSL.Instructions
-import Rogui.Graphics.Types (Cell, Console, TileSize (..))
+import Rogui.Graphics.Types (Brush (Brush, tileHeight, tileWidth), Cell, Console (..), TileSize (..))
+
+type DrawM a = StateT DrawingContext (Writer Instructions) a
 
 data Size = Greedy | Fixed Cell
   deriving (Eq)
 
 data DrawingContext = DrawingContext
-  { tileSize :: TileSize,
+  { brush :: Brush,
     console :: Console,
     steps :: Int
   }
+
+changeBrush :: Brush -> DrawM ()
+changeBrush b = do
+  withBrush b
+  modify $ \s -> s {brush = b}
+
+changeConsole :: Console -> DrawM ()
+changeConsole c = do
+  withConsole c
+  modify $ \s -> s {console = c}
+
+contextCellWidth :: DrawM Cell
+contextCellWidth = do
+  DrawingContext {..} <- get
+  let Console {width} = console
+      Brush {tileWidth} = brush
+  pure $ width ./.= tileWidth
+
+contextCellHeight :: DrawM Cell
+contextCellHeight = do
+  DrawingContext {..} <- get
+  let Console {height} = console
+      Brush {tileHeight} = brush
+  pure $ height ./.= tileHeight
 
 -- | Components are composable widgets (a bit like Brick, but
 -- in less sophisticated).
@@ -46,14 +80,14 @@ data DrawingContext = DrawingContext
 --
 -- Component are parametered over a name which are used to handle focus.
 data Component name = Component
-  { draw :: DrawingContext -> Writer Instructions (),
+  { draw :: DrawM (),
     verticalSize :: Size,
     horizontalSize :: Size
   }
 
 emptyComponent :: Component name
 emptyComponent =
-  Component {draw = \_ -> pure (), verticalSize = Greedy, horizontalSize = Greedy}
+  Component {draw = pure (), verticalSize = Greedy, horizontalSize = Greedy}
 
 vSize :: Size -> Component n -> Component n
 vSize size component = component {verticalSize = size}

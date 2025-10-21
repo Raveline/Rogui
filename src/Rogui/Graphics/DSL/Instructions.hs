@@ -4,18 +4,19 @@ module Rogui.Graphics.DSL.Instructions
   ( Instruction (..),
     Instructions,
     Colours (..),
+    drawHorizontalLine,
+    glyph,
+    glyphAt,
+    movePencilBy,
     newLine,
+    pencilAt,
+    setColours,
+    setConsoleBackground,
     strLn,
     str,
     withBorder,
     withConsole,
     withBrush,
-    glyph,
-    glyphAt,
-    pencilAt,
-    movePencilBy,
-    setColours,
-    drawHorizontalLine,
   )
 where
 
@@ -39,6 +40,7 @@ data Instruction
   | MoveTo (V2 Cell)
   | MoveBy (V2 Cell)
   | SetColours Colours
+  | SetConsoleBackground RGB
   | DrawHorizontalLine Cell Int
 
 type Instructions = DList Instruction
@@ -98,3 +100,6 @@ setColours colours =
 drawHorizontalLine :: (MonadWriter Instructions m) => Cell -> Int -> m ()
 drawHorizontalLine to glyphId =
   tell (singleton $ DrawHorizontalLine to glyphId)
+
+setConsoleBackground :: (MonadWriter Instructions m) => RGB -> m ()
+setConsoleBackground r = tell (singleton $ SetConsoleBackground r)

@@ -12,7 +12,7 @@ import Control.Monad.State (MonadState, evalStateT, get, modify)
 import Data.Foldable
 import Rogui.Graphics.Console (drawBorder, printStrAt)
 import Rogui.Graphics.DSL.Instructions (Colours (..), Instruction (..), Instructions)
-import Rogui.Graphics.Primitives (printCharAt)
+import Rogui.Graphics.Primitives (fillConsoleWith, printCharAt)
 import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (Renderer, V2 (..))
 
@@ -42,6 +42,8 @@ eval instruction = do
     DrawBorder -> drawBorder renderer console brush front back
     DrawString align str ->
       printStrAt renderer console brush front back align str position
+    SetConsoleBackground rgb ->
+      fillConsoleWith renderer console rgb
     NewLine ->
       modify (\s -> s {position = position + (V2 0 1)})
     DrawGlyph glyphId ->

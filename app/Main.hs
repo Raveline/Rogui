@@ -9,6 +9,7 @@ import Control.Monad (when)
 import Control.Monad.Writer
 import Data.Array.IArray (Array, genArray, (!))
 import Data.Map.Strict qualified as M
+import Data.Maybe (catMaybes)
 import Rogui.Application.Event
 import Rogui.Application.System
 import Rogui.Application.Types (RoguiConfig (..))
@@ -22,11 +23,16 @@ import Rogui.Components.List
 import Rogui.Components.ProgressBar
 import Rogui.Components.TextInput
 import Rogui.Components.Types
-import Rogui.Example
 import Rogui.FocusRing
 import Rogui.Graphics
 import Rogui.Types
 import SDL hiding (Event, drawLine, textureHeight, textureWidth)
+
+data Consoles = Root | ModalMenu | StatusBar | GameArea
+  deriving (Eq, Ord, Show)
+
+data Brushes = Charset | BigCharset | Drawings
+  deriving (Eq, Ord, Show)
 
 data State = State
   { gameState :: GameState,
@@ -81,8 +87,8 @@ main = do
             consoleCellSize = (V2 50 38),
             targetFPS = 60,
             rootConsoleReference = Root,
-            defaultBrushReference = Charset,
-            defaultBrushPath = "terminal_16x16.png",
+            defaultBrushReference = Drawings,
+            defaultBrushPath = "punyworld-dungeon-tileset.png",
             drawingFunction = renderApp,
             eventFunction = baseEventHandler eventHandler
           }
@@ -102,9 +108,17 @@ main = do
 
 guiMaker :: (MonadIO m) => Rogui Consoles Brushes Name State CustomEvent -> m (Rogui Consoles Brushes Name State CustomEvent)
 guiMaker baseGui = do
-  let modal = Console {width = 400, height = 200, position = V2 (16 * 10) (16 * 10)}
-  withDrawings <- addBrush Drawings "punyworld-dungeon-tileset.png" (TileSize 16 16) baseGui
-  pure $ addConsole LittleModal modal withDrawings
+  let modal = Console {width = 400, height = 400, position = V2 (16 * 10) (16 * 10)}
+      statusBar = Console {width = 800, height = 16, position = V2 0 0}
+      gameArea = Console {width = 800, height = 784, position = V2 0 16}
+  withBrushes <-
+    addBrush Charset "terminal_10x16.png" (TileSize 10 16) baseGui
+      >>= addBrush BigCharset "terminal_16x16.png" (TileSize 16 16)
+  pure
+    . addConsole ModalMenu modal
+    . addConsole StatusBar statusBar
+    . addConsole GameArea gameArea
+    $ withBrushes
 
 uiKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent)
 uiKeysHandler =
@@ -161,28 +175,30 @@ handleFocusChange ringChange s =
         _ -> listState s
    in redraw (setCurrentState $ s {ring = newRing, listState = newListState})
 
-renderApp :: M.Map Brushes Brush -> State -> Component Name
-renderApp brushes s@State {gameState, playerPos} =
-  let tiles = brushes M.! Drawings
-      charset = brushes M.! Charset
-      baseColours = Colours (Just white) (Just black)
+renderApp :: M.Map Brushes Brush -> State -> ToDraw Consoles Brushes Name
+renderApp brushes s@State {playerPos, gameState} =
+  let baseColours = Colours (Just white) (Just black)
       charColours = Colours (Just white) Nothing
+      bigCharset = brushes M.! BigCharset
       gridTileSize = (V2 40 30)
       fullMapSize = (V2 100 100)
       viewport = computeMapViewport gridTileSize fullMapSize playerPos
-   in case gameState of
-        PlayingGame ->
-          vBox
-            [ vSize (Fixed 1) $
-                hBox
-                  [ progressBar 0 20 10 baseColours baseColours fullBlock lightShade
-                  ],
-              multiLayeredGrid fullMapSize viewport $
-                [ gridTile tiles gridTileSize ((!) arbitraryMap) tileToGlyphInfo,
-                  entitiesLayer charset [playerPos] (const $ GlyphInfo 1 charColours) id
-                ]
-            ]
-        UI -> renderUI s
+      statusBar =
+        hBox
+          [ progressBar 0 20 10 baseColours baseColours fullBlock lightShade
+          ]
+      gameArea =
+        vBox
+          [ multiLayeredGrid fullMapSize viewport $
+              [ gridTile gridTileSize ((!) arbitraryMap) tileToGlyphInfo,
+                switchBrush bigCharset . entitiesLayer [playerPos] (const $ GlyphInfo 1 charColours) id
+              ]
+          ]
+   in catMaybes $
+        [ Just (Just StatusBar, Just Charset, statusBar),
+          Just (Just GameArea, Just Drawings, gameArea),
+          if gameState == UI then Just (Just ModalMenu, Just Charset, renderUI s) else Nothing
+        ]
 
 renderUI :: State -> Component Name
 renderUI State {..} =
@@ -190,27 +206,30 @@ renderUI State {..} =
       highlighted = Colours (Just black) (Just white)
       textColours = Colours (Just white) (Just grey)
       (V2 x y) = mousePosition
-   in vBox
-        [ vSize (Fixed 1) $
-            label
-              ("Mouse at: " <> show (x, y))
-              TRight
-              baseColours,
-          vSize (Fixed 2) $
-            ( label
-                textValue
-                TCenter
-                ( Colours
-                    (Just red)
-                    (Just black)
-                )
-            ),
-          bordered baseColours $ padded 2 $ list listOfText id TLeft baseColours highlighted listState,
-          padded 2 $ textInput someText textColours (focusGetCurrent ring == Just TextInput),
-          button
-            "Quit"
-            TCenter
-            baseColours
-            highlighted
-            (focusGetCurrent ring == Just QuitButton)
-        ]
+   in filled black $
+        bordered baseColours $
+          vBox
+            [ vSize (Fixed 1) $
+                label
+                  ("Mouse at: " <> show (x, y))
+                  TRight
+                  baseColours,
+              vSize (Fixed 2) $
+                ( label
+                    textValue
+                    TCenter
+                    ( Colours
+                        (Just red)
+                        (Just black)
+                    )
+                ),
+              bordered baseColours $ padded 2 $ list listOfText id TLeft baseColours highlighted listState,
+              padded 2 $ textInput someText textColours (focusGetCurrent ring == Just TextInput),
+              vSize (Fixed 1) $
+                button
+                  "Quit"
+                  TCenter
+                  baseColours
+                  highlighted
+                  (focusGetCurrent ring == Just QuitButton)
+            ]

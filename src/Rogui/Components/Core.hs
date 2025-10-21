@@ -9,7 +9,9 @@ module Rogui.Components.Core
   ( vBox,
     hBox,
     bordered,
+    filled,
     renderComponents,
+    switchBrush,
     -- exported for tests
     Layout (..),
     layout,
@@ -18,18 +20,28 @@ module Rogui.Components.Core
   )
 where
 
-import Control.Monad (foldM_)
+import Control.Monad (foldM_, void)
+import Control.Monad.State.Strict
 import Control.Monad.Writer
 import Data.Foldable (traverse_)
-import Rogui.Components.Types (Component (..), DrawingContext (..), Size (..), TileSize (..), emptyComponent)
+import Rogui.Components.Types (Component (..), DrawM, DrawingContext (..), Size (..), changeBrush, changeConsole, emptyComponent)
+import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), RGB, setConsoleBackground)
 import Rogui.Graphics.DSL.Eval (evalInstructions)
-import Rogui.Graphics.DSL.Instructions (Colours, Instructions, setColours, withBorder, withBrush, withConsole)
-import Rogui.Graphics.Types (Cell (..), Console (..), Pixel (..), fromBrush, (.*=.), (./.=))
+import Rogui.Graphics.DSL.Instructions (Colours, setColours, withBorder, withBrush, withConsole)
+import Rogui.Graphics.Types (Cell (..), Console (..), Pixel (..), (.*=.), (./.=))
 import Rogui.Types (Rogui (Rogui, defaultBrush, numberOfSteps, renderer, rootConsole))
 import SDL (V2 (..), (^*))
 
 data Layout = Vertical | Horizontal
   deriving (Eq)
+
+-- | Fill all the display context with the given color
+filled :: RGB -> Component n -> Component n
+filled rgb n =
+  let draw' = do
+        setConsoleBackground rgb
+        draw n
+   in emptyComponent {draw = draw'}
 
 -- | Draw components aligned vertically.
 -- NB: an unchecked assumption is that everything is done with the same brush
@@ -43,50 +55,65 @@ vBox components = emptyComponent {draw = layout Vertical components}
 hBox :: [Component n] -> Component n
 hBox components = emptyComponent {draw = layout Horizontal components}
 
+-- | You might have several components that need different brushes
+-- on the same console. This is typically the case when you render
+-- the tilemap (and several layers on top of it, with various images
+-- from different tilesets). Compose your component with this
+-- to temporarily use a different brush.
+switchBrush :: Brush -> Component n -> Component n
+switchBrush newBrush children =
+  let draw' = do
+        oldBrush <- gets brush
+        changeBrush newBrush
+        draw children
+        changeBrush oldBrush
+   in emptyComponent {draw = draw'}
+
 bordered :: Colours -> Component n -> Component n
 bordered colours child =
-  let draw' dc = do
+  let draw' = do
         setColours colours
         withBorder
-        draw (padded 1 child) dc
+        draw (padded 1 child)
    in emptyComponent {draw = draw'}
 
 padded :: Cell -> Component n -> Component n
 padded n child =
-  let draw' dc@DrawingContext {..} = do
-        let TileSize {..} = tileSize
-            Console {..} = console
-            newConsole =
+  let draw' = do
+        Brush {..} <- gets brush
+        console@Console {..} <- gets console
+        let newConsole =
               console
-                { width = width - (pixelWidth .*=. (n * 2)),
-                  height = height - (pixelHeight .*=. (n * 2)),
-                  position = position + V2 (pixelWidth .*=. n) (pixelHeight .*=. n)
+                { width = width - (tileWidth .*=. (n * 2)),
+                  height = height - (tileHeight .*=. (n * 2)),
+                  position = position + V2 (tileWidth .*=. n) (tileHeight .*=. n)
                 }
-        withConsole newConsole
-        (draw child) dc {console = newConsole}
+        changeConsole newConsole
+        (draw child)
    in emptyComponent {draw = draw'}
 
 -- | Used for components who share the same DrawingContext.
 -- Typical use-case is the main game area, where one wants to draw
 -- a tileset, plus entities over.
 layered :: [Component n] -> Component n
-layered children = emptyComponent {draw = \dc -> traverse_ (\c -> draw c dc) children}
+layered children = emptyComponent {draw = traverse_ draw children}
 
 -- | These are used to clarify units (and avoid silly bugs)
-tilesToPixel :: Layout -> TileSize -> Cell -> Pixel
-tilesToPixel l TileSize {..} t = case l of
-  Horizontal -> pixelWidth .*=. t
-  Vertical -> pixelHeight .*=. t
+tilesToPixel :: Layout -> Brush -> Cell -> Pixel
+tilesToPixel l Brush {..} t = case l of
+  Horizontal -> tileWidth .*=. t
+  Vertical -> tileHeight .*=. t
 
-pixelToTiles :: Layout -> TileSize -> Pixel -> Cell
-pixelToTiles l TileSize {..} p = case l of
-  Horizontal -> p ./.= pixelWidth
-  Vertical -> p ./.= pixelHeight
+pixelToTiles :: Layout -> Brush -> Pixel -> Cell
+pixelToTiles l Brush {..} p = case l of
+  Horizontal -> p ./.= tileWidth
+  Vertical -> p ./.= tileHeight
 
-layout :: Layout -> [Component n] -> DrawingContext -> Writer Instructions ()
-layout direction children dc@DrawingContext {..} =
-  let root@Console {width, height} = console
-      toPartition = if direction == Vertical then height else width
+layout :: Layout -> [Component n] -> DrawM ()
+layout direction children = do
+  root@Console {width, height} <- gets console
+  brush <- gets brush
+  let toPartition = if direction == Vertical then height else width
       baseStep = if direction == Vertical then V2 0 1 else V2 1 0
       toScan = if direction == Vertical then verticalSize else horizontalSize
       numberGreedy = length . filter ((==) Greedy . toScan) $ children
@@ -95,7 +122,7 @@ layout direction children dc@DrawingContext {..} =
           Greedy -> 0
           Fixed n -> n
       sumFixed = sum . map (countSize . toScan) $ children
-      greedySize = if numberGreedy > 0 then ((pixelToTiles direction tileSize toPartition) - sumFixed) `div` (Cell numberGreedy) else 0
+      greedySize = if numberGreedy > 0 then ((pixelToTiles direction brush toPartition) - sumFixed) `div` (Cell numberGreedy) else 0
       getSize child = case toScan child of
         Fixed n -> n
         Greedy -> greedySize
@@ -103,18 +130,24 @@ layout direction children dc@DrawingContext {..} =
         let newValue = getSize child
             drawingConsole =
               currentConsole
-                { height = if direction == Vertical then (tilesToPixel direction tileSize newValue) else height,
-                  width = if direction == Horizontal then (tilesToPixel direction tileSize newValue) else width
+                { height = if direction == Vertical then (tilesToPixel direction brush newValue) else height,
+                  width = if direction == Horizontal then (tilesToPixel direction brush newValue) else width
                 }
-        withConsole drawingConsole
-        draw child $ dc {console = drawingConsole}
-        pure $ currentConsole {position = (position currentConsole) + (baseStep ^* (tilesToPixel direction tileSize newValue))}
-   in foldM_ render root children
+        changeConsole drawingConsole
+        draw child
+        pure $ currentConsole {position = (position currentConsole) + (baseStep ^* (tilesToPixel direction brush newValue))}
+  foldM_ render root children
 
-renderComponents :: (MonadIO m) => Rogui rc rb n s e -> Component n -> m ()
-renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} Component {..} =
-  let instructions = execWriter $ do
-        withConsole rootConsole
-        withBrush defaultBrush
-        draw DrawingContext {tileSize = fromBrush defaultBrush, console = rootConsole, steps = numberOfSteps}
+renderComponents :: (MonadIO m) => Rogui rc rb n s e -> Brush -> Console -> Component n -> m ()
+renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usingBrush usingConsole Component {..} =
+  let instructions =
+        execWriter $
+          void $
+            execStateT
+              ( do
+                  withConsole usingConsole
+                  withBrush usingBrush
+                  draw
+              )
+              DrawingContext {brush = usingBrush, console = usingConsole, steps = numberOfSteps}
    in evalInstructions renderer rootConsole defaultBrush instructions

@@ -2,8 +2,9 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Rogui.Application.System
-  ( boot,
-    baseEventHandler,
+  ( baseEventHandler,
+    brushLookup,
+    boot,
     keyPressHandler,
     addBrush,
     addConsole,
@@ -14,7 +15,9 @@ import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.State hiding (state)
+import Data.Foldable (traverse_)
 import Data.Map qualified as M
+import Data.Maybe (fromMaybe)
 import Data.Sequence qualified as Seq
 import Data.Word
 import Rogui.Application.Event
@@ -62,7 +65,7 @@ addConsole ref console rogui@Rogui {..} =
   rogui {consoles = M.insert ref console consoles}
 
 boot ::
-  (MonadIO m) => RoguiConfig rc rb n s e -> (Rogui rc rb n s e -> m (Rogui rc rb n s e)) -> s -> m ()
+  (Show rb, Ord rb, Ord rc, MonadIO m) => RoguiConfig rc rb n s e -> (Rogui rc rb n s e -> m (Rogui rc rb n s e)) -> s -> m ()
 boot RoguiConfig {..} guiBuilder initialState = do
   SDL.initializeAll
   let TileSize {..} = brushTilesize
@@ -94,7 +97,13 @@ boot RoguiConfig {..} guiBuilder initialState = do
 
   SDL.destroyWindow window
 
-appLoop :: (MonadIO m) => Rogui rc rb n s e -> s -> m ()
+-- | Utility to look for a given brush in a map of brushes.
+-- This will later be patched to handle error more gracefully.
+brushLookup :: (Ord rb, Show rb) => M.Map rb Brush -> rb -> Brush
+brushLookup m ref =
+  fromMaybe (error $ "Brush not found: " ++ show ref) (M.lookup ref m)
+
+appLoop :: (Show rb, Ord rb, Ord rc, MonadIO m) => Rogui rc rb n s e -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
   sdlEvents <- getSDLEvents defaultBrush
   frameStart <- SDL.ticks
@@ -104,8 +113,11 @@ appLoop roGUI@Rogui {..} state = do
       EventHandlingState {result, currentState} = execState (processWithLimit 10 roGUI) baseEventState
   when (result == Continue) $ do
     SDL.clear renderer
-    let toDraw = draw brushes currentState
-    renderComponents roGUI toDraw
+    let drawConsole (console, brush, components) = do
+          let onConsole = maybe rootConsole (consoles M.!) console
+              usingBrush = maybe defaultBrush (brushLookup brushes) brush
+          renderComponents roGUI usingBrush onConsole components
+    traverse_ drawConsole (draw brushes currentState)
     SDL.present renderer
   unless (result == Halt) $ do
     frameEnd <- SDL.ticks

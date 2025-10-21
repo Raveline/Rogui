@@ -6,6 +6,7 @@ module Rogui.Components.Layout
   )
 where
 
+import Control.Monad.State.Strict (StateT (runStateT))
 import Control.Monad.Writer (execWriter)
 import qualified Data.DList as D
 import Data.Maybe (mapMaybe)
@@ -36,9 +37,9 @@ testHBoxGreedySplit =
 -- of creation.
 extractConsoles :: Layout -> Console -> [Component n] -> [Console]
 extractConsoles layout' root components =
-  let tiles = TileSize (Pixel 16) (Pixel 16)
-      dc = DrawingContext {tileSize = tiles, console = root, steps = 0}
-      instructions = D.toList $ execWriter (layout layout' components dc)
+  let brush = Brush {tileWidth = 16, tileHeight = 16, textureWidth = 256, textureHeight = 256, brush = undefined}
+      dc = DrawingContext {brush = brush, console = root, steps = 0}
+      instructions = D.toList . execWriter . runStateT (layout layout' components) $ dc
       onlyConsoles = \case
         (OnConsole c) -> Just c
         _ -> Nothing

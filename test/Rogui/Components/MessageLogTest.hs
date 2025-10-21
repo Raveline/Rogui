@@ -5,6 +5,7 @@ module Rogui.Components.MessageLogTest
   )
 where
 
+import Control.Monad.State.Strict (StateT (runStateT))
 import Control.Monad.Writer (execWriter)
 import qualified Data.DList as D
 import Data.List
@@ -14,7 +15,7 @@ import Rogui.Components.MessageLog (messageLog)
 import Rogui.Components.Types (Component (..), DrawingContext (..))
 import Rogui.Graphics.DSL.Instructions (Colours (..), Instruction (..))
 import Rogui.Graphics.Primitives (RGB)
-import Rogui.Graphics.Types (Console (..), Pixel (..), TileSize (..))
+import Rogui.Graphics.Types
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -44,10 +45,10 @@ renderMessageLog messages widthInCells heightInCells =
             height = Pixel (heightInCells * 16),
             position = V2 (Pixel 0) (Pixel 0)
           }
-      tileSize = TileSize (Pixel 16) (Pixel 16)
-      dc = DrawingContext {tileSize = tileSize, console = console, steps = 0}
+      brush' = Brush {tileWidth = 16, tileHeight = 16, textureWidth = 256, textureHeight = 256, brush = undefined}
+      dc = DrawingContext {brush = brush', console = console, steps = 0}
       component = messageLog messages
-      instructions = execWriter $ draw component dc
+      instructions = execWriter . runStateT (draw component) $ dc
    in D.toList instructions
 
 type LogChunk = (Colours, String)

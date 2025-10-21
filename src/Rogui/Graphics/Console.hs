@@ -10,7 +10,7 @@ import Control.Monad.IO.Class
 import Data.Char (ord)
 import Data.Foldable (traverse_)
 import Rogui.Graphics.Primitives (RGB, printCharAt)
-import Rogui.Graphics.Types (Brush (..), Console (..), Cell (..), (./.=))
+import Rogui.Graphics.Types (Brush (..), Cell (..), Console (..), (./.=))
 import SDL (Renderer, V2 (..), (^*))
 
 vertical437, horizontal437, cornerTopLeft437, cornerTopRight437, cornerBottomLeft437, cornerBottomRight437 :: Int

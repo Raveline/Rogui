@@ -8,14 +8,12 @@ module Rogui.Components.MessageLog
 where
 
 import Control.Monad (void)
-import Control.Monad.Writer
 import Data.Foldable (foldrM, toList, traverse_)
 import qualified Data.Sequence as Seq
-import Rogui.Components.Types (Component (..), DrawingContext (..), TileSize (..), emptyComponent)
-import Rogui.Graphics (Cell (..), Instructions, setColours, str, (./.=))
+import Rogui.Components.Types (Component (..), DrawM, contextCellHeight, contextCellWidth, emptyComponent)
+import Rogui.Graphics (Cell (..), setColours, str)
 import Rogui.Graphics.Console (TextAlign (TLeft))
 import Rogui.Graphics.DSL.Instructions (Colours (..), newLine)
-import Rogui.Graphics.Types (Console (..))
 
 type LogChunk = (Colours, String)
 
@@ -44,7 +42,7 @@ getTextLikeUntil width getLength breaker ts =
       getResult (_, taken, left) = (toList $ taken, toList left)
    in getResult . foldl' folder (0, Seq.empty, Seq.empty) $ ts
 
-drawMessageLog :: Cell -> LogMessage -> Cell -> Writer Instructions Cell
+drawMessageLog :: Cell -> LogMessage -> Cell -> DrawM Cell
 drawMessageLog _ _ 0 = pure 0
 drawMessageLog width msg remainingLines = do
   let msgLength = Cell $ sum $ (fmap (length . snd)) msg
@@ -59,7 +57,7 @@ drawMessageLog width msg remainingLines = do
       newLine
       pure (remainingLines - 1)
 
-drawChunk :: LogChunk -> Writer Instructions ()
+drawChunk :: LogChunk -> DrawM ()
 drawChunk (chunkColour, chunkTxt) = do
   setColours chunkColour
   str TLeft chunkTxt
@@ -75,11 +73,11 @@ truncateWordsOverWidth beyond msg =
       over = fmap (unwords . fmap (truncateWordBy beyond) . words)
    in fmap over msg
 
-drawMessageLogs :: [LogMessage] -> DrawingContext -> Writer Instructions ()
-drawMessageLogs msgs DrawingContext {tileSize = TileSize {..}, console = Console {..}} =
-  let maxWidth = width ./.= pixelWidth
-      availableLines = height ./.= pixelHeight
-      truncated = fmap (truncateWordsOverWidth $ getCell maxWidth) msgs
+drawMessageLogs :: [LogMessage] -> DrawM ()
+drawMessageLogs msgs = do
+  maxWidth <- contextCellWidth
+  availableLines <- contextCellHeight
+  let truncated = fmap (truncateWordsOverWidth $ getCell maxWidth) msgs
    in void $ foldrM (drawMessageLog maxWidth) availableLines truncated
 
 -- | A message log that tries to display as many messages as possible, depending

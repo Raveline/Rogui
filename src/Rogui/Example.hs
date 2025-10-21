@@ -47,7 +47,7 @@ renderingThroughInstructions Rogui {..} =
 -- Again, this is a rather constraining way of using the library,
 -- but it gives an example on how to use the Component layer.
 renderingThroughComponents :: (MonadIO m) => Rogui Consoles Brushes n s () -> m ()
-renderingThroughComponents rogui =
+renderingThroughComponents rogui@Rogui {..} =
   let baseColours = Colours (Just white) (Just black)
       highlighted = Colours (Just black) (Just white)
       components =
@@ -65,4 +65,4 @@ renderingThroughComponents rogui =
                 bordered baseColours $ list ["Amethyst", "Beryl", "Onyx"] id TLeft baseColours highlighted mkListState
               ]
           ]
-   in renderComponents rogui components
+   in renderComponents rogui defaultBrush rootConsole components
