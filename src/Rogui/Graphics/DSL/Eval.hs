@@ -12,7 +12,7 @@ import Control.Monad.State (MonadState, evalStateT, get, modify)
 import Data.Foldable
 import Rogui.Graphics.Console (drawBorder, printStrAt)
 import Rogui.Graphics.DSL.Instructions (Colours (..), Instruction (..), Instructions)
-import Rogui.Graphics.Primitives (fillConsoleWith, printCharAt)
+import Rogui.Graphics.Primitives (clipToConsole, fillConsoleWith, printCharAt)
 import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (Renderer, V2 (..))
 
@@ -35,8 +35,9 @@ eval instruction = do
   DrawingState {..} <- get
   let Colours {..} = colours
   case instruction of
-    OnConsole newConsole ->
+    OnConsole newConsole -> do
       modify (\s -> s {console = newConsole})
+      clipToConsole renderer newConsole
     WithBrush newBrush ->
       modify (\s -> s {brush = newBrush})
     DrawBorder -> drawBorder renderer console brush front back

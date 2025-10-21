@@ -1,6 +1,7 @@
 module Rogui.Graphics.Primitives
   ( printCharAt,
     fillConsoleWith,
+    clipToConsole,
     RGB,
   )
 where
@@ -68,9 +69,18 @@ printCharAt renderer Console {..} b@Brush {..} frontColour backColour n at = do
     (pure $ charIdToPosition b n)
     (pure $ realRectangle)
 
+getConsoleRect :: Console -> Rectangle CInt
+getConsoleRect Console {..} =
+  Rectangle (P $ fromIntegral <$> position) (fromIntegral <$> V2 width height)
+
 fillConsoleWith :: (MonadIO m) => Renderer -> Console -> RGB -> m ()
-fillConsoleWith renderer Console {..} (V3 r g b) = do
-  let dest = Rectangle (P $ fromIntegral <$> position) (fromIntegral <$> V2 width height)
+fillConsoleWith renderer console (V3 r g b) = do
+  let dest = getConsoleRect console
   SDL.rendererDrawColor renderer SDL.$= SDL.V4 r g b 255
   SDL.fillRect renderer (pure dest)
   SDL.rendererDrawColor renderer SDL.$= SDL.V4 0 0 0 255
+
+clipToConsole :: (MonadIO m) => Renderer -> Console -> m ()
+clipToConsole renderer console = do
+  let dest = getConsoleRect console
+  SDL.rendererClipRect renderer SDL.$= Just dest
