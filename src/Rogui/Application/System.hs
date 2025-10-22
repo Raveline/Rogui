@@ -15,7 +15,6 @@ import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.State hiding (state)
-import Data.Foldable (traverse_)
 import Data.Map qualified as M
 import Data.Maybe (fromMaybe)
 import Data.Sequence qualified as Seq
@@ -65,7 +64,7 @@ addConsole ref console rogui@Rogui {..} =
   rogui {consoles = M.insert ref console consoles}
 
 boot ::
-  (Show rb, Ord rb, Ord rc, MonadIO m) => RoguiConfig rc rb n s e -> (Rogui rc rb n s e -> m (Rogui rc rb n s e)) -> s -> m ()
+  (Show rb, Ord rb, Ord rc, Ord n, MonadIO m) => RoguiConfig rc rb n s e -> (Rogui rc rb n s e -> m (Rogui rc rb n s e)) -> s -> m ()
 boot RoguiConfig {..} guiBuilder initialState = do
   SDL.initializeAll
   let TileSize {..} = brushTilesize
@@ -89,7 +88,8 @@ boot RoguiConfig {..} guiBuilder initialState = do
             timerStep = 0,
             lastStep = 0,
             numberOfSteps = 0,
-            targetFrameTime = frameTime
+            targetFrameTime = frameTime,
+            extentsMap = mempty
           }
   gui <- guiBuilder baseRogui
 
@@ -103,22 +103,26 @@ brushLookup :: (Ord rb, Show rb) => M.Map rb Brush -> rb -> Brush
 brushLookup m ref =
   fromMaybe (error $ "Brush not found: " ++ show ref) (M.lookup ref m)
 
-appLoop :: (Show rb, Ord rb, Ord rc, MonadIO m) => Rogui rc rb n s e -> s -> m ()
+appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m) => Rogui rc rb n s e -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
   sdlEvents <- getSDLEvents defaultBrush
   frameStart <- SDL.ticks
   let reachedStep = frameStart - lastStep > timerStep
       baseEvents = if reachedStep then Step : sdlEvents else sdlEvents
-      baseEventState = EventHandlingState {events = Seq.fromList baseEvents, currentState = state, result = ContinueNoRedraw}
+      baseEventState = EventHandlingState {events = Seq.fromList baseEvents, currentState = state, result = ContinueNoRedraw, knownExtents = extentsMap}
       EventHandlingState {result, currentState} = execState (processWithLimit 10 roGUI) baseEventState
-  when (result == Continue) $ do
-    SDL.clear renderer
-    let drawConsole (console, brush, components) = do
-          let onConsole = maybe rootConsole (consoles M.!) console
-              usingBrush = maybe defaultBrush (brushLookup brushes) brush
-          renderComponents roGUI usingBrush onConsole components
-    traverse_ drawConsole (draw brushes currentState)
-    SDL.present renderer
+  newExtents <-
+    if (result == Continue)
+      then do
+        SDL.clear renderer
+        let drawConsole (console, brush, components) = do
+              let onConsole = maybe rootConsole (consoles M.!) console
+                  usingBrush = maybe defaultBrush (brushLookup brushes) brush
+              renderComponents roGUI usingBrush onConsole components
+        extents <- traverse drawConsole (draw brushes currentState)
+        SDL.present renderer
+        pure $ M.unions extents
+      else pure extentsMap
   unless (result == Halt) $ do
     frameEnd <- SDL.ticks
     let elapsed = frameStart - frameEnd
@@ -131,11 +135,12 @@ appLoop roGUI@Rogui {..} state = do
           roGUI
             { lastTicks = frameStart,
               lastStep = if reachedStep then frameStart else lastStep,
-              numberOfSteps = if reachedStep then numberOfSteps + 1 else numberOfSteps
+              numberOfSteps = if reachedStep then numberOfSteps + 1 else numberOfSteps,
+              extentsMap = newExtents
             }
     appLoop newRogui currentState
 
-processWithLimit :: Int -> Rogui rc rb n s e -> EventHandlingM s e ()
+processWithLimit :: Int -> Rogui rc rb n s e -> EventHandlingM s e n ()
 processWithLimit 0 _ = pure ()
 processWithLimit n roGUI = do
   evs <- gets events
@@ -143,7 +148,7 @@ processWithLimit n roGUI = do
     then pure ()
     else traverse (processEvent roGUI) evs >> processWithLimit (n - 1) roGUI
 
-processEvent :: Rogui rc rb n s e -> Event e -> EventHandlingM s e ()
+processEvent :: Rogui rc rb n s e -> Event e -> EventHandlingM s e n ()
 processEvent Rogui {..} event = do
   _ <- popEvent -- This will remove the event from the queue
   currentState <- gets currentState
@@ -159,7 +164,7 @@ processEvent Rogui {..} event = do
 -- Other events are to be manually implemented.  Feed your own event handler to
 -- this so you get an easy way to leave your applications through common
 -- shortcuts.
-baseEventHandler :: EventHandler state e -> EventHandler state e
+baseEventHandler :: EventHandler state e n -> EventHandler state e n
 baseEventHandler sink state event =
   let ctrlC e = SDL.keysymKeycode e == SDL.KeycodeC && (SDL.keyModifierLeftCtrl . SDL.keysymModifier $ e)
    in case event of
@@ -170,7 +175,7 @@ baseEventHandler sink state event =
         _ -> sink state event
 
 -- | A utility to react to key presses listed in a Map
-keyPressHandler :: EventHandler state e -> M.Map SDL.Keycode (EventHandler state e) -> EventHandler state e
+keyPressHandler :: EventHandler state e n -> M.Map SDL.Keycode (EventHandler state e n) -> EventHandler state e n
 keyPressHandler sink keyMap state event =
   case event of
     KeyDown KeyDownDetails {key} ->

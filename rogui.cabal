@@ -78,7 +78,6 @@ library
         Rogui.Components.TextInput
         Rogui.Components.Types
         Rogui.Components.Viewport
-        Rogui.Example
         Rogui.FocusRing
         Rogui.Graphics
         Rogui.Graphics.Console

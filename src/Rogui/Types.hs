@@ -9,11 +9,11 @@ where
 import qualified Data.Map as M
 import Data.Word (Word32)
 import Rogui.Application.Event (Event, EventHandlingM)
-import Rogui.Components.Types (Component)
+import Rogui.Components.Types (Component, ExtentMap)
 import Rogui.Graphics.Types
 import SDL (Renderer)
 
-type EventHandler state e = state -> Event e -> EventHandlingM state e ()
+type EventHandler state e n = state -> Event e -> EventHandlingM state e n ()
 
 type ConsoleDrawers rc rb n state = M.Map rb Brush -> state -> ToDraw rc rb n
 
@@ -34,7 +34,7 @@ data Rogui rc rb n state e
     defaultBrush :: Brush,
     renderer :: Renderer,
     draw :: ConsoleDrawers rc rb n state,
-    onEvent :: EventHandler state e,
+    onEvent :: EventHandler state e n,
     -- | Constant evaluating the amount of milliseconds since initialisation, taken from SDL.
     lastTicks :: Word32,
     -- | Step timer constant used for basic animations, expressed in milliseconds.
@@ -44,5 +44,7 @@ data Rogui rc rb n state e
     -- | Number of steps taken since the beginning of the application.
     numberOfSteps :: Int,
     -- | Internal, milliseconds per frame
-    targetFrameTime :: Word32
+    targetFrameTime :: Word32,
+    -- | List of known extents
+    extentsMap :: ExtentMap n
   }

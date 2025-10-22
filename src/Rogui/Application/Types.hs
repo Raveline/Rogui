@@ -18,5 +18,5 @@ data RoguiConfig rc rb name state event = RoguiConfig
     defaultBrushReference :: rb,
     defaultBrushPath :: FilePath,
     drawingFunction :: ConsoleDrawers rc rb name state,
-    eventFunction :: EventHandler state event
+    eventFunction :: EventHandler state event name
   }

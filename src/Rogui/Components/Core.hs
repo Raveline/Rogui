@@ -20,11 +20,12 @@ module Rogui.Components.Core
   )
 where
 
-import Control.Monad (foldM_, void)
+import Control.Monad (foldM_)
 import Control.Monad.State.Strict
 import Control.Monad.Writer
+import Data.Bifunctor
 import Data.Foldable (traverse_)
-import Rogui.Components.Types (Component (..), DrawM, DrawingContext (..), Size (..), changeBrush, changeConsole, emptyComponent)
+import Rogui.Components.Types (Component (..), DrawM, DrawingContext (..), ExtentMap, Size (..), changeBrush, changeConsole, emptyComponent)
 import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), RGB, setConsoleBackground)
 import Rogui.Graphics.DSL.Eval (evalInstructions)
 import Rogui.Graphics.DSL.Instructions (Colours, setColours, withBorder, withBrush, withConsole)
@@ -109,7 +110,7 @@ pixelToTiles l Brush {..} p = case l of
   Horizontal -> p ./.= tileWidth
   Vertical -> p ./.= tileHeight
 
-layout :: Layout -> [Component n] -> DrawM ()
+layout :: Layout -> [Component n] -> DrawM n ()
 layout direction children = do
   root@Console {width, height} <- gets console
   brush <- gets brush
@@ -138,16 +139,16 @@ layout direction children = do
         pure $ currentConsole {position = (position currentConsole) + (baseStep ^* (tilesToPixel direction brush newValue))}
   foldM_ render root children
 
-renderComponents :: (MonadIO m) => Rogui rc rb n s e -> Brush -> Console -> Component n -> m ()
+renderComponents :: (Ord n, MonadIO m) => Rogui rc rb n s e -> Brush -> Console -> Component n -> m (ExtentMap n)
 renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usingBrush usingConsole Component {..} =
-  let instructions =
-        execWriter $
-          void $
-            execStateT
-              ( do
-                  withConsole usingConsole
-                  withBrush usingBrush
-                  draw
-              )
-              DrawingContext {brush = usingBrush, console = usingConsole, steps = numberOfSteps}
-   in evalInstructions renderer rootConsole defaultBrush instructions
+  let afterRendering =
+        execStateT
+          rendering
+          DrawingContext {brush = usingBrush, console = usingConsole, steps = numberOfSteps, currentExtents = mempty}
+      (extents, instructions) = do
+        first (currentExtents) $ runWriter afterRendering
+      rendering = do
+        withConsole usingConsole
+        withBrush usingBrush
+        draw
+   in evalInstructions renderer rootConsole defaultBrush instructions >> pure extents

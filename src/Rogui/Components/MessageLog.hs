@@ -44,7 +44,7 @@ getTextLikeUntil width getLength breaker ts =
       getResult (_, taken, left) = (toList $ taken, toList left)
    in getResult . foldl' folder (0, Seq.empty, Seq.empty) $ ts
 
-drawMessageLog :: Cell -> LogMessage -> Cell -> DrawM Cell
+drawMessageLog :: Cell -> LogMessage -> Cell -> DrawM n Cell
 drawMessageLog _ _ 0 = pure 0
 drawMessageLog width msg remainingLines = do
   let msgLength = Cell $ sum $ (fmap (length . snd)) msg
@@ -59,7 +59,7 @@ drawMessageLog width msg remainingLines = do
       newLine
       pure (remainingLines - 1)
 
-drawChunk :: LogChunk -> DrawM ()
+drawChunk :: LogChunk -> DrawM n ()
 drawChunk (chunkColour, chunkTxt) = do
   setColours chunkColour
   str TLeft chunkTxt
@@ -75,7 +75,7 @@ truncateWordsOverWidth beyond msg =
       over = fmap (unwords . fmap (truncateWordBy beyond) . words)
    in fmap over msg
 
-drawMessageLogs :: [LogMessage] -> DrawM ()
+drawMessageLogs :: [LogMessage] -> DrawM n ()
 drawMessageLogs msgs = do
   maxWidth <- contextCellWidth
   availableLines <- contextCellHeight

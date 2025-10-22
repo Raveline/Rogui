@@ -7,11 +7,14 @@ module Rogui.Components.Types
     DrawingContext (..),
     Size (..),
     DrawM,
+    Extent (..),
+    ExtentMap,
     -- Convenience reexport
     TileSize (..),
     emptyComponent,
     contextCellWidth,
     contextCellHeight,
+    recordExtent,
     vSize,
     hSize,
     changeBrush,
@@ -21,39 +24,56 @@ where
 
 import Control.Monad.State.Strict (StateT, get, modify)
 import Control.Monad.Writer.Lazy
+import qualified Data.Map as M
 import Rogui.Graphics (Brush, (./.=))
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Types (Brush (Brush, tileHeight, tileWidth), Cell, Console (..), TileSize (..))
+import SDL (V2 (..))
 
-type DrawM a = StateT DrawingContext (Writer Instructions) a
+-- | A concept borrowed from Brick: store the actual size
+-- of a component so it can be retrieved later on. This is
+-- used notably for events and for viewports management.
+data Extent = Extent
+  { -- Actual screen position in cells
+    extentPosition :: V2 Cell,
+    -- Actual width/height rendered
+    extentSize :: V2 Cell,
+    -- The actual console used (in pixels)
+    extentConsole :: Console
+  }
+
+type ExtentMap n = M.Map n Extent
+
+data DrawingContext n = DrawingContext
+  { brush :: Brush,
+    console :: Console,
+    steps :: Int,
+    currentExtents :: ExtentMap n
+  }
+
+type DrawM n a = StateT (DrawingContext n) (Writer Instructions) a
 
 data Size = Greedy | Fixed Cell
   deriving (Eq)
 
-data DrawingContext = DrawingContext
-  { brush :: Brush,
-    console :: Console,
-    steps :: Int
-  }
-
-changeBrush :: Brush -> DrawM ()
+changeBrush :: Brush -> DrawM n ()
 changeBrush b = do
   withBrush b
   modify $ \s -> s {brush = b}
 
-changeConsole :: Console -> DrawM ()
+changeConsole :: Console -> DrawM n ()
 changeConsole c = do
   withConsole c
   modify $ \s -> s {console = c}
 
-contextCellWidth :: DrawM Cell
+contextCellWidth :: DrawM n Cell
 contextCellWidth = do
   DrawingContext {..} <- get
   let Console {width} = console
       Brush {tileWidth} = brush
   pure $ width ./.= tileWidth
 
-contextCellHeight :: DrawM Cell
+contextCellHeight :: DrawM n Cell
 contextCellHeight = do
   DrawingContext {..} <- get
   let Console {height} = console
@@ -80,7 +100,7 @@ contextCellHeight = do
 --
 -- Component are parametered over a name which are used to handle focus.
 data Component name = Component
-  { draw :: DrawM (),
+  { draw :: DrawM name (),
     verticalSize :: Size,
     horizontalSize :: Size
   }
@@ -94,3 +114,23 @@ vSize size component = component {verticalSize = size}
 
 hSize :: Size -> Component n -> Component n
 hSize size component = component {horizontalSize = size}
+
+-- | Save the actual rendered size of this component, using its name to keep
+-- track of it. This is useful for interactive components (focusable,
+-- clickable...) or components with a viewport attached to them. Event
+-- handler can then query the extent using the same name to know
+-- the size and position of the component.
+recordExtent :: (Ord n) => n -> DrawM n ()
+recordExtent name = do
+  DrawingContext {console, brush, currentExtents} <- get
+  let extent = consoleToExtent brush console
+  modify $ \s -> s {currentExtents = M.insert name extent currentExtents}
+
+consoleToExtent :: Brush -> Console -> Extent
+consoleToExtent Brush {tileWidth, tileHeight} console@Console {position, width, height} =
+  let (V2 x y) = position
+   in Extent
+        { extentPosition = V2 (x ./.= tileWidth) (y ./.= tileHeight),
+          extentSize = V2 (width ./.= tileWidth) (height ./.= tileHeight),
+          extentConsole = console
+        }

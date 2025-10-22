@@ -77,7 +77,8 @@ data Name
   = List
   | TextInput
   | QuitButton
-  deriving (Eq)
+  | MessageLogs
+  deriving (Eq, Ord)
 
 data CustomEvent = Move (V2 Cell) | ToggleUI | ToggleLogs
 
@@ -135,14 +136,14 @@ guiMaker baseGui = do
     . addConsole Logging loggingConsole
     $ withBrushes
 
-uiKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent)
+uiKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent Name)
 uiKeysHandler =
   M.fromList $
     [ (SDL.KeycodeTab, \_ _ -> fireEvent FocusNext),
       (SDL.KeycodeEscape, \_ _ -> fireAppEvent ToggleUI)
     ]
 
-gameKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent)
+gameKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent Name)
 gameKeysHandler =
   M.fromList $
     [ (SDL.KeycodeUp, \_ _ -> fireAppEvent . Move $ V2 0 (-1)),
@@ -153,14 +154,14 @@ gameKeysHandler =
       (SDL.KeycodeF2, \_ _ -> fireAppEvent $ ToggleLogs)
     ]
 
-eventHandler :: EventHandler State CustomEvent
+eventHandler :: EventHandler State CustomEvent Name
 eventHandler state@State {..} e =
   case gameState of
     PlayingGame -> keyPressHandler gameEventHandler gameKeysHandler state e
     UI -> keyPressHandler uiEventHandler uiKeysHandler state e
     LogView -> logEventHandler state e
 
-gameEventHandler :: EventHandler State CustomEvent
+gameEventHandler :: EventHandler State CustomEvent Name
 gameEventHandler State {..} = \case
   (AppEvent (Move dir)) -> do
     let newPos@(V2 x y) = playerPos + dir
@@ -171,15 +172,15 @@ gameEventHandler State {..} = \case
   (AppEvent ToggleLogs) -> modifyState $ \s -> s {gameState = LogView}
   _ -> pure ()
 
-logEventHandler :: EventHandler State CustomEvent
+logEventHandler :: EventHandler State CustomEvent Name
 logEventHandler =
   let keyHandler = M.fromList [(SDL.KeycodeEscape, \_ _ -> fireAppEvent $ ToggleUI)]
       eventHandler' s = \case
         (AppEvent ToggleUI) -> modifyState $ \s' -> s' {gameState = PlayingGame}
-        e -> handleViewportEvent (V2 80 36) e (logViewport s) $ \newViewport s' -> s' {logViewport = newViewport}
+        e -> handleViewportEvent MessageLogs e (logViewport s) $ \newViewport s' -> s' {logViewport = newViewport}
    in keyPressHandler eventHandler' keyHandler
 
-uiEventHandler :: EventHandler State CustomEvent
+uiEventHandler :: EventHandler State CustomEvent Name
 uiEventHandler state@State {..} = \case
   MouseEvent (MouseMove MouseMoveDetails {..}) ->
     redraw $ setCurrentState $ state {mousePosition = defaultTileSizePosition}
@@ -192,7 +193,7 @@ uiEventHandler state@State {..} = \case
     (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
     _ -> pure ()
 
-handleFocusChange :: (FocusRing Name -> FocusRing Name) -> State -> EventHandlingM State CustomEvent ()
+handleFocusChange :: (FocusRing Name -> FocusRing Name) -> State -> EventHandlingM State CustomEvent Name ()
 handleFocusChange ringChange s =
   let newRing = ringChange (ring s)
       -- When focus moves to List and selection is Nothing, initialize
@@ -263,4 +264,4 @@ renderUI State {..} =
 
 renderLogging :: State -> Component Name
 renderLogging State {logViewport} =
-  filled black $ bordered (Colours (Just white) (Just black)) $ vBox [viewport (scrollOffset logViewport) $ messageLog fakeLogs]
+  filled black $ bordered (Colours (Just white) (Just black)) $ vBox [viewport MessageLogs (scrollOffset logViewport) $ messageLog fakeLogs]

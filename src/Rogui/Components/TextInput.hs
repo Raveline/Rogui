@@ -28,7 +28,7 @@ textInput txt colours focused =
           glyph fullBlock
    in emptyComponent {draw = draw'}
 
-handleTextInputEvent :: Event e -> String -> (String -> s -> s) -> EventHandlingM s e ()
+handleTextInputEvent :: Event e -> String -> (String -> s -> s) -> EventHandlingM s e n ()
 handleTextInputEvent event txt modifier = case event of
   KeyDown (KeyDownDetails {key}) ->
     case (SDL.keysymKeycode key) of
