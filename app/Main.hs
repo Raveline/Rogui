@@ -251,10 +251,11 @@ renderUI State {..} =
                         (Just black)
                     )
                 ),
-              bordered baseColours $ padded 2 $ list listOfText id TLeft baseColours highlighted listState,
-              padded 2 $ textInput someText textColours (focusGetCurrent ring == Just TextInput),
+              bordered baseColours $ padded 2 $ list List listOfText id TLeft baseColours highlighted listState,
+              padded 2 $ textInput TextInput someText textColours (focusGetCurrent ring == Just TextInput),
               vSize (Fixed 1) $
                 button
+                  QuitButton
                   "Quit"
                   TCenter
                   baseColours

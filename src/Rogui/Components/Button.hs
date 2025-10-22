@@ -8,16 +8,19 @@ import qualified Data.Map as M
 import Rogui.Application.Event (Event (..), fireEvent)
 import Rogui.Application.System (keyPressHandler)
 import Rogui.Components.Label (label)
-import Rogui.Components.Types (Component (..))
+import Rogui.Components.Types (Component (..), recordExtent)
 import Rogui.Graphics (TextAlign)
 import Rogui.Graphics.DSL.Instructions (Colours)
 import Rogui.Types (EventHandler)
 import qualified SDL
 
-button :: String -> TextAlign -> Colours -> Colours -> Bool -> Component n
-button content baseAlignment normalColours focusedColours focused =
+button :: (Ord n) => n -> String -> TextAlign -> Colours -> Colours -> Bool -> Component n
+button n content baseAlignment normalColours focusedColours focused =
   let pickColour = if focused then focusedColours else normalColours
-   in label content baseAlignment pickColour
+      labelComponent = label content baseAlignment pickColour
+   in labelComponent
+        { draw = recordExtent n >> draw labelComponent
+        }
 
 -- | Fire the given event when getting enter, focus next and prev on arrows up and down
 handleButtonEvent :: EventHandler state e n -> EventHandler state e n

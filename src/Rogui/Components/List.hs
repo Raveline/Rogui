@@ -10,7 +10,7 @@ module Rogui.Components.List
 where
 
 import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (..), fireEvent, modifyState, redraw)
-import Rogui.Components.Types (Component (..), emptyComponent)
+import Rogui.Components.Types (Component (..), emptyComponent, recordExtent)
 import Rogui.Graphics.Console (TextAlign)
 import Rogui.Graphics.DSL.Instructions (Colours, setColours, strLn)
 import qualified SDL
@@ -23,14 +23,14 @@ data ListState = ListState
 mkListState :: ListState
 mkListState = ListState Nothing 0
 
-list :: [a] -> (a -> String) -> TextAlign -> Colours -> Colours -> ListState -> Component n
-list items toText baseAlignment baseColour highlightedColours ListState {..} =
+list :: (Ord n) => n -> [a] -> (a -> String) -> TextAlign -> Colours -> Colours -> ListState -> Component n
+list n items toText baseAlignment baseColour highlightedColours ListState {..} =
   let displayItem (item, idx) = do
         if (Just idx == selection)
           then setColours highlightedColours
           else setColours baseColour
         strLn baseAlignment (toText item)
-   in emptyComponent {draw = mapM_ displayItem (zip items [0 ..])}
+   in emptyComponent {draw = recordExtent n >> mapM_ displayItem (zip items [0 ..])}
 
 handleListEvent :: Int -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlingM s e n ()
 handleListEvent len event state@ListState {selection} modifier = case event of

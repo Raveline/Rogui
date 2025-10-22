@@ -11,14 +11,15 @@ import Control.Monad (unless, when)
 import Control.Monad.State.Strict
 import qualified Data.Text as T
 import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (..), fireEvent, modifyState, redraw)
-import Rogui.Components.Types (Component (..), DrawingContext (..), contextCellWidth, emptyComponent)
+import Rogui.Components.Types (Component (..), DrawingContext (..), contextCellWidth, emptyComponent, recordExtent)
 import Rogui.Graphics
 import SDL (TextInputEventData (textInputEventText))
 import qualified SDL
 
-textInput :: String -> Colours -> Bool -> Component n
-textInput txt colours focused =
+textInput :: (Ord n) => n -> String -> Colours -> Bool -> Component n
+textInput n txt colours focused =
   let draw' = do
+        recordExtent n
         setColours colours
         width <- contextCellWidth
         steps' <- gets steps
