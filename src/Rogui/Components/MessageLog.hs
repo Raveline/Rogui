@@ -4,6 +4,8 @@
 module Rogui.Components.MessageLog
   ( messageLog,
     getTextLikeUntil,
+    LogChunk,
+    LogMessage,
   )
 where
 

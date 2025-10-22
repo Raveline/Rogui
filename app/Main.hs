@@ -19,16 +19,18 @@ import Rogui.Components.Game.EntitiesLayer (entitiesLayer)
 import Rogui.Components.Game.GridTile
 import Rogui.Components.Game.Utils (GlyphInfo (..), computeMapViewport)
 import Rogui.Components.Label
-import Rogui.Components.List
+import Rogui.Components.List hiding (scrollOffset)
+import Rogui.Components.MessageLog (LogMessage, messageLog)
 import Rogui.Components.ProgressBar
 import Rogui.Components.TextInput
 import Rogui.Components.Types
+import Rogui.Components.Viewport (ViewportState (..), handleViewportEvent, viewport)
 import Rogui.FocusRing
 import Rogui.Graphics
 import Rogui.Types
 import SDL hiding (Event, drawLine, textureHeight, textureWidth)
 
-data Consoles = Root | ModalMenu | StatusBar | GameArea
+data Consoles = Root | ModalMenu | StatusBar | GameArea | Logging
   deriving (Eq, Ord, Show)
 
 data Brushes = Charset | BigCharset | Drawings
@@ -42,10 +44,11 @@ data State = State
     ring :: FocusRing Name,
     listState :: ListState,
     someText :: String,
-    playerPos :: V2 Cell
+    playerPos :: V2 Cell,
+    logViewport :: ViewportState
   }
 
-data GameState = PlayingGame | UI
+data GameState = PlayingGame | UI | LogView
   deriving (Eq)
 
 data TileType
@@ -76,7 +79,7 @@ data Name
   | QuitButton
   deriving (Eq)
 
-data CustomEvent = Move (V2 Cell) | ToggleUI
+data CustomEvent = Move (V2 Cell) | ToggleUI | ToggleLogs
 
 main :: IO ()
 main = do
@@ -103,14 +106,25 @@ main = do
         ring = focusRing [List, TextInput, QuitButton],
         listState = mkListState {selection = Just 0},
         someText = "",
-        playerPos = V2 1 1
+        playerPos = V2 1 1,
+        logViewport = ViewportState (V2 0 0) (V2 0 (Cell $ length fakeLogs))
       }
+
+fakeLogs :: [LogMessage]
+fakeLogs =
+  let basicLogs =
+        [ [(Colours (Just white) (Just black), "This is a log message")],
+          [(Colours (Just white) (Just black), "This is another log message")],
+          [(Colours (Just white) (Just black), "And another one")]
+        ]
+   in mconcat $ replicate 200 basicLogs
 
 guiMaker :: (MonadIO m) => Rogui Consoles Brushes Name State CustomEvent -> m (Rogui Consoles Brushes Name State CustomEvent)
 guiMaker baseGui = do
   let modal = Console {width = 400, height = 400, position = V2 (16 * 10) (16 * 10)}
       statusBar = Console {width = 800, height = 16, position = V2 0 0}
       gameArea = Console {width = 800, height = 784, position = V2 0 16}
+      loggingConsole = Console {width = 800, height = 608, position = V2 0 0}
   withBrushes <-
     addBrush Charset "terminal_10x16.png" (TileSize 10 16) baseGui
       >>= addBrush BigCharset "terminal_16x16.png" (TileSize 16 16)
@@ -118,6 +132,7 @@ guiMaker baseGui = do
     . addConsole ModalMenu modal
     . addConsole StatusBar statusBar
     . addConsole GameArea gameArea
+    . addConsole Logging loggingConsole
     $ withBrushes
 
 uiKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent)
@@ -134,7 +149,8 @@ gameKeysHandler =
       (SDL.KeycodeDown, \_ _ -> fireAppEvent . Move $ V2 0 1),
       (SDL.KeycodeLeft, \_ _ -> fireAppEvent . Move $ V2 (-1) 0),
       (SDL.KeycodeRight, \_ _ -> fireAppEvent . Move $ V2 1 0),
-      (SDL.KeycodeF1, \_ _ -> fireAppEvent $ ToggleUI)
+      (SDL.KeycodeF1, \_ _ -> fireAppEvent $ ToggleUI),
+      (SDL.KeycodeF2, \_ _ -> fireAppEvent $ ToggleLogs)
     ]
 
 eventHandler :: EventHandler State CustomEvent
@@ -142,6 +158,7 @@ eventHandler state@State {..} e =
   case gameState of
     PlayingGame -> keyPressHandler gameEventHandler gameKeysHandler state e
     UI -> keyPressHandler uiEventHandler uiKeysHandler state e
+    LogView -> logEventHandler state e
 
 gameEventHandler :: EventHandler State CustomEvent
 gameEventHandler State {..} = \case
@@ -151,7 +168,16 @@ gameEventHandler State {..} = \case
       modifyState $
         \s -> s {playerPos = newPos}
   (AppEvent ToggleUI) -> modifyState $ \s -> s {gameState = UI}
+  (AppEvent ToggleLogs) -> modifyState $ \s -> s {gameState = LogView}
   _ -> pure ()
+
+logEventHandler :: EventHandler State CustomEvent
+logEventHandler =
+  let keyHandler = M.fromList [(SDL.KeycodeEscape, \_ _ -> fireAppEvent $ ToggleUI)]
+      eventHandler' s = \case
+        (AppEvent ToggleUI) -> modifyState $ \s' -> s' {gameState = PlayingGame}
+        e -> handleViewportEvent (V2 80 36) e (logViewport s) $ \newViewport s' -> s' {logViewport = newViewport}
+   in keyPressHandler eventHandler' keyHandler
 
 uiEventHandler :: EventHandler State CustomEvent
 uiEventHandler state@State {..} = \case
@@ -182,14 +208,14 @@ renderApp brushes s@State {playerPos, gameState} =
       bigCharset = brushes M.! BigCharset
       gridTileSize = (V2 40 30)
       fullMapSize = (V2 100 100)
-      viewport = computeMapViewport gridTileSize fullMapSize playerPos
+      viewport' = computeMapViewport gridTileSize fullMapSize playerPos
       statusBar =
         hBox
           [ progressBar 0 20 10 baseColours baseColours fullBlock lightShade
           ]
       gameArea =
         vBox
-          [ multiLayeredGrid fullMapSize viewport $
+          [ multiLayeredGrid fullMapSize viewport' $
               [ gridTile gridTileSize ((!) arbitraryMap) tileToGlyphInfo,
                 switchBrush bigCharset . entitiesLayer [playerPos] (const $ GlyphInfo 1 charColours) id
               ]
@@ -197,7 +223,8 @@ renderApp brushes s@State {playerPos, gameState} =
    in catMaybes $
         [ Just (Just StatusBar, Just Charset, statusBar),
           Just (Just GameArea, Just Drawings, gameArea),
-          if gameState == UI then Just (Just ModalMenu, Just Charset, renderUI s) else Nothing
+          if gameState == UI then Just (Just ModalMenu, Just Charset, renderUI s) else Nothing,
+          if gameState == LogView then Just (Just Logging, Just Charset, renderLogging s) else Nothing
         ]
 
 renderUI :: State -> Component Name
@@ -233,3 +260,7 @@ renderUI State {..} =
                   highlighted
                   (focusGetCurrent ring == Just QuitButton)
             ]
+
+renderLogging :: State -> Component Name
+renderLogging State {logViewport} =
+  filled black $ bordered (Colours (Just white) (Just black)) $ vBox [viewport (scrollOffset logViewport) $ messageLog fakeLogs]

@@ -1,8 +1,10 @@
 High priority:
 
+[X] Support viewport for components that exceed their console size
+[ ] Have the ability to retrieve components consoles after a display
+
 Medium priority:
 
-[ ] Support viewport for components that exceed their console size
 [ ] Add error handling in boot and loadBrush
 [ ] Make LogConsole scrollable
 

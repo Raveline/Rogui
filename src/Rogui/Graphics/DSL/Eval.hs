@@ -46,7 +46,8 @@ eval instruction = do
     SetConsoleBackground rgb ->
       fillConsoleWith renderer console rgb
     NewLine ->
-      modify (\s -> s {position = position + (V2 0 1)})
+      let (V2 px _) = position
+       in modify (\s -> s {position = position + (V2 (-px) 1)})
     DrawGlyph glyphId ->
       printCharAt renderer console brush front back glyphId position
     MoveTo pos ->
