@@ -10,11 +10,12 @@ module Rogui.Components.List
   )
 where
 
-import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (..), MouseClickDetails (..), fireEvent, getExtentPosition, modifyState, redraw)
-import Rogui.Components.Types (Component (..), emptyComponent, recordExtent)
+import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (..), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw)
+import Rogui.Components.Types (Component (..), contextCellHeight, emptyComponent, recordExtent)
 import Rogui.Graphics.Console (TextAlign)
 import Rogui.Graphics.DSL.Instructions (Colours, setColours, strLn)
-import Rogui.Graphics.Types (getCell)
+import Rogui.Graphics.Types (Cell (..))
+import SDL (V2 (..))
 import qualified SDL
 
 data ListState = ListState
@@ -32,7 +33,15 @@ list n items toText baseAlignment baseColour highlightedColours ListState {..} =
           then setColours highlightedColours
           else setColours baseColour
         strLn baseAlignment (toText item)
-   in emptyComponent {draw = recordExtent n >> mapM_ displayItem (zip items [0 ..])}
+      draw' = do
+        recordExtent n
+        visibleHeight <- contextCellHeight
+        let visibleItems =
+              take (getCell visibleHeight) $
+                drop scrollOffset $
+                  zip items [0 ..]
+        mapM_ displayItem visibleItems
+   in emptyComponent {draw = draw'}
 
 handleClickOnList :: (Ord n) => n -> Int -> ListState -> (ListState -> s -> s) -> MouseClickDetails -> EventHandlingM s e n ()
 handleClickOnList n listLength ls@ListState {..} modifier (MouseClickDetails _ (SDL.V2 _ mcy) SDL.ButtonLeft) = do
@@ -42,22 +51,35 @@ handleClickOnList n listLength ls@ListState {..} modifier (MouseClickDetails _ (
   modifyState . modifier $ ls {selection = if newSelection >= 0 && newSelection < listLength then Just newSelection else Nothing}
 handleClickOnList _ _ _ _ _ = pure ()
 
-handleListEvent :: Int -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlingM s e n ()
-handleListEvent listLength event state@ListState {selection} modifier = case event of
-  KeyDown KeyDownDetails {key} -> case SDL.keysymKeycode key of
-    SDL.KeycodeDown ->
-      let newIndex = maybe 0 (+ 1) selection
-       in if newIndex >= listLength
-            then do
-              fireEvent FocusNext
-              modifyState . modifier $ state {selection = Nothing}
-            else redraw . modifyState . modifier $ state {selection = Just newIndex}
-    SDL.KeycodeUp ->
-      let newIndex = maybe (listLength - 1) (\n -> (n - 1)) selection
-       in if newIndex >= 0
-            then modifyState (modifier $ state {selection = Just newIndex})
-            else do
-              fireEvent FocusPrev
-              redraw . modifyState . modifier $ state {selection = Nothing}
+handleListEvent :: (Ord n) => n -> Int -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlingM s e n ()
+handleListEvent listName listLength event state@ListState {selection, scrollOffset} modifier = do
+  V2 _ visibleHeight <- getExtentSize listName
+
+  let autoScroll sel
+        | sel < scrollOffset = sel
+        | sel >= scrollOffset + getCell visibleHeight =
+            sel - getCell visibleHeight + 1
+        | otherwise = scrollOffset
+
+  case event of
+    KeyDown KeyDownDetails {key} -> case SDL.keysymKeycode key of
+      SDL.KeycodeDown ->
+        let newIndex = maybe 0 (+ 1) selection
+         in if newIndex >= listLength
+              then do
+                fireEvent FocusNext
+                modifyState . modifier $ state {selection = Nothing}
+              else do
+                let newScroll = autoScroll newIndex
+                redraw . modifyState . modifier $ state {selection = Just newIndex, scrollOffset = newScroll}
+      SDL.KeycodeUp ->
+        let newIndex = maybe (listLength - 1) (\n -> (n - 1)) selection
+         in if newIndex >= 0
+              then do
+                let newScroll = autoScroll newIndex
+                modifyState (modifier $ state {selection = Just newIndex, scrollOffset = newScroll})
+              else do
+                fireEvent FocusPrev
+                redraw . modifyState . modifier $ state {selection = Nothing}
+      _ -> pure ()
     _ -> pure ()
-  _ -> pure ()

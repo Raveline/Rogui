@@ -102,7 +102,7 @@ main = do
     $ State
       { gameState = PlayingGame,
         textValue = "test",
-        listOfText = ["Item 1", "Item 2", "Item 3"],
+        listOfText = longListOfText,
         mousePosition = V2 0 0,
         ring = focusRing [List, TextInput, QuitButton],
         listState = mkListState {selection = Just 0},
@@ -190,7 +190,7 @@ uiEventHandler state@State {..} = \case
   FocusPrev -> handleFocusChange (focusPrev) state
   (AppEvent ToggleUI) -> modifyState $ \s -> s {gameState = PlayingGame}
   e -> case focusGetCurrent ring of
-    (Just List) -> handleListEvent (length listOfText) e listState (\newLs s -> s {listState = newLs})
+    (Just List) -> handleListEvent List (length listOfText) e listState (\newLs s -> s {listState = newLs})
     (Just QuitButton) -> handleButtonEvent (Quit) state e
     (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
     _ -> pure ()
@@ -274,3 +274,28 @@ renderUI State {..} =
 renderLogging :: State -> Component Name
 renderLogging State {logViewport} =
   filled black $ bordered (Colours (Just white) (Just black)) $ vBox [viewport MessageLogs (scrollOffset logViewport) $ messageLog fakeLogs]
+
+-- Intentionally long to trigger scrolling behaviour
+longListOfText :: [String]
+longListOfText =
+  [ "Abricot",
+    "Banana",
+    "Carrot",
+    "Dewberry",
+    "Eggplant",
+    "Fig",
+    "Grapes",
+    "Honeydew",
+    "Indian parsley",
+    "Jalapeno",
+    "Kiwi",
+    "Lemon",
+    "Mushroom",
+    "Nectarine",
+    "Orange",
+    "Pear",
+    "Quince",
+    "Raspberry",
+    "Strawberries",
+    "Tomato"
+  ]
