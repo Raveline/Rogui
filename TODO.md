@@ -1,9 +1,12 @@
 High priority:
 
+[ ] Generate haddock documentation and see what needs documentation
+
 Medium priority:
 
 [ ] Add error handling in boot and loadBrush
 [ ] Add colour utilities (particularly a way to make a colour gradient);
+[ ] A grid component of some sort ?
 [ ] Particle utility, whatever form it might have...
 
 Low priority:
@@ -13,4 +16,3 @@ Low priority:
 [ ] Add a more comprehensive test suite
 [ ] Add a more involved executable with a very basic game
 [ ] Add logging to report errors / mistakes
-[ ] Generate haddock documentation and see what needs documentation

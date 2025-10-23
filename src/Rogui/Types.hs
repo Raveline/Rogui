@@ -1,8 +1,13 @@
 module Rogui.Types
-  ( EventHandler,
+  ( -- * Main application type
     Rogui (..),
+
+    -- * Event handling
+    EventHandler,
     ClickHandler,
     ConsoleDrawers,
+
+    -- * Drawing
     ToDraw,
   )
 where
@@ -14,21 +19,38 @@ import Rogui.Components.Types (Component, ExtentMap)
 import Rogui.Graphics.Types
 import SDL (Renderer)
 
+-- | A specialisation of EventHandlingM for mouse clicks
+--
+-- Mouse management typically require a dedicated portion of the event handler,
+-- as they escape focus.
 type ClickHandler state e n a = state -> MouseClickDetails -> EventHandlingM state e n a
 
+-- | The main type used when handling events. State is provided first, events as
+-- a second parameter, mostly to ease lambda-case.
 type EventHandler state e n = state -> Event e -> EventHandlingM state e n ()
 
+-- | Drawing function type. Drawing functions have accessed to all registered
+-- brush (but these must be fetched manually when describing the expected UI).
 type ConsoleDrawers rc rb n state = M.Map rb Brush -> state -> ToDraw rc rb n
 
+-- | Expected result of the drawing function. A list of triplets containing:
+--
+-- * A console to use (`rootConsole` if nothing was provided);
+-- * A brush to use (`defaultBrush` if nothing was provided);
+-- * A component tree.
 type ToDraw rc rb n = [(Maybe rc, Maybe rb, Component n)]
 
 -- | Rogui is the main datatype used to define an application.
 -- It is parametrics over:
--- - Consoles reference enum rc;
--- - Brushes reference enum rb;
--- - Components naming enum n;
--- - A state;
--- - A custom event type e;
+--
+-- * Consoles reference enum `rc`;
+-- * Brushes reference enum `rb`;
+-- * Components naming enum `n`;
+-- * A `state`;
+-- * A custom event type `e`.
+--
+-- Clients are not expected to build this manually. `boot` will handle it for
+-- the users, and will fill (and handle) all the internal fields.
 data Rogui rc rb n state e
   = Rogui
   { consoles :: M.Map rc Console,

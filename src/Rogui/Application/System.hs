@@ -2,12 +2,17 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Rogui.Application.System
-  ( baseEventHandler,
-    brushLookup,
+  ( -- * Main entry point
     boot,
-    keyPressHandler,
     addBrush,
     addConsole,
+
+    -- * Event handling utilities
+    keyPressHandler,
+    baseEventHandler,
+
+    -- * Other utilities
+    brushLookup,
   )
 where
 
@@ -55,7 +60,27 @@ loadBrush renderer path TileSize {..} = do
         brush
       }
 
-addBrush :: (MonadIO m, Ord rb) => rb -> FilePath -> TileSize -> Rogui rc rb n s e -> m (Rogui rc rb n s e)
+-- | Load and store a brush into a `Rogui` datatype.
+--
+-- Expected to be chained monadically like this:
+--
+-- @
+-- prepareRogui :: (MonadIO m) => Rogui rc rb n s e -> m (Rogui rc rb n s e)
+-- prepareRogui baseGui = do
+--   addBrush Enum1 "pathToBrush.png" (TileSize 16 16) baseGui
+--   >>= addBrush BigCharset "terminal_16x16.png" (TileSize 16 16)
+-- @
+addBrush ::
+  (MonadIO m, Ord rb) =>
+  -- | Brush reference constructor
+  rb ->
+  -- | Filepath to the brush
+  FilePath ->
+  -- | Expected Tilesize for the brush
+  TileSize ->
+  -- | Rogui object where the brush will be loaded
+  Rogui rc rb n s e ->
+  m (Rogui rc rb n s e)
 addBrush ref path tileSize rogui@Rogui {..} = do
   brush <- loadBrush renderer path tileSize
   pure $ rogui {brushes = M.insert ref brush brushes}
@@ -64,6 +89,10 @@ addConsole :: (Ord rc) => rc -> Console -> Rogui rc rb n s e -> Rogui rc rb n s 
 addConsole ref console rogui@Rogui {..} =
   rogui {consoles = M.insert ref console consoles}
 
+-- | This function uses the `RoguiConfig` provided to initialise a `Rogui` datatype.
+-- This Rogui can then be altered in the function passed as parameter,
+-- before being run in the appLoop (starting with the initial state provided as last parameter).
+-- Boot will return once a `Halt` EventResult has been processed in the event handler.
 boot ::
   (Show rb, Ord rb, Ord rc, Ord n, MonadIO m) => RoguiConfig rc rb n s e -> (Rogui rc rb n s e -> m (Rogui rc rb n s e)) -> s -> m ()
 boot RoguiConfig {..} guiBuilder initialState = do
@@ -111,7 +140,7 @@ appLoop roGUI@Rogui {..} state = do
   let reachedStep = frameStart - lastStep > timerStep
       baseEvents = if reachedStep then Step : sdlEvents else sdlEvents
       baseEventState = EventHandlingState {events = Seq.fromList baseEvents, currentState = state, result = ContinueNoRedraw, knownExtents = extentsMap}
-      EventHandlingState {result, currentState} = execState (processWithLimit 10 roGUI) baseEventState
+      EventHandlingState {result, currentState} = execState (processWithLimit 30 roGUI) baseEventState
   newExtents <-
     if (result == Continue)
       then do
@@ -149,6 +178,15 @@ processWithLimit n roGUI = do
     then pure ()
     else traverse (processEvent roGUI) evs >> processWithLimit (n - 1) roGUI
 
+popEvent :: EventHandlingM state e n (Maybe (Event e))
+popEvent = do
+  currentEvents <- gets events
+  case currentEvents of
+    Seq.Empty -> pure Nothing
+    (firstEvent Seq.:<| rest) -> do
+      modify $ \ehs -> ehs {events = rest}
+      pure $ Just firstEvent
+
 processEvent :: Rogui rc rb n s e -> Event e -> EventHandlingM s e n ()
 processEvent Rogui {..} event = do
   _ <- popEvent -- This will remove the event from the queue
@@ -157,15 +195,20 @@ processEvent Rogui {..} event = do
 
 -- | A default event handler that will:
 --
--- - React to ALT+F4, clicking the window cross, or ctrl+C to quit the
+-- * React to ALT+F4, clicking the window cross, or ctrl+C to quit the
 -- application
--- - Ensure that a first render is done on window shown
--- - Ensure that rendering is done when Step is reached
+--
+-- * Ensure that a first render is done on window shown
+--
+-- * Ensure that rendering is done when Step is reached
 --
 -- Other events are to be manually implemented.  Feed your own event handler to
 -- this so you get an easy way to leave your applications through common
 -- shortcuts.
-baseEventHandler :: EventHandler state e n -> EventHandler state e n
+baseEventHandler ::
+  -- | Sink for events that have not been processed.
+  EventHandler state e n ->
+  EventHandler state e n
 baseEventHandler sink state event =
   let ctrlC e = SDL.keysymKeycode e == SDL.KeycodeC && (SDL.keyModifierLeftCtrl . SDL.keysymModifier $ e)
    in case event of
@@ -177,7 +220,12 @@ baseEventHandler sink state event =
         _ -> sink state event
 
 -- | A utility to react to key presses listed in a Map
-keyPressHandler :: EventHandler state e n -> M.Map SDL.Keycode (EventHandler state e n) -> EventHandler state e n
+keyPressHandler ::
+  -- | Sink for events that have not been processed
+  EventHandler state e n ->
+  -- | A map of expected key codes and the actions to perform if this key was pressed
+  M.Map SDL.Keycode (EventHandler state e n) ->
+  EventHandler state e n
 keyPressHandler sink keyMap state event =
   case event of
     KeyDown KeyDownDetails {key} ->

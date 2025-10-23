@@ -10,15 +10,26 @@ import Rogui.Graphics (Cell)
 import Rogui.Types (ConsoleDrawers, EventHandler)
 import SDL (V2)
 
+-- | A simple configuration type provided to the `boot` function.
 data RoguiConfig rc rb name state event = RoguiConfig
-  { brushTilesize :: TileSize,
+  { -- | A default brush tilesize.
+    brushTilesize :: TileSize,
+    -- | Name of the application (to be used as window title)
     appName :: Text,
+    -- | Desired cell size of the main window.
     consoleCellSize :: V2 Cell,
+    -- | Desired FPS.
     targetFPS :: Int,
+    -- | Desire milliseconds before firing a "Step" event.
     timerStep :: Word32,
+    -- | Constructor to be associated to the root console
     rootConsoleReference :: rc,
+    -- | Constructor to be associated to the default brush
     defaultBrushReference :: rb,
+    -- | Path to the default brush
     defaultBrushPath :: FilePath,
+    -- | Main drawing function
     drawingFunction :: ConsoleDrawers rc rb name state,
+    -- | Main event handling function
     eventFunction :: EventHandler state event name
   }
