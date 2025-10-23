@@ -1,6 +1,7 @@
 module Rogui.Types
   ( EventHandler,
     Rogui (..),
+    ClickHandler,
     ConsoleDrawers,
     ToDraw,
   )
@@ -8,10 +9,12 @@ where
 
 import qualified Data.Map as M
 import Data.Word (Word32)
-import Rogui.Application.Event (Event, EventHandlingM)
+import Rogui.Application.Event (Event, EventHandlingM, MouseClickDetails)
 import Rogui.Components.Types (Component, ExtentMap)
 import Rogui.Graphics.Types
 import SDL (Renderer)
+
+type ClickHandler state e n a = state -> MouseClickDetails -> EventHandlingM state e n a
 
 type EventHandler state e n = state -> Event e -> EventHandlingM state e n ()
 

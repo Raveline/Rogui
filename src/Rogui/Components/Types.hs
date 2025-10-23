@@ -19,13 +19,14 @@ module Rogui.Components.Types
     hSize,
     changeBrush,
     changeConsole,
+    isInExtent,
   )
 where
 
 import Control.Monad.State.Strict (StateT, get, modify)
 import Control.Monad.Writer.Lazy
 import qualified Data.Map as M
-import Rogui.Graphics (Brush, (./.=))
+import Rogui.Graphics (Brush, Pixel, (./.=))
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Types (Brush (Brush, tileHeight, tileWidth), Cell, Console (..), TileSize (..))
 import SDL (V2 (..))
@@ -134,3 +135,12 @@ consoleToExtent Brush {tileWidth, tileHeight} console@Console {position, width, 
           extentSize = V2 (width ./.= tileWidth) (height ./.= tileHeight),
           extentConsole = console
         }
+
+-- | Mostly used to check for mouse click. Given a mouse coordinate
+-- in pixels, check if it is inside an extent
+isInExtent :: V2 Pixel -> Extent -> Bool
+isInExtent (V2 mx my) Extent {extentConsole} =
+  let Console {..} = extentConsole
+      (V2 x y) = position
+      (V2 w h) = (V2 width height)
+   in mx >= x && mx < x + w && my >= y && my < y + h

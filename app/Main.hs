@@ -182,6 +182,8 @@ logEventHandler =
 
 uiEventHandler :: EventHandler State CustomEvent Name
 uiEventHandler state@State {..} = \case
+  -- Click events take priority and override focus
+  MouseEvent (MouseClick c) -> handleClickEvent state c
   MouseEvent (MouseMove MouseMoveDetails {..}) ->
     redraw $ setCurrentState $ state {mousePosition = defaultTileSizePosition}
   FocusNext -> handleFocusChange (focusNext) state
@@ -189,9 +191,15 @@ uiEventHandler state@State {..} = \case
   (AppEvent ToggleUI) -> modifyState $ \s -> s {gameState = PlayingGame}
   e -> case focusGetCurrent ring of
     (Just List) -> handleListEvent (length listOfText) e listState (\newLs s -> s {listState = newLs})
-    (Just QuitButton) -> handleButtonEvent (\_ _ -> halt (pure ())) state e
+    (Just QuitButton) -> handleButtonEvent (Quit) state e
     (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
     _ -> pure ()
+
+handleClickEvent :: ClickHandler State CustomEvent Name ()
+handleClickEvent State {..} mc = do
+  clicked <- foundClickedExtents mc
+  when (QuitButton `elem` clicked) $ fireEvent Quit
+  when (List `elem` clicked) $ handleClickOnList List (length listOfText) listState (\newLs s -> s {listState = newLs}) mc
 
 handleFocusChange :: (FocusRing Name -> FocusRing Name) -> State -> EventHandlingM State CustomEvent Name ()
 handleFocusChange ringChange s =

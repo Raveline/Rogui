@@ -23,11 +23,11 @@ button n content baseAlignment normalColours focusedColours focused =
         }
 
 -- | Fire the given event when getting enter, focus next and prev on arrows up and down
-handleButtonEvent :: EventHandler state e n -> EventHandler state e n
-handleButtonEvent e =
+handleButtonEvent :: Event e -> EventHandler state e n
+handleButtonEvent toFire =
   let keyHandler =
         M.fromList
-          [ (SDL.KeycodeReturn, e),
+          [ (SDL.KeycodeReturn, \_ _ -> fireEvent toFire),
             (SDL.KeycodeUp, \_ _ -> fireEvent FocusPrev),
             (SDL.KeycodeDown, \_ _ -> fireEvent FocusNext)
           ]

@@ -26,6 +26,7 @@ import Rogui.Graphics.Types (Brush (..), Console (..), TileSize (..), (.*=.), (.
 import Rogui.Types (EventHandler, Rogui (..))
 import SDL (MouseMotionEventData (MouseMotionEventData))
 import SDL qualified
+import SDL.Event (MouseButtonEventData (..))
 import SDL.Image qualified as SDL
 import SDL.Internal.Numbered qualified as Numbered
 import SDL.Raw qualified as Raw
@@ -170,6 +171,7 @@ baseEventHandler sink state event =
    in case event of
         KeyDown KeyDownDetails {key} -> if ctrlC key then halt (pure ()) else sink state event
         OtherSDLEvent SDL.QuitEvent -> halt (pure ())
+        Quit -> halt (pure ())
         OtherSDLEvent (SDL.WindowShownEvent _) -> redraw (pure ())
         Step -> redraw (pure ())
         _ -> sink state event
@@ -195,6 +197,11 @@ getSDLEvents Brush {..} =
               defaultTileSizePosition = SDL.V2 (x ./.= tileWidth) (y ./.= tileHeight)
               relativeMouseMotion = fromIntegral <$> mouseMotionEventRelMotion
            in MouseEvent . MouseMove $ MouseMoveDetails {..}
-        SDL.MouseButtonEvent me -> MouseEvent (MouseClick me)
+        SDL.MouseButtonEvent MouseButtonEventData {..} ->
+          let (SDL.P mousePos) = mouseButtonEventPos
+              absoluteMousePosition@(SDL.V2 x y) = fromIntegral <$> mousePos
+              defaultTileSizePosition = SDL.V2 (x ./.= tileWidth) (y ./.= tileHeight)
+              buttonCliked = mouseButtonEventButton
+           in MouseEvent . MouseClick $ MouseClickDetails {..}
         e -> OtherSDLEvent e
    in fmap (fmap toRoguiEvent) SDL.pollEvents
