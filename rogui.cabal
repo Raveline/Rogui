@@ -80,6 +80,7 @@ library
         Rogui.Components.Viewport
         Rogui.FocusRing
         Rogui.Graphics
+        Rogui.Graphics.Colours
         Rogui.Graphics.Console
         Rogui.Graphics.Constants
         Rogui.Graphics.DSL.Eval
@@ -110,6 +111,16 @@ library
 
     -- Base language which the package is written in.
     default-language: Haskell2010
+
+executable rogui-colour-demo
+    hs-source-dirs:   demos
+    ghc-options:      -threaded -Wall -Wcompat -O2
+    default-language: Haskell2010
+    main-is:          ColourDemo.hs
+    build-depends:
+        , base
+        , linear
+        , rogui
 
 executable rogui
     -- Import common warning flags.
