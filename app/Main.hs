@@ -94,6 +94,7 @@ main = do
             defaultBrushReference = Drawings,
             defaultBrushPath = "punyworld-dungeon-tileset.png",
             drawingFunction = renderApp,
+            timerStep = 100,
             eventFunction = baseEventHandler eventHandler
           }
   boot

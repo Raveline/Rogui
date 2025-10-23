@@ -4,6 +4,7 @@ module Rogui.Application.Types
 where
 
 import Data.Text (Text)
+import Data.Word (Word32)
 import Rogui.Components (TileSize)
 import Rogui.Graphics (Cell)
 import Rogui.Types (ConsoleDrawers, EventHandler)
@@ -14,6 +15,7 @@ data RoguiConfig rc rb name state event = RoguiConfig
     appName :: Text,
     consoleCellSize :: V2 Cell,
     targetFPS :: Int,
+    timerStep :: Word32,
     rootConsoleReference :: rc,
     defaultBrushReference :: rb,
     defaultBrushPath :: FilePath,
