@@ -3,8 +3,6 @@
 module Rogui.Graphics.DSL.Instructions
   ( Instruction (..),
     Instructions,
-    Colours (..),
-    invert,
     drawHorizontalLine,
     glyph,
     glyphAt,
@@ -23,16 +21,11 @@ where
 
 import Control.Monad.Writer (MonadWriter (tell))
 import Data.DList
+import Rogui.Graphics.Colours (Colours)
 import Rogui.Graphics.Console (TextAlign (..))
 import Rogui.Graphics.Primitives (RGB)
 import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (V2 (..))
-
-data Colours = Colours {front :: Maybe RGB, back :: Maybe RGB}
-  deriving (Eq, Show)
-
-invert :: Colours -> Colours
-invert (Colours f b) = Colours b f
 
 data Instruction
   = DrawBorder

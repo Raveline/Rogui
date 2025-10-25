@@ -26,9 +26,9 @@ import Control.Monad.Writer
 import Data.Bifunctor
 import Data.Foldable (traverse_)
 import Rogui.Components.Types (Component (..), DrawM, DrawingContext (..), ExtentMap, Size (..), changeBrush, changeConsole, emptyComponent)
-import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), RGB, setConsoleBackground)
+import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Colours, RGB, setConsoleBackground)
 import Rogui.Graphics.DSL.Eval (evalInstructions)
-import Rogui.Graphics.DSL.Instructions (Colours, setColours, withBorder, withBrush, withConsole)
+import Rogui.Graphics.DSL.Instructions (setColours, withBorder, withBrush, withConsole)
 import Rogui.Graphics.Types (Cell (..), Console (..), Pixel (..), (.*=.), (./.=))
 import Rogui.Types (Rogui (Rogui, defaultBrush, numberOfSteps, renderer, rootConsole))
 import SDL (V2 (..), (^*))

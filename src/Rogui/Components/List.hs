@@ -12,8 +12,8 @@ where
 
 import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (..), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw)
 import Rogui.Components.Types (Component (..), contextCellHeight, emptyComponent, recordExtent)
-import Rogui.Graphics.Console (TextAlign)
-import Rogui.Graphics.DSL.Instructions (Colours, setColours, strLn)
+import Rogui.Graphics (Colours, TextAlign)
+import Rogui.Graphics.DSL.Instructions (setColours, strLn)
 import Rogui.Graphics.Types (Cell (..))
 import SDL (V2 (..))
 import qualified SDL

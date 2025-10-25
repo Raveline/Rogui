@@ -20,7 +20,7 @@ import Data.Foldable (traverse_)
 import qualified Data.List.NonEmpty as NE
 import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (KeyDownDetails, key), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw)
 import Rogui.Components.Types
-import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Cell (..))
+import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Cell (..), Colours (..))
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Types (Console (..), (.*=.))
 import SDL (V2 (..))

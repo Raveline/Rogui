@@ -10,8 +10,9 @@ where
 import Control.Monad.IO.Class
 import Control.Monad.State (MonadState, evalStateT, get, modify)
 import Data.Foldable
+import Rogui.Graphics.Colours (Colours (..))
 import Rogui.Graphics.Console (drawBorder, printStrAt)
-import Rogui.Graphics.DSL.Instructions (Colours (..), Instruction (..), Instructions)
+import Rogui.Graphics.DSL.Instructions (Instruction (..), Instructions)
 import Rogui.Graphics.Primitives (clipToConsole, fillConsoleWith, printCharAt)
 import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (Renderer, V2 (..))

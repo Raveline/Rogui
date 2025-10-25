@@ -7,8 +7,7 @@ module Rogui.Components.ProgressBar
 where
 
 import Rogui.Components.Types (Component (..), contextCellWidth, emptyComponent)
-import Rogui.Graphics (Cell (..), drawHorizontalLine, movePencilBy, setColours)
-import Rogui.Graphics.DSL.Instructions (Colours)
+import Rogui.Graphics (Cell (..), Colours, drawHorizontalLine, movePencilBy, setColours)
 import SDL (V2 (..))
 
 progressBar :: Int -> Int -> Int -> Colours -> Colours -> Int -> Int -> Component n

@@ -10,7 +10,6 @@ import Rogui.Application.Types (RoguiConfig (..))
 import Rogui.Components.Core
 import Rogui.Components.Types
 import Rogui.Graphics
-import Rogui.Graphics.Colours
 import Rogui.Types (ConsoleDrawers)
 
 data Consoles = Root

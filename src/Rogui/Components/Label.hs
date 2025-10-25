@@ -6,8 +6,8 @@ module Rogui.Components.Label
 where
 
 import Rogui.Components.Types (Component (..), contextCellWidth, emptyComponent)
-import Rogui.Graphics.Console (TextAlign (..))
-import Rogui.Graphics.DSL.Instructions (Colours, pencilAt, setColours, strLn)
+import Rogui.Graphics (Colours, TextAlign (..))
+import Rogui.Graphics.DSL.Instructions (pencilAt, setColours, strLn)
 import SDL (V2 (..))
 
 label :: String -> TextAlign -> Colours -> Component n

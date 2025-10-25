@@ -1,11 +1,19 @@
 module Rogui.Graphics.Colours
-  ( gradient,
+  ( Colours (..),
+    invert,
+    gradient,
   )
 where
 
 import Data.Fixed (mod')
 import Data.Word (Word8)
 import SDL (V3 (..))
+
+data Colours = Colours {front :: Maybe RGB, back :: Maybe RGB}
+  deriving (Eq, Show)
+
+invert :: Colours -> Colours
+invert (Colours f b) = Colours b f
 
 type RGB = V3 Word8
 

@@ -9,8 +9,7 @@ import Rogui.Application.Event (Event (..), fireEvent)
 import Rogui.Application.System (keyPressHandler)
 import Rogui.Components.Label (label)
 import Rogui.Components.Types (Component (..), recordExtent)
-import Rogui.Graphics (TextAlign)
-import Rogui.Graphics.DSL.Instructions (Colours)
+import Rogui.Graphics (Colours, TextAlign)
 import Rogui.Types (EventHandler)
 import qualified SDL
 
