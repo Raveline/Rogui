@@ -71,6 +71,7 @@ library
         Rogui.Components.Game.EntitiesLayer
         Rogui.Components.Game.GridTile
         Rogui.Components.Game.Utils
+        Rogui.Components.Grid
         Rogui.Components.Label
         Rogui.Components.List
         Rogui.Components.MessageLog
@@ -117,6 +118,16 @@ executable rogui-colour-demo
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
     main-is:          ColourDemo.hs
+    build-depends:
+        , base
+        , linear
+        , rogui
+
+executable rogui-grid-demo
+    hs-source-dirs:   demos
+    ghc-options:      -threaded -Wall -Wcompat -O2
+    default-language: Haskell2010
+    main-is:          GridDemo.hs
     build-depends:
         , base
         , linear

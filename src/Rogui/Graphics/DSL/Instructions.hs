@@ -4,6 +4,7 @@ module Rogui.Graphics.DSL.Instructions
   ( Instruction (..),
     Instructions,
     Colours (..),
+    invert,
     drawHorizontalLine,
     glyph,
     glyphAt,
@@ -29,6 +30,9 @@ import SDL (V2 (..))
 
 data Colours = Colours {front :: Maybe RGB, back :: Maybe RGB}
   deriving (Eq, Show)
+
+invert :: Colours -> Colours
+invert (Colours f b) = Colours b f
 
 data Instruction
   = DrawBorder
