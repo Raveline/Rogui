@@ -33,7 +33,7 @@ main = do
             timerStep = 100,
             eventFunction = baseEventHandler (\_ _ -> pure ())
           }
-  boot
+  bootAndPrintError
     config
     (pure)
     $ ()

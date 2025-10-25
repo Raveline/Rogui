@@ -1,9 +1,11 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Rogui.Application.System
   ( -- * Main entry point
     boot,
+    bootAndPrintError,
     addBrush,
     addConsole,
 
@@ -18,12 +20,14 @@ where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad
+import Control.Monad.Except
 import Control.Monad.IO.Class
 import Control.Monad.State hiding (state)
 import Data.Map qualified as M
 import Data.Maybe (fromMaybe)
 import Data.Sequence qualified as Seq
 import Data.Word
+import Rogui.Application.Error (RoguiError)
 import Rogui.Application.Event
 import Rogui.Application.Types (RoguiConfig (..))
 import Rogui.Components (renderComponents)
@@ -89,12 +93,27 @@ addConsole :: (Ord rc) => rc -> Console -> Rogui rc rb n s e -> Rogui rc rb n s 
 addConsole ref console rogui@Rogui {..} =
   rogui {consoles = M.insert ref console consoles}
 
+-- | A utility for exiting at the first error and outputing it
+bootAndPrintError ::
+  (Show rc, Show rb, Ord rb, Ord rc, Ord n, MonadIO m) =>
+  RoguiConfig rc rb n s e ->
+  (Rogui rc rb n s e -> ExceptT (RoguiError rc rb) m (Rogui rc rb n s e)) ->
+  s ->
+  m ()
+bootAndPrintError c b i = do
+  result <- runExceptT (boot c b i)
+  either (liftIO . print) pure result
+
 -- | This function uses the `RoguiConfig` provided to initialise a `Rogui` datatype.
 -- This Rogui can then be altered in the function passed as parameter,
 -- before being run in the appLoop (starting with the initial state provided as last parameter).
 -- Boot will return once a `Halt` EventResult has been processed in the event handler.
 boot ::
-  (Show rb, Ord rb, Ord rc, Ord n, MonadIO m) => RoguiConfig rc rb n s e -> (Rogui rc rb n s e -> m (Rogui rc rb n s e)) -> s -> m ()
+  (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m) =>
+  RoguiConfig rc rb n s e ->
+  (Rogui rc rb n s e -> m (Rogui rc rb n s e)) ->
+  s ->
+  m ()
 boot RoguiConfig {..} guiBuilder initialState = do
   SDL.initializeAll
   let TileSize {..} = brushTilesize

@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -6,10 +7,12 @@
 module Main where
 
 import Control.Monad (when)
+import Control.Monad.Except
 import Control.Monad.Writer
 import Data.Array.IArray (Array, genArray, (!))
 import Data.Map.Strict qualified as M
 import Data.Maybe (catMaybes)
+import Rogui.Application.Error (RoguiError)
 import Rogui.Application.Event
 import Rogui.Application.System
 import Rogui.Application.Types (RoguiConfig (..))
@@ -25,6 +28,7 @@ import Rogui.Components.ProgressBar
 import Rogui.Components.TextInput
 import Rogui.Components.Types
 import Rogui.Components.Viewport (ViewportState (..), handleViewportEvent, viewport)
+import Rogui.ConsoleSpecs
 import Rogui.FocusRing
 import Rogui.Graphics
 import Rogui.Types
@@ -97,7 +101,7 @@ main = do
             timerStep = 100,
             eventFunction = baseEventHandler eventHandler
           }
-  boot
+  bootAndPrintError
     config
     guiMaker
     $ State
@@ -121,21 +125,17 @@ fakeLogs =
         ]
    in mconcat $ replicate 200 basicLogs
 
-guiMaker :: (MonadIO m) => Rogui Consoles Brushes Name State CustomEvent -> m (Rogui Consoles Brushes Name State CustomEvent)
+guiMaker ::
+  (MonadIO m, MonadError (RoguiError Consoles Brushes) m) =>
+  Rogui Consoles Brushes Name State CustomEvent ->
+  m (Rogui Consoles Brushes Name State CustomEvent)
 guiMaker baseGui = do
-  let modal = Console {width = 400, height = 400, position = V2 (16 * 10) (16 * 10)}
-      statusBar = Console {width = 800, height = 16, position = V2 0 0}
-      gameArea = Console {width = 800, height = 784, position = V2 0 16}
-      loggingConsole = Console {width = 800, height = 608, position = V2 0 0}
-  withBrushes <-
-    addBrush Charset "terminal_10x16.png" (TileSize 10 16) baseGui
-      >>= addBrush BigCharset "terminal_16x16.png" (TileSize 16 16)
-  pure
-    . addConsole ModalMenu modal
-    . addConsole StatusBar statusBar
-    . addConsole GameArea gameArea
-    . addConsole Logging loggingConsole
-    $ withBrushes
+  addBrush Charset "terminal_10x16.png" (TileSize 10 16) baseGui
+    >>= addBrush BigCharset "terminal_16x16.png" (TileSize 16 16)
+    >>= addConsoleWithSpec StatusBar (TilesSize 100 1) TopLeft
+    >>= addConsoleWithSpec GameArea (SizeWindowPct 100 98) (Below StatusBar)
+    >>= addConsoleWithSpec ModalMenu (TilesSize 40 25) Center
+    >>= addConsoleWithSpec Logging FullWindow TopLeft
 
 uiKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent Name)
 uiKeysHandler =

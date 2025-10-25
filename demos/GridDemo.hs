@@ -47,7 +47,7 @@ main = do
             timerStep = 100,
             eventFunction = baseEventHandler eventHandler
           }
-  boot
+  bootAndPrintError
     config
     pure
     $ DemoState {gridState = mkGridState, picked = Nothing}
