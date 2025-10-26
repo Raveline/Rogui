@@ -2,6 +2,7 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
@@ -12,6 +13,7 @@ import Control.Monad.Writer
 import Data.Array.IArray (Array, genArray, (!))
 import Data.Map.Strict qualified as M
 import Data.Maybe (catMaybes)
+import Data.Set qualified as S
 import Rogui.Application.Error (RoguiError)
 import Rogui.Application.Event
 import Rogui.Application.System
@@ -137,22 +139,22 @@ guiMaker baseGui = do
     >>= addConsoleWithSpec ModalMenu (TilesSize 40 25) Center
     >>= addConsoleWithSpec Logging FullWindow TopLeft
 
-uiKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent Name)
+uiKeysHandler :: M.Map (SDL.Keycode, S.Set Modifier) (EventHandler State CustomEvent Name)
 uiKeysHandler =
   M.fromList $
-    [ (SDL.KeycodeTab, \_ _ -> fireEvent FocusNext),
-      (SDL.KeycodeEscape, \_ _ -> fireAppEvent ToggleUI)
+    [ ((SDL.KeycodeTab, []), \_ _ -> fireEvent FocusNext),
+      ((SDL.KeycodeEscape, []), \_ _ -> fireAppEvent ToggleUI)
     ]
 
-gameKeysHandler :: M.Map SDL.Keycode (EventHandler State CustomEvent Name)
+gameKeysHandler :: M.Map (SDL.Keycode, S.Set Modifier) (EventHandler State CustomEvent Name)
 gameKeysHandler =
   M.fromList $
-    [ (SDL.KeycodeUp, \_ _ -> fireAppEvent . Move $ V2 0 (-1)),
-      (SDL.KeycodeDown, \_ _ -> fireAppEvent . Move $ V2 0 1),
-      (SDL.KeycodeLeft, \_ _ -> fireAppEvent . Move $ V2 (-1) 0),
-      (SDL.KeycodeRight, \_ _ -> fireAppEvent . Move $ V2 1 0),
-      (SDL.KeycodeF1, \_ _ -> fireAppEvent $ ToggleUI),
-      (SDL.KeycodeF2, \_ _ -> fireAppEvent $ ToggleLogs)
+    [ ((SDL.KeycodeUp, []), \_ _ -> fireAppEvent . Move $ V2 0 (-1)),
+      ((SDL.KeycodeDown, []), \_ _ -> fireAppEvent . Move $ V2 0 1),
+      ((SDL.KeycodeLeft, []), \_ _ -> fireAppEvent . Move $ V2 (-1) 0),
+      ((SDL.KeycodeRight, []), \_ _ -> fireAppEvent . Move $ V2 1 0),
+      ((SDL.KeycodeF1, []), \_ _ -> fireAppEvent $ ToggleUI),
+      ((SDL.KeycodeF2, []), \_ _ -> fireAppEvent $ ToggleLogs)
     ]
 
 eventHandler :: EventHandler State CustomEvent Name
@@ -175,7 +177,7 @@ gameEventHandler State {..} = \case
 
 logEventHandler :: EventHandler State CustomEvent Name
 logEventHandler =
-  let keyHandler = M.fromList [(SDL.KeycodeEscape, \_ _ -> fireAppEvent $ ToggleUI)]
+  let keyHandler = M.fromList [((SDL.KeycodeEscape, []), \_ _ -> fireAppEvent $ ToggleUI)]
       eventHandler' s = \case
         (AppEvent ToggleUI) -> modifyState $ \s' -> s' {gameState = PlayingGame}
         e -> handleViewportEvent MessageLogs e (logViewport s) $ \newViewport s' -> s' {logViewport = newViewport}
@@ -224,7 +226,7 @@ renderApp brushes s@State {playerPos, gameState} =
       gameArea =
         multiLayeredGrid fullMapSize playerPos $
           [ gridTile ((!) arbitraryMap) tileToGlyphInfo,
-            switchBrush bigCharset . entitiesLayer [playerPos] (const $ GlyphInfo 1 charColours) id
+            switchBrush bigCharset . entitiesLayer ([playerPos] :: [V2 Cell]) (const $ GlyphInfo 1 charColours) id
           ]
    in catMaybes $
         [ Just (Just StatusBar, Just Charset, statusBar),

@@ -18,7 +18,7 @@ import Control.Monad (forM_, when)
 import Control.Monad.State.Strict hiding (state)
 import Data.Foldable (traverse_)
 import qualified Data.List.NonEmpty as NE
-import Rogui.Application.Event (Event (..), EventHandlerM, KeyDownDetails (KeyDownDetails, key), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw, unhandled)
+import Rogui.Application.Event (Event (..), EventHandlerM, KeyDetails (..), KeyDownDetails (KeyDownDetails, key), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw, unhandled)
 import Rogui.Components.Types
 import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Cell (..), Colours (..))
 import Rogui.Graphics.DSL.Instructions
@@ -153,7 +153,7 @@ handleGridEvent GridDefinition {..} event state@GridState {..} modifier onEnter 
                   then Cell (selRow - visibleRows + 1)
                   else scrollOffset
   case event of
-    KeyDown KeyDownDetails {key} -> case SDL.keysymKeycode key of
+    KeyDown KeyDownDetails {key} -> case keycode key of
       SDL.KeycodeRight -> case selection of
         Nothing -> redraw $ modifyState (modifier $ state {selection = Just (0, 0)})
         Just (col, row)

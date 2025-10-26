@@ -10,7 +10,7 @@ module Rogui.Components.List
   )
 where
 
-import Rogui.Application.Event (Event (..), EventHandlerM, KeyDownDetails (..), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw)
+import Rogui.Application.Event (Event (..), EventHandlerM, KeyDownDetails (..), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, keycode, modifyState, redraw, unhandled)
 import Rogui.Components.Types (Component (..), contextCellHeight, emptyComponent, recordExtent)
 import Rogui.Graphics (Colours, TextAlign)
 import Rogui.Graphics.DSL.Instructions (setColours, strLn)
@@ -62,7 +62,7 @@ handleListEvent listName listLength event state@ListState {selection, scrollOffs
         | otherwise = scrollOffset
 
   case event of
-    KeyDown KeyDownDetails {key} -> case SDL.keysymKeycode key of
+    KeyDown KeyDownDetails {key} -> case keycode key of
       SDL.KeycodeDown ->
         let newIndex = maybe 0 (+ 1) selection
          in if newIndex >= listLength
@@ -81,5 +81,5 @@ handleListEvent listName listLength event state@ListState {selection, scrollOffs
               else do
                 fireEvent FocusPrev
                 redraw . modifyState . modifier $ state {selection = Nothing}
-      _ -> pure ()
-    _ -> pure ()
+      _ -> unhandled
+    _ -> unhandled

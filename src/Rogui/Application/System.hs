@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedLists #-}
 
 module Rogui.Application.System
   ( -- * Main entry point
@@ -24,8 +25,9 @@ import Control.Monad.Except
 import Control.Monad.IO.Class
 import Control.Monad.State hiding (state)
 import Data.Map qualified as M
-import Data.Maybe (fromMaybe)
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Sequence qualified as Seq
+import Data.Set qualified as S
 import Data.Word
 import Rogui.Application.Error (RoguiError)
 import Rogui.Application.Event
@@ -229,7 +231,8 @@ baseEventHandler ::
   -- | Sink for events that have not been processed.
   EventHandler state e n
 baseEventHandler _ event =
-  let ctrlC e = SDL.keysymKeycode e == SDL.KeycodeC && (SDL.keyModifierLeftCtrl . SDL.keysymModifier $ e)
+  let ctrlC (KeyDetails SDL.KeycodeC [LeftCtrl]) = True
+      ctrlC _ = False
    in case event of
         KeyDown KeyDownDetails {key} -> if ctrlC key then (halt (pure ())) else unhandled
         OtherSDLEvent SDL.QuitEvent -> halt . pure $ ()
@@ -241,12 +244,12 @@ baseEventHandler _ event =
 -- | A utility to react to key presses listed in a Map
 keyPressHandler ::
   -- | A map of expected key codes and the actions to perform if this key was pressed
-  M.Map SDL.Keycode (EventHandler state e n) ->
+  M.Map (SDL.Keycode, S.Set Modifier) (EventHandler state e n) ->
   EventHandler state e n
 keyPressHandler keyMap state event =
   case event of
     KeyDown KeyDownDetails {key} ->
-      let handler = (SDL.keysymKeycode key) `M.lookup` keyMap
+      let handler = (keycode key, modifiers key) `M.lookup` keyMap
        in maybe unhandled (\h -> h state event) handler
     _ -> unhandled
 
@@ -254,8 +257,8 @@ getSDLEvents :: (MonadIO m) => Brush -> m [Event e]
 getSDLEvents Brush {..} =
   let toRoguiEvent (SDL.Event _timestamp payload) = case payload of
         SDL.KeyboardEvent ke -> case (SDL.keyboardEventKeyMotion ke) of
-          SDL.Pressed -> KeyDown $ KeyDownDetails (SDL.keyboardEventRepeat ke) (SDL.keyboardEventKeysym ke)
-          SDL.Released -> KeyUp . KeyUpDetails $ SDL.keyboardEventKeysym ke
+          SDL.Pressed -> KeyDown $ KeyDownDetails (SDL.keyboardEventRepeat ke) (keysymToKeyDetails $ SDL.keyboardEventKeysym ke)
+          SDL.Released -> KeyUp . keysymToKeyDetails $ SDL.keyboardEventKeysym ke
         SDL.MouseMotionEvent MouseMotionEventData {..} ->
           let (SDL.P mousePos) = mouseMotionEventPos
               absoluteMousePosition@(SDL.V2 x y) = fromIntegral <$> mousePos
@@ -270,3 +273,17 @@ getSDLEvents Brush {..} =
            in MouseEvent . MouseClick $ MouseClickDetails {..}
         e -> OtherSDLEvent e
    in fmap (fmap toRoguiEvent) SDL.pollEvents
+
+keysymToKeyDetails :: SDL.Keysym -> KeyDetails
+keysymToKeyDetails SDL.Keysym {..} =
+  let toModifier SDL.KeyModifier {..} =
+        S.fromList . catMaybes $
+          [ if keyModifierLeftShift then (Just LeftShift) else Nothing,
+            if keyModifierRightShift then (Just RightShift) else Nothing,
+            if keyModifierLeftCtrl then (Just LeftCtrl) else Nothing,
+            if keyModifierRightCtrl then (Just RightCtrl) else Nothing,
+            if keyModifierLeftAlt then (Just LeftAlt) else Nothing,
+            if keyModifierRightAlt then (Just RightAlt) else Nothing,
+            if keyModifierAltGr then (Just AltGr) else Nothing
+          ]
+   in KeyDetails keysymKeycode (toModifier keysymModifier)

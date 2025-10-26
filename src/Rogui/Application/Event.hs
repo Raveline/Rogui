@@ -19,7 +19,8 @@ module Rogui.Application.Event
     MouseMoveDetails (..),
     MouseClickDetails (..),
     KeyDownDetails (..),
-    KeyUpDetails (..),
+    KeyDetails (..),
+    Modifier (..),
 
     -- * Event handling monad
     EventHandlingState (..),
@@ -50,16 +51,17 @@ import Control.Applicative
 import Control.Monad.State hiding (state)
 import qualified Data.Map.Strict as M
 import Data.Sequence (Seq (..), (|>))
+import qualified Data.Set as S
 import Rogui.Components.Types (Extent (..), ExtentMap, isInExtent)
 import Rogui.Graphics.Types (Cell, Pixel)
-import SDL (EventPayload, Keysym, MouseButton (..))
+import SDL (EventPayload, Keycode, MouseButton (..))
 import SDL.Vect (V2 (..))
 
 data Event e
   = -- | Simple adaptation of SDL key down event
     KeyDown KeyDownDetails
   | -- | Simple adaptation of SDL key up event
-    KeyUp KeyUpDetails
+    KeyUp KeyDetails
   | -- | Simple adaption of SDL mouse events
     MouseEvent MouseEventDetails
   | -- | Store every other SDL events
@@ -75,14 +77,25 @@ data Event e
   | -- | Any custom event defined by the roguelike
     AppEvent e
 
+data KeyDetails = KeyDetails
+  { keycode :: SDL.Keycode,
+    modifiers :: S.Set Modifier
+  }
+
+data Modifier
+  = LeftShift
+  | RightShift
+  | LeftCtrl
+  | RightCtrl
+  | LeftAlt
+  | RightAlt
+  | AltGr
+  deriving (Eq, Ord)
+
 data KeyDownDetails = KeyDownDetails
   { -- | Is this a continuous key down
     repeat :: Bool,
-    key :: SDL.Keysym
-  }
-
-data KeyUpDetails = KeyUpDetails
-  { key :: SDL.Keysym
+    key :: KeyDetails
   }
 
 data MouseEventDetails

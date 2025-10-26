@@ -9,7 +9,7 @@ module Rogui.Components.Viewport
   )
 where
 
-import Rogui.Application.Event (Event (..), EventHandlerM, KeyDownDetails (..), getExtentSize, modifyState, unhandled)
+import Rogui.Application.Event (Event (..), EventHandlerM, KeyDetails (..), KeyDownDetails (..), getExtentSize, modifyState, unhandled)
 import Rogui.Components.Types (Component (..), emptyComponent, recordExtent)
 import Rogui.Graphics (Cell (..))
 import Rogui.Graphics.DSL.Instructions (pencilAt)
@@ -54,7 +54,7 @@ handleViewportEvent name event state@ViewportState {scrollOffset, contentSize = 
           (max 0 $ min x (contentX - visibleW))
           (max 0 $ min y (contentY - visibleH))
   case event of
-    KeyDown KeyDownDetails {key} -> case SDL.keysymKeycode key of
+    KeyDown KeyDownDetails {key} -> case keycode key of
       SDL.KeycodePageDown -> modifyState $ modifier $ state {scrollOffset = clampScroll $ scrollOffset + V2 0 visibleH}
       SDL.KeycodePageUp -> modifyState $ modifier $ state {scrollOffset = clampScroll $ scrollOffset - V2 0 visibleH}
       SDL.KeycodeDown -> modifyState $ modifier $ state {scrollOffset = clampScroll $ scrollOffset + V2 0 1}

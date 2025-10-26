@@ -26,8 +26,8 @@ handleButtonEvent :: Event e -> EventHandler state e n
 handleButtonEvent toFire =
   let keyHandler =
         M.fromList
-          [ (SDL.KeycodeReturn, \_ _ -> fireEvent toFire),
-            (SDL.KeycodeUp, \_ _ -> fireEvent FocusPrev),
-            (SDL.KeycodeDown, \_ _ -> fireEvent FocusNext)
+          [ ((SDL.KeycodeReturn, mempty), \_ _ -> fireEvent toFire),
+            ((SDL.KeycodeUp, mempty), \_ _ -> fireEvent FocusPrev),
+            ((SDL.KeycodeDown, mempty), \_ _ -> fireEvent FocusNext)
           ]
    in keyPressHandler keyHandler
