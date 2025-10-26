@@ -20,7 +20,7 @@ import Rogui.Components.Button (button, handleButtonEvent)
 import Rogui.Components.Core
 import Rogui.Components.Game.EntitiesLayer (entitiesLayer)
 import Rogui.Components.Game.GridTile
-import Rogui.Components.Game.Utils (GlyphInfo (..), computeMapViewport)
+import Rogui.Components.Game.Utils (GlyphInfo (..))
 import Rogui.Components.Label
 import Rogui.Components.List hiding (scrollOffset)
 import Rogui.Components.MessageLog (LogMessage, messageLog)
@@ -98,7 +98,7 @@ main = do
             defaultBrushReference = Drawings,
             defaultBrushPath = "punyworld-dungeon-tileset.png",
             drawingFunction = renderApp,
-            timerStep = 100,
+            stepMs = 100,
             eventFunction = baseEventHandler eventHandler
           }
   bootAndPrintError
@@ -216,19 +216,15 @@ renderApp brushes s@State {playerPos, gameState} =
   let baseColours = Colours (Just white) (Just black)
       charColours = Colours (Just white) Nothing
       bigCharset = brushes M.! BigCharset
-      gridTileSize = (V2 40 30)
       fullMapSize = (V2 100 100)
-      viewport' = computeMapViewport gridTileSize fullMapSize playerPos
       statusBar =
         hBox
           [ progressBar 0 20 10 baseColours baseColours fullBlock lightShade
           ]
       gameArea =
-        vBox
-          [ multiLayeredGrid fullMapSize viewport' $
-              [ gridTile gridTileSize ((!) arbitraryMap) tileToGlyphInfo,
-                switchBrush bigCharset . entitiesLayer [playerPos] (const $ GlyphInfo 1 charColours) id
-              ]
+        multiLayeredGrid fullMapSize playerPos $
+          [ gridTile ((!) arbitraryMap) tileToGlyphInfo,
+            switchBrush bigCharset . entitiesLayer [playerPos] (const $ GlyphInfo 1 charColours) id
           ]
    in catMaybes $
         [ Just (Just StatusBar, Just Charset, statusBar),

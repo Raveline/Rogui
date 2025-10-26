@@ -30,7 +30,7 @@ main = do
             defaultBrushReference = Charset,
             defaultBrushPath = "terminal_16x16.png",
             drawingFunction = renderApp,
-            timerStep = 100,
+            stepMs = 100,
             eventFunction = baseEventHandler (\_ _ -> pure ())
           }
   bootAndPrintError

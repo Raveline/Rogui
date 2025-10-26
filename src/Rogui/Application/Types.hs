@@ -21,7 +21,7 @@ data RoguiConfig rc rb name state event = RoguiConfig
     -- | Desired FPS.
     targetFPS :: Int,
     -- | Desire milliseconds before firing a "Step" event.
-    timerStep :: Word32,
+    stepMs :: Word32,
     -- | Constructor to be associated to the root console
     rootConsoleReference :: rc,
     -- | Constructor to be associated to the default brush

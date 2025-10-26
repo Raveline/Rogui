@@ -44,7 +44,7 @@ main = do
             defaultBrushReference = Charset,
             defaultBrushPath = "terminal_10x16.png",
             drawingFunction = renderApp,
-            timerStep = 100,
+            stepMs = 100,
             eventFunction = baseEventHandler eventHandler
           }
   bootAndPrintError
