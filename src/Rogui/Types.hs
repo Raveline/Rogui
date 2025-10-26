@@ -14,7 +14,7 @@ where
 
 import qualified Data.Map as M
 import Data.Word (Word32)
-import Rogui.Application.Event (Event, EventHandlingM, MouseClickDetails)
+import Rogui.Application.Event (EventHandler, EventHandlerM, MouseClickDetails)
 import Rogui.Components.Types (Component, ExtentMap)
 import Rogui.Graphics.Types
 import SDL (Renderer)
@@ -23,11 +23,7 @@ import SDL (Renderer)
 --
 -- Mouse management typically require a dedicated portion of the event handler,
 -- as they escape focus.
-type ClickHandler state e n a = state -> MouseClickDetails -> EventHandlingM state e n a
-
--- | The main type used when handling events. State is provided first, events as
--- a second parameter, mostly to ease lambda-case.
-type EventHandler state e n = state -> Event e -> EventHandlingM state e n ()
+type ClickHandler state e n a = state -> MouseClickDetails -> EventHandlerM state e n a
 
 -- | Drawing function type. Drawing functions have accessed to all registered
 -- brush (but these must be fetched manually when describing the expected UI).

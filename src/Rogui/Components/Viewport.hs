@@ -9,7 +9,7 @@ module Rogui.Components.Viewport
   )
 where
 
-import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (..), getExtentSize, modifyState)
+import Rogui.Application.Event (Event (..), EventHandlerM, KeyDownDetails (..), getExtentSize, modifyState, unhandled)
 import Rogui.Components.Types (Component (..), emptyComponent, recordExtent)
 import Rogui.Graphics (Cell (..))
 import Rogui.Graphics.DSL.Instructions (pencilAt)
@@ -46,7 +46,7 @@ autoScrollToSelection visibleHeight selection state@ViewportState {scrollOffset 
 -- collected the extent data. Extents are only computed at rendering. This is
 -- an acceptable trade-off as it should be invisible to users, unless you're
 -- rendering at an incredibly slow FPS.
-handleViewportEvent :: (Ord n) => n -> Event e -> ViewportState -> (ViewportState -> s -> s) -> EventHandlingM s e n ()
+handleViewportEvent :: (Ord n) => n -> Event e -> ViewportState -> (ViewportState -> s -> s) -> EventHandlerM s e n ()
 handleViewportEvent name event state@ViewportState {scrollOffset, contentSize = (V2 contentX contentY)} modifier = do
   (V2 visibleW visibleH) <- getExtentSize name
   let clampScroll (V2 x y) =
@@ -59,5 +59,5 @@ handleViewportEvent name event state@ViewportState {scrollOffset, contentSize = 
       SDL.KeycodePageUp -> modifyState $ modifier $ state {scrollOffset = clampScroll $ scrollOffset - V2 0 visibleH}
       SDL.KeycodeDown -> modifyState $ modifier $ state {scrollOffset = clampScroll $ scrollOffset + V2 0 1}
       SDL.KeycodeUp -> modifyState $ modifier $ state {scrollOffset = clampScroll $ scrollOffset - V2 0 1}
-      _ -> pure ()
-    _ -> pure ()
+      _ -> unhandled
+    _ -> unhandled

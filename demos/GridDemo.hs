@@ -7,7 +7,7 @@ module Main where
 
 import qualified Data.List.NonEmpty as NE
 import Linear (V2 (..))
-import Rogui.Application.Event (Event (MouseEvent), MouseEventDetails (MouseClick), modifyState, redraw)
+import Rogui.Application.Event (Event (MouseEvent), MouseEventDetails (MouseClick), modifyState, redraw, (<||>))
 import Rogui.Application.System
 import Rogui.Application.Types (RoguiConfig (..))
 import Rogui.Components.Core
@@ -45,7 +45,7 @@ main = do
             defaultBrushPath = "terminal_10x16.png",
             drawingFunction = renderApp,
             stepMs = 100,
-            eventFunction = baseEventHandler eventHandler
+            eventFunction = baseEventHandler <||> eventHandler
           }
   bootAndPrintError
     config

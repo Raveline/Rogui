@@ -31,7 +31,7 @@ main = do
             defaultBrushPath = "terminal_16x16.png",
             drawingFunction = renderApp,
             stepMs = 100,
-            eventFunction = baseEventHandler (\_ _ -> pure ())
+            eventFunction = baseEventHandler
           }
   bootAndPrintError
     config

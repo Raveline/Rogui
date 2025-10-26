@@ -99,7 +99,7 @@ main = do
             defaultBrushPath = "punyworld-dungeon-tileset.png",
             drawingFunction = renderApp,
             stepMs = 100,
-            eventFunction = baseEventHandler eventHandler
+            eventFunction = baseEventHandler <||> eventHandler
           }
   bootAndPrintError
     config
@@ -158,8 +158,8 @@ gameKeysHandler =
 eventHandler :: EventHandler State CustomEvent Name
 eventHandler state@State {..} e =
   case gameState of
-    PlayingGame -> keyPressHandler gameEventHandler gameKeysHandler state e
-    UI -> keyPressHandler uiEventHandler uiKeysHandler state e
+    PlayingGame -> (keyPressHandler gameKeysHandler <||> gameEventHandler) state e
+    UI -> (keyPressHandler uiKeysHandler <||> uiEventHandler) state e
     LogView -> logEventHandler state e
 
 gameEventHandler :: EventHandler State CustomEvent Name
@@ -171,7 +171,7 @@ gameEventHandler State {..} = \case
         \s -> s {playerPos = newPos}
   (AppEvent ToggleUI) -> modifyState $ \s -> s {gameState = UI}
   (AppEvent ToggleLogs) -> modifyState $ \s -> s {gameState = LogView}
-  _ -> pure ()
+  _ -> unhandled
 
 logEventHandler :: EventHandler State CustomEvent Name
 logEventHandler =
@@ -179,7 +179,7 @@ logEventHandler =
       eventHandler' s = \case
         (AppEvent ToggleUI) -> modifyState $ \s' -> s' {gameState = PlayingGame}
         e -> handleViewportEvent MessageLogs e (logViewport s) $ \newViewport s' -> s' {logViewport = newViewport}
-   in keyPressHandler eventHandler' keyHandler
+   in (keyPressHandler keyHandler <||> eventHandler')
 
 uiEventHandler :: EventHandler State CustomEvent Name
 uiEventHandler state@State {..} = \case
@@ -194,7 +194,7 @@ uiEventHandler state@State {..} = \case
     (Just List) -> handleListEvent List (length listOfText) e listState (\newLs s -> s {listState = newLs})
     (Just QuitButton) -> handleButtonEvent (Quit) state e
     (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
-    _ -> pure ()
+    _ -> unhandled
 
 handleClickEvent :: ClickHandler State CustomEvent Name ()
 handleClickEvent State {..} mc = do
@@ -202,7 +202,7 @@ handleClickEvent State {..} mc = do
   when (QuitButton `elem` clicked) $ fireEvent Quit
   when (List `elem` clicked) $ handleClickOnList List (length listOfText) listState (\newLs s -> s {listState = newLs}) mc
 
-handleFocusChange :: (FocusRing Name -> FocusRing Name) -> State -> EventHandlingM State CustomEvent Name ()
+handleFocusChange :: (FocusRing Name -> FocusRing Name) -> State -> EventHandlerM State CustomEvent Name ()
 handleFocusChange ringChange s =
   let newRing = ringChange (ring s)
       -- When focus moves to List and selection is Nothing, initialize

@@ -10,7 +10,7 @@ module Rogui.Components.List
   )
 where
 
-import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (..), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw)
+import Rogui.Application.Event (Event (..), EventHandlerM, KeyDownDetails (..), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw)
 import Rogui.Components.Types (Component (..), contextCellHeight, emptyComponent, recordExtent)
 import Rogui.Graphics (Colours, TextAlign)
 import Rogui.Graphics.DSL.Instructions (setColours, strLn)
@@ -43,7 +43,7 @@ list n items toText baseAlignment baseColour highlightedColours ListState {..} =
         mapM_ displayItem visibleItems
    in emptyComponent {draw = draw'}
 
-handleClickOnList :: (Ord n) => n -> Int -> ListState -> (ListState -> s -> s) -> MouseClickDetails -> EventHandlingM s e n ()
+handleClickOnList :: (Ord n) => n -> Int -> ListState -> (ListState -> s -> s) -> MouseClickDetails -> EventHandlerM s e n ()
 handleClickOnList n listLength ls@ListState {..} modifier (MouseClickDetails _ (SDL.V2 _ mcy) SDL.ButtonLeft) = do
   (SDL.V2 _ py) <- getExtentPosition n
   let lineClicked = getCell $ mcy - py
@@ -51,7 +51,7 @@ handleClickOnList n listLength ls@ListState {..} modifier (MouseClickDetails _ (
   modifyState . modifier $ ls {selection = if newSelection >= 0 && newSelection < listLength then Just newSelection else Nothing}
 handleClickOnList _ _ _ _ _ = pure ()
 
-handleListEvent :: (Ord n) => n -> Int -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlingM s e n ()
+handleListEvent :: (Ord n) => n -> Int -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlerM s e n ()
 handleListEvent listName listLength event state@ListState {selection, scrollOffset} modifier = do
   V2 _ visibleHeight <- getExtentSize listName
 

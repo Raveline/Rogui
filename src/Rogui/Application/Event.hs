@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
@@ -23,6 +24,7 @@ module Rogui.Application.Event
     -- * Event handling monad
     EventHandlingState (..),
     EventHandlingM,
+    EventHandlingResult (..),
 
     -- ** Event result utilities
     halt,
@@ -36,9 +38,15 @@ module Rogui.Application.Event
     foundClickedExtents,
     getExtentSize,
     getExtentPosition,
+    liftEH,
+    unhandled,
+    EventHandlerM (..),
+    EventHandler,
+    (<||>),
   )
 where
 
+import Control.Applicative
 import Control.Monad.State hiding (state)
 import qualified Data.Map.Strict as M
 import Data.Sequence (Seq (..), (|>))
@@ -112,6 +120,66 @@ data EventResult
     Halt
   deriving (Eq)
 
+data EventHandlingResult a = Handled a | Unhandled
+
+-- | A simple utility mostly there to guarantee we can change
+-- the monadic stack if we ever need to without having to
+-- rewrite all the signatures.
+type EventHandlingM s e n a = State (EventHandlingState s e n) a
+
+-- | Type used to know if a handler processed the event or not.
+-- This is mostly to get an alternative instance, which lets
+-- users chain handlers through `<|>`.
+newtype EventHandlerM s e n a = EventHandlerM {runEventHandler :: EventHandlingM s e n (EventHandlingResult a)}
+
+-- | The main type used when handling events. State is provided first, events as
+-- a second parameter, mostly to ease lambda-case.
+-- | Event handler monad that supports composition via 'Alternative'.
+--
+-- Handlers can be composed using '<||>' (try first, fall back to second):
+--
+-- @
+-- myHandler = baseHandler \<|> customHandler
+-- @
+--
+-- Return 'unhandled' (or 'empty') to indicate a handler didn't process an event,
+-- allowing the next handler in the chain to try.
+type EventHandler state e n = state -> Event e -> EventHandlerM state e n ()
+
+instance Functor (EventHandlerM s e n) where
+  fmap f (EventHandlerM m) = EventHandlerM $ do
+    unwrapped <- m
+    pure $ case unwrapped of
+      (Handled a) -> Handled (f a)
+      Unhandled -> Unhandled
+
+instance Applicative (EventHandlerM s e n) where
+  pure a = EventHandlerM (pure $ Handled a)
+  liftA2 f (EventHandlerM a) (EventHandlerM b) = EventHandlerM $ do
+    a' <- a
+    b' <- b
+    case (a', b') of
+      (Handled a'', Handled b'') -> pure . Handled $ f a'' b''
+      (_, _) -> pure Unhandled
+
+instance Alternative (EventHandlerM s e n) where
+  empty = EventHandlerM (pure Unhandled)
+  (EventHandlerM a) <|> (EventHandlerM b) = EventHandlerM $ do
+    resA <- a
+    case resA of
+      Unhandled -> b
+      (Handled h) -> pure (Handled h)
+
+instance Monad (EventHandlerM s e n) where
+  (EventHandlerM a) >>= f = EventHandlerM $ do
+    resA <- a
+    case resA of
+      Unhandled -> pure Unhandled
+      Handled h -> runEventHandler (f h)
+
+liftEH :: EventHandlingM s e n a -> EventHandlerM s e n a
+liftEH a = EventHandlerM (Handled <$> a)
+
 instance Semigroup EventResult where
   _ <> Halt = Halt
   Halt <> _ = Halt
@@ -136,48 +204,43 @@ data EventHandlingState s e n = EventHandlingState
   }
 
 -- | Convenience state modification to set the `EventResult`
-setResult :: EventResult -> EventHandlingM s e n ()
+setResult :: EventResult -> EventHandlerM s e n ()
 setResult er =
-  modify $ \ehs@EventHandlingState {result} -> ehs {result = result <> er}
+  liftEH (modify $ \ehs@EventHandlingState {result} -> ehs {result = result <> er})
 
 -- | Convenience state modification to stop the loop (and quit)
-halt :: EventHandlingM s e n () -> EventHandlingM s e n ()
+halt :: EventHandlerM s e n () -> EventHandlerM s e n ()
 halt f = setResult Halt >> f
 
 -- | Convenience state modification to require a redraw
-redraw :: EventHandlingM s e n () -> EventHandlingM s e n ()
+redraw :: EventHandlerM s e n () -> EventHandlerM s e n ()
 redraw f = setResult Continue >> f
 
 -- | Convenience modification of the Event handling state to modify the application state.
-modifyState :: (state -> state) -> EventHandlingM state e n ()
+modifyState :: (state -> state) -> EventHandlerM state e n ()
 modifyState f =
-  modify $ \ehs@EventHandlingState {currentState} -> ehs {currentState = f currentState}
+  liftEH . modify $ \ehs@EventHandlingState {currentState} -> ehs {currentState = f currentState}
 
 -- | Convenience modification of the Event handling state to actually _set_ the whole state
-setCurrentState :: state -> EventHandlingM state e n ()
+setCurrentState :: state -> EventHandlerM state e n ()
 setCurrentState s =
-  modify $ \ehs -> ehs {currentState = s}
+  liftEH . modify $ \ehs -> ehs {currentState = s}
 
 -- | Convenience state modification to append a new event to handle
-fireEvent :: Event e -> EventHandlingM state e n ()
+fireEvent :: Event e -> EventHandlerM state e n ()
 fireEvent e =
-  modify $ \ehs@EventHandlingState {events} -> ehs {events = events |> e}
+  liftEH . modify $ \ehs@EventHandlingState {events} -> ehs {events = events |> e}
 
 -- | Convenience state modification wrapping a new event in `AppEvent`
-fireAppEvent :: e -> EventHandlingM state e n ()
+fireAppEvent :: e -> EventHandlerM state e n ()
 fireAppEvent e = fireEvent $ AppEvent e
-
--- | A simple utility mostly there to guarantee we can change
--- the monadic stack if we ever need to without having to
--- rewrite all the signatures.
-type EventHandlingM s e n a = State (EventHandlingState s e n) a
 
 -- | Get the size of an extent. Note: this will return a zero vector
 -- if the extent is not known, which might happen before the first
 -- frame of rendering, or if you forgot to record the extent.
-getExtentSize :: (Ord n) => n -> EventHandlingM state e n (V2 Cell)
+getExtentSize :: (Ord n) => n -> EventHandlerM state e n (V2 Cell)
 getExtentSize n = do
-  result <- gets (M.lookup n . knownExtents)
+  result <- liftEH $ gets (M.lookup n . knownExtents)
   pure $ case result of
     (Just Extent {..}) -> extentSize
     Nothing -> V2 0 0
@@ -185,9 +248,9 @@ getExtentSize n = do
 -- | Get the absolute position (in cells) of an extent. Note: this will
 -- return a zero vector if the extent is not known, which might happen before the first
 -- frame of rendering, or if you forgot to record the extent.
-getExtentPosition :: (Ord n) => n -> EventHandlingM state e n (V2 Cell)
+getExtentPosition :: (Ord n) => n -> EventHandlerM state e n (V2 Cell)
 getExtentPosition n = do
-  result <- gets (M.lookup n . knownExtents)
+  result <- liftEH $ gets (M.lookup n . knownExtents)
   pure $ case result of
     (Just Extent {..}) -> extentPosition
     Nothing -> V2 0 0
@@ -196,7 +259,16 @@ getExtentPosition n = do
 -- If you know that there is no overlapping extent, you can pattern-match
 -- directly, but in all other cases, using `elem` over the returned value
 -- might be a safer option.
-foundClickedExtents :: MouseClickDetails -> EventHandlingM state e n [n]
+foundClickedExtents :: MouseClickDetails -> EventHandlerM state e n [n]
 foundClickedExtents (MouseClickDetails mousePos _ _) = do
-  extents <- gets knownExtents
+  extents <- liftEH $ gets knownExtents
   pure . M.keys . M.filter (isInExtent mousePos) $ extents
+
+-- | Shortcut to say that a event handler didn't react to an event.
+-- This allow chaining handler through `<|>`.
+unhandled :: EventHandlerM state e n a
+unhandled = empty
+
+-- | Alternative specialized over event handler
+(<||>) :: EventHandler s e n -> EventHandler s e n -> EventHandler s e n
+eh <||> eh' = \s e -> (eh s e) <|> (eh' s e)

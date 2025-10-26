@@ -18,7 +18,7 @@ import Control.Monad (forM_, when)
 import Control.Monad.State.Strict hiding (state)
 import Data.Foldable (traverse_)
 import qualified Data.List.NonEmpty as NE
-import Rogui.Application.Event (Event (..), EventHandlingM, KeyDownDetails (KeyDownDetails, key), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw)
+import Rogui.Application.Event (Event (..), EventHandlerM, KeyDownDetails (KeyDownDetails, key), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw, unhandled)
 import Rogui.Components.Types
 import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Cell (..), Colours (..))
 import Rogui.Graphics.DSL.Instructions
@@ -133,8 +133,8 @@ handleGridEvent ::
   -- | A function to modify the grid state in the application state
   (GridState -> s -> s) ->
   -- | An action to perform on pressing enter on the current selection (if any)
-  (Maybe a -> EventHandlingM s e n ()) ->
-  EventHandlingM s e n ()
+  (Maybe a -> EventHandlerM s e n ()) ->
+  EventHandlerM s e n ()
 handleGridEvent GridDefinition {..} event state@GridState {..} modifier onEnter = do
   V2 _ visibleHeight <- getExtentSize gridName
   let cols = NE.length cellWidths
@@ -192,8 +192,8 @@ handleClickOnGrid ::
   -- | A function to modify the grid state in the application state
   (GridState -> s -> s) ->
   -- | An action to perform on clicking
-  (Maybe a -> EventHandlingM s e n ()) ->
-  EventHandlingM s e n ()
+  (Maybe a -> EventHandlerM s e n ()) ->
+  EventHandlerM s e n ()
 handleClickOnGrid gd@GridDefinition {..} (MouseClickDetails _ mousePos SDL.ButtonLeft) state modifier onCellClick = do
   gridPos <- getExtentPosition gridName
   V2 _ gridHeight <- getExtentSize gridName
@@ -222,5 +222,5 @@ handleClickOnGrid gd@GridDefinition {..} (MouseClickDetails _ mousePos SDL.Butto
           item = getItemAt gridContent nbOfColumns (col, row)
       redraw $ modifyState (modifier newState)
       onCellClick item
-    _ -> pure () -- Click outside grid or invalid position
-handleClickOnGrid _ _ _ _ _ = pure () -- Ignore non-left clicks
+    _ -> unhandled
+handleClickOnGrid _ _ _ _ _ = unhandled -- Ignore non-left clicks

@@ -32,7 +32,7 @@ import Rogui.Application.Event
 import Rogui.Application.Types (RoguiConfig (..))
 import Rogui.Components (renderComponents)
 import Rogui.Graphics.Types (Brush (..), Console (..), TileSize (..), (.*=.), (./.=))
-import Rogui.Types (EventHandler, Rogui (..))
+import Rogui.Types (Rogui (..))
 import SDL (MouseMotionEventData (MouseMotionEventData))
 import SDL qualified
 import SDL.Event (MouseButtonEventData (..))
@@ -210,7 +210,8 @@ processEvent :: Rogui rc rb n s e -> Event e -> EventHandlingM s e n ()
 processEvent Rogui {..} event = do
   _ <- popEvent -- This will remove the event from the queue
   currentState <- gets currentState
-  onEvent currentState event
+  void . runEventHandler . onEvent currentState $ event
+  pure ()
 
 -- | A default event handler that will:
 --
@@ -226,31 +227,28 @@ processEvent Rogui {..} event = do
 -- shortcuts.
 baseEventHandler ::
   -- | Sink for events that have not been processed.
-  EventHandler state e n ->
   EventHandler state e n
-baseEventHandler sink state event =
+baseEventHandler _ event =
   let ctrlC e = SDL.keysymKeycode e == SDL.KeycodeC && (SDL.keyModifierLeftCtrl . SDL.keysymModifier $ e)
    in case event of
-        KeyDown KeyDownDetails {key} -> if ctrlC key then halt (pure ()) else sink state event
-        OtherSDLEvent SDL.QuitEvent -> halt (pure ())
-        Quit -> halt (pure ())
-        OtherSDLEvent (SDL.WindowShownEvent _) -> redraw (pure ())
-        Step -> redraw (pure ())
-        _ -> sink state event
+        KeyDown KeyDownDetails {key} -> if ctrlC key then (halt (pure ())) else unhandled
+        OtherSDLEvent SDL.QuitEvent -> halt . pure $ ()
+        Quit -> halt . pure $ ()
+        OtherSDLEvent (SDL.WindowShownEvent _) -> redraw (pure ()) >> unhandled
+        Step -> redraw (pure ()) >> unhandled
+        _ -> unhandled
 
 -- | A utility to react to key presses listed in a Map
 keyPressHandler ::
-  -- | Sink for events that have not been processed
-  EventHandler state e n ->
   -- | A map of expected key codes and the actions to perform if this key was pressed
   M.Map SDL.Keycode (EventHandler state e n) ->
   EventHandler state e n
-keyPressHandler sink keyMap state event =
+keyPressHandler keyMap state event =
   case event of
     KeyDown KeyDownDetails {key} ->
       let handler = (SDL.keysymKeycode key) `M.lookup` keyMap
-       in maybe (sink state event) (\h -> h state event) handler
-    _ -> sink state event
+       in maybe unhandled (\h -> h state event) handler
+    _ -> unhandled
 
 getSDLEvents :: (MonadIO m) => Brush -> m [Event e]
 getSDLEvents Brush {..} =

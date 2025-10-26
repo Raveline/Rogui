@@ -30,4 +30,4 @@ handleButtonEvent toFire =
             (SDL.KeycodeUp, \_ _ -> fireEvent FocusPrev),
             (SDL.KeycodeDown, \_ _ -> fireEvent FocusNext)
           ]
-   in keyPressHandler (\_ _ -> pure ()) keyHandler
+   in keyPressHandler keyHandler
