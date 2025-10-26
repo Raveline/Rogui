@@ -35,10 +35,10 @@ testHBoxGreedySplit =
 -- Render a layout, get the Writer result, and filter to only get the
 -- setConsole instructions; this will give the Console in their order
 -- of creation.
-extractConsoles :: Layout -> Console -> [Component n] -> [Console]
+extractConsoles :: Layout -> Console -> [Component Int] -> [Console]
 extractConsoles layout' root components =
   let brush = Brush {tileWidth = 16, tileHeight = 16, textureWidth = 256, textureHeight = 256, brush = undefined}
-      dc = DrawingContext {brush = brush, console = root, steps = 0}
+      dc = DrawingContext {brush = brush, console = root, steps = 0, currentExtents = mempty}
       instructions = D.toList . execWriter . runStateT (layout layout' components) $ dc
       onlyConsoles = \case
         (OnConsole c) -> Just c

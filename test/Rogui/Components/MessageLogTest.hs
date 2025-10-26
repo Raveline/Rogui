@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Rogui.Components.MessageLogTest
   ( messageLogTests,
@@ -13,7 +14,8 @@ import Data.Maybe (mapMaybe)
 import Linear (V2 (..), V3 (..))
 import Rogui.Components.MessageLog (messageLog)
 import Rogui.Components.Types (Component (..), DrawingContext (..))
-import Rogui.Graphics.DSL.Instructions (Colours (..), Instruction (..))
+import Rogui.Graphics (Colours (..))
+import Rogui.Graphics.DSL.Instructions (Instruction (..))
 import Rogui.Graphics.Primitives (RGB)
 import Rogui.Graphics.Types
 import Test.Tasty
@@ -46,7 +48,8 @@ renderMessageLog messages widthInCells heightInCells =
             position = V2 (Pixel 0) (Pixel 0)
           }
       brush' = Brush {tileWidth = 16, tileHeight = 16, textureWidth = 256, textureHeight = 256, brush = undefined}
-      dc = DrawingContext {brush = brush', console = console, steps = 0}
+      dc :: DrawingContext Int
+      dc = DrawingContext {brush = brush', console = console, steps = 0, currentExtents = mempty}
       component = messageLog messages
       instructions = execWriter . runStateT (draw component) $ dc
    in D.toList instructions
