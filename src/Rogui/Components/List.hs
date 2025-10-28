@@ -2,18 +2,22 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Rogui.Components.List
-  ( list,
+  ( labelList,
+    list,
     ListState (..),
+    ListDefinition (..),
     mkListState,
     handleListEvent,
+    handleLabelListEvent,
     handleClickOnList,
+    handleClickOnLabelList,
   )
 where
 
 import Rogui.Application.Event (Event (..), EventHandlerM, KeyDownDetails (..), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, keycode, modifyState, redraw, unhandled)
-import Rogui.Components.Types (Component (..), contextCellHeight, emptyComponent, recordExtent)
+import Rogui.Components
+import Rogui.Components.Label (label)
 import Rogui.Graphics (Colours, TextAlign)
-import Rogui.Graphics.DSL.Instructions (setColours, strLn)
 import Rogui.Graphics.Types (Cell (..))
 import SDL (V2 (..))
 import qualified SDL
@@ -23,42 +27,88 @@ data ListState = ListState
     scrollOffset :: Int -- For later when you add scrolling
   }
 
+data ListDefinition n a = ListDefinition
+  { -- | Name of the list, for extent management
+    name :: n,
+    -- | Content to display. The list will scroll automatically if there are too many.
+    items :: [a],
+    -- | How to render a single item, and should it be displayed as selected.
+    renderItem :: a -> Bool -> Component n,
+    -- | Height of an item
+    itemHeight :: Cell,
+    -- | Should the list fire focusNext / focusPrev when reaching limits,
+    -- or should it wrap ?
+    wrapAround :: Bool
+  }
+
 mkListState :: ListState
 mkListState = ListState Nothing 0
 
-list :: (Ord n) => n -> [a] -> (a -> String) -> TextAlign -> Colours -> Colours -> ListState -> Component n
-list n items toText baseAlignment baseColour highlightedColours ListState {..} =
-  let displayItem (item, idx) = do
-        if (Just idx == selection)
-          then setColours highlightedColours
-          else setColours baseColour
-        strLn baseAlignment (toText item)
-      draw' = do
-        recordExtent n
+-- | A simple list made of labels.
+labelList :: (Ord n) => n -> [a] -> (a -> String) -> TextAlign -> Colours -> Colours -> ListState -> Component n
+labelList n items toText baseAlignment baseColour highlightedColours ls =
+  let renderLabel item selected = do
+        label (toText item) baseAlignment (if selected then highlightedColours else baseColour)
+   in list ListDefinition {name = n, items = items, renderItem = renderLabel, itemHeight = 1, wrapAround = False} ls
+
+-- | A list of arbitrary components. Pay attention that the list does not support
+-- interactive components (so you can't have a list in a list, or a grid in a list, for instance),
+-- though some modicum of interaction is possible by chaining handleListEvent with another handler.
+list :: (Ord n) => ListDefinition n a -> ListState -> Component n
+list ListDefinition {..} ListState {..} =
+  let draw' = do
+        recordExtent name
         visibleHeight <- contextCellHeight
         let visibleItems =
-              take (getCell visibleHeight) $
+              take (getCell $ visibleHeight `div` itemHeight) $
                 drop scrollOffset $
                   zip items [0 ..]
-        mapM_ displayItem visibleItems
+            content = vBox $ (\(item, idx) -> vSize (Fixed itemHeight) $ renderItem item (Just idx == selection)) <$> visibleItems
+        draw content
    in emptyComponent {draw = draw'}
 
-handleClickOnList :: (Ord n) => n -> Int -> ListState -> (ListState -> s -> s) -> MouseClickDetails -> EventHandlerM s e n ()
-handleClickOnList n listLength ls@ListState {..} modifier (MouseClickDetails _ (SDL.V2 _ mcy) SDL.ButtonLeft) = do
-  (SDL.V2 _ py) <- getExtentPosition n
-  let lineClicked = getCell $ mcy - py
-      newSelection = lineClicked - scrollOffset
-  modifyState . modifier $ ls {selection = if newSelection >= 0 && newSelection < listLength then Just newSelection else Nothing}
-handleClickOnList _ _ _ _ _ = pure ()
+handleClickOnLabelList :: (Ord n) => n -> [a] -> ListState -> (ListState -> s -> s) -> MouseClickDetails -> EventHandlerM s e n ()
+handleClickOnLabelList n items ls modifier mcd =
+  handleClickOnList ListDefinition {name = n, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround = False} Nothing ls modifier mcd
 
-handleListEvent :: (Ord n) => n -> Int -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlerM s e n ()
-handleListEvent listName listLength event state@ListState {selection, scrollOffset} modifier = do
-  V2 _ visibleHeight <- getExtentSize listName
+handleClickOnList ::
+  (Ord n) =>
+  ListDefinition n a ->
+  Maybe (V2 Cell -> a -> EventHandlerM s e n ()) ->
+  ListState ->
+  (ListState -> s -> s) ->
+  MouseClickDetails ->
+  EventHandlerM s e n ()
+handleClickOnList ListDefinition {name, items, itemHeight} onSelectedClick ls@ListState {..} modifier (MouseClickDetails _ (SDL.V2 mcx mcy) SDL.ButtonLeft) = do
+  (SDL.V2 px py) <- getExtentPosition name
+  let clickedCellY = getCell $ mcy - py
+      clickedItemIndex = scrollOffset + (clickedCellY `div` getCell itemHeight)
+      listLength = length items
+  if clickedItemIndex >= 0 && clickedItemIndex < listLength
+    then case (selection, onSelectedClick) of
+      -- Clicking on already-selected item with action defined
+      (Just selIdx, Just action) | selIdx == clickedItemIndex -> do
+        let relativeX = getCell $ mcx - px
+            relativeY = clickedCellY `mod` getCell itemHeight
+        action (Cell <$> V2 relativeX relativeY) (items !! clickedItemIndex)
+      -- Normal click: select the item
+      _ -> modifyState . modifier $ ls {selection = Just clickedItemIndex}
+    else unhandled
+handleClickOnList _ _ _ _ _ = unhandled
 
-  let autoScroll sel
+handleLabelListEvent :: (Ord n) => n -> [a] -> Bool -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlerM s e n ()
+handleLabelListEvent n items wrapAround e ls modifier =
+  handleListEvent (ListDefinition {name = n, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround}) e ls modifier
+
+handleListEvent :: (Ord n) => ListDefinition n a -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlerM s e n ()
+handleListEvent ListDefinition {..} event state@ListState {selection, scrollOffset} modifier = do
+  V2 _ visibleHeight <- getExtentSize name
+  let listLength = length items
+      visibleItems = getCell (visibleHeight `div` itemHeight)
+      autoScroll sel
         | sel < scrollOffset = sel
-        | sel >= scrollOffset + getCell visibleHeight =
-            sel - getCell visibleHeight + 1
+        | sel >= scrollOffset + visibleItems =
+            sel - visibleItems + 1
         | otherwise = scrollOffset
 
   case event of
@@ -67,11 +117,11 @@ handleListEvent listName listLength event state@ListState {selection, scrollOffs
         let newIndex = maybe 0 (+ 1) selection
          in if newIndex >= listLength
               then do
-                fireEvent FocusNext
-                modifyState . modifier $ state {selection = Nothing}
+                if wrapAround
+                  then redraw . modifyState . modifier $ state {selection = Just 0, scrollOffset = autoScroll 0}
+                  else (modifyState . modifier $ state {selection = Nothing}) >> fireEvent FocusNext
               else do
-                let newScroll = autoScroll newIndex
-                redraw . modifyState . modifier $ state {selection = Just newIndex, scrollOffset = newScroll}
+                redraw . modifyState . modifier $ state {selection = Just newIndex, scrollOffset = autoScroll newIndex}
       SDL.KeycodeUp ->
         let newIndex = maybe (listLength - 1) (\n -> (n - 1)) selection
          in if newIndex >= 0
@@ -79,7 +129,8 @@ handleListEvent listName listLength event state@ListState {selection, scrollOffs
                 let newScroll = autoScroll newIndex
                 modifyState (modifier $ state {selection = Just newIndex, scrollOffset = newScroll})
               else do
-                fireEvent FocusPrev
-                redraw . modifyState . modifier $ state {selection = Nothing}
+                if wrapAround
+                  then redraw . modifyState . modifier $ state {selection = Just (listLength - 1), scrollOffset = autoScroll (listLength - 1)}
+                  else (modifyState . modifier $ state {selection = Nothing}) >> fireEvent FocusPrev
       _ -> unhandled
     _ -> unhandled

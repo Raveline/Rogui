@@ -193,7 +193,7 @@ uiEventHandler state@State {..} = \case
   FocusPrev -> handleFocusChange (focusPrev) state
   (AppEvent ToggleUI) -> modifyState $ \s -> s {gameState = PlayingGame}
   e -> case focusGetCurrent ring of
-    (Just List) -> handleListEvent List (length listOfText) e listState (\newLs s -> s {listState = newLs})
+    (Just List) -> handleLabelListEvent List listOfText False e listState (\newLs s -> s {listState = newLs})
     (Just QuitButton) -> handleButtonEvent (Quit) state e
     (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
     _ -> unhandled
@@ -202,7 +202,7 @@ handleClickEvent :: ClickHandler State CustomEvent Name ()
 handleClickEvent State {..} mc = do
   clicked <- foundClickedExtents mc
   when (QuitButton `elem` clicked) $ fireEvent Quit
-  when (List `elem` clicked) $ handleClickOnList List (length listOfText) listState (\newLs s -> s {listState = newLs}) mc
+  when (List `elem` clicked) $ handleClickOnLabelList List listOfText listState (\newLs s -> s {listState = newLs}) mc
 
 handleFocusChange :: (FocusRing Name -> FocusRing Name) -> State -> EventHandlerM State CustomEvent Name ()
 handleFocusChange ringChange s =
@@ -258,7 +258,7 @@ renderUI State {..} =
                         (Just black)
                     )
                 ),
-              bordered baseColours $ padded 2 $ list List listOfText id TLeft baseColours highlighted listState,
+              bordered baseColours $ padded 2 $ labelList List listOfText id TLeft baseColours highlighted listState,
               padded 2 $ textInput TextInput someText textColours (focusGetCurrent ring == Just TextInput),
               vSize (Fixed 1) $
                 button
