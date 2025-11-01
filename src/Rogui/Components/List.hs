@@ -6,7 +6,10 @@ module Rogui.Components.List
     list,
     ListState (..),
     ListDefinition (..),
+    FocusOrigin (..),
     mkListState,
+    listReceiveFocus,
+    labelListReceiveFocus,
     handleListEvent,
     handleLabelListEvent,
     handleClickOnList,
@@ -27,6 +30,10 @@ data ListState = ListState
     scrollOffset :: Int -- For later when you add scrolling
   }
 
+-- | Indicates from which direction focus is entering the list
+data FocusOrigin = FromNext | FromPrev
+  deriving (Eq)
+
 data ListDefinition n a = ListDefinition
   { -- | Name of the list, for extent management
     name :: n,
@@ -43,6 +50,34 @@ data ListDefinition n a = ListDefinition
 
 mkListState :: ListState
 mkListState = ListState Nothing 0
+
+-- | Update list state when it receives focus, initializing selection and scrolling appropriately.
+-- This handles the common pattern of selecting the first/last item when focus enters from different directions.
+listReceiveFocus :: (Ord n) => ListDefinition n a -> ListState -> FocusOrigin -> (ListState -> s -> s) -> EventHandlerM s e n ()
+listReceiveFocus ListDefinition {name, items, itemHeight} ls origin modifier = do
+  V2 _ visibleHeight <- getExtentSize name
+  let listLength = length items
+      visibleItems = getCell (visibleHeight `div` itemHeight)
+  case (selection ls, origin) of
+    -- Already has a selection, keep it
+    (Just _, _) -> pure ()
+    -- No selection, entering from next -> select first item
+    (Nothing, FromNext) -> modifyState $ modifier ls {selection = Just 0, scrollOffset = 0}
+    -- No selection, entering from prev -> select last item and scroll to show it
+    (Nothing, FromPrev) ->
+      let lastIdx = listLength - 1
+          -- Scroll so the last item is visible (at the bottom of the viewport)
+          newScroll = max 0 (lastIdx - visibleItems + 1)
+       in modifyState $ modifier ls {selection = Just lastIdx, scrollOffset = newScroll}
+
+-- | A specialized version of labelListReceiveFocus that doesn't need a ListDefinition
+labelListReceiveFocus :: (Ord n) => n -> [a] -> ListState -> FocusOrigin -> (ListState -> s -> s) -> EventHandlerM s e n ()
+labelListReceiveFocus name items ls origin modifier = do
+  listReceiveFocus
+    (ListDefinition {name = name, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround = False})
+    ls
+    origin
+    modifier
 
 -- | A simple list made of labels.
 labelList :: (Ord n) => n -> [a] -> (a -> String) -> TextAlign -> Colours -> Colours -> ListState -> Component n

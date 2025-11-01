@@ -24,7 +24,8 @@ import Rogui.Components.Game.EntitiesLayer (entitiesLayer)
 import Rogui.Components.Game.GridTile
 import Rogui.Components.Game.Utils (GlyphInfo (..))
 import Rogui.Components.Label
-import Rogui.Components.List hiding (scrollOffset)
+import Rogui.Components.List (FocusOrigin (..), ListState)
+import Rogui.Components.List qualified as L
 import Rogui.Components.MessageLog (LogMessage, messageLog)
 import Rogui.Components.ProgressBar
 import Rogui.Components.TextInput
@@ -112,7 +113,7 @@ main = do
         listOfText = longListOfText,
         mousePosition = V2 0 0,
         ring = focusRing [List, TextInput, QuitButton],
-        listState = mkListState {selection = Just 0},
+        listState = L.mkListState {L.selection = Just 0},
         someText = "",
         playerPos = V2 1 1,
         logViewport = ViewportState (V2 0 0) (V2 0 (Cell $ length fakeLogs))
@@ -189,11 +190,11 @@ uiEventHandler state@State {..} = \case
   MouseEvent (MouseClick c) -> handleClickEvent state c
   MouseEvent (MouseMove MouseMoveDetails {..}) ->
     redraw $ setCurrentState $ state {mousePosition = defaultTileSizePosition}
-  FocusNext -> handleFocusChange (focusNext) state
-  FocusPrev -> handleFocusChange (focusPrev) state
+  FocusNext -> handleFocusChange FromNext state
+  FocusPrev -> handleFocusChange FromPrev state
   (AppEvent ToggleUI) -> modifyState $ \s -> s {gameState = PlayingGame}
   e -> case focusGetCurrent ring of
-    (Just List) -> handleLabelListEvent List listOfText False e listState (\newLs s -> s {listState = newLs})
+    (Just List) -> L.handleLabelListEvent List listOfText False e listState (\newLs s -> s {listState = newLs})
     (Just QuitButton) -> handleButtonEvent (Quit) state e
     (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
     _ -> unhandled
@@ -202,16 +203,15 @@ handleClickEvent :: ClickHandler State CustomEvent Name ()
 handleClickEvent State {..} mc = do
   clicked <- foundClickedExtents mc
   when (QuitButton `elem` clicked) $ fireEvent Quit
-  when (List `elem` clicked) $ handleClickOnLabelList List listOfText listState (\newLs s -> s {listState = newLs}) mc
+  when (List `elem` clicked) $ L.handleClickOnLabelList List listOfText listState (\newLs s -> s {listState = newLs}) mc
 
-handleFocusChange :: (FocusRing Name -> FocusRing Name) -> State -> EventHandlerM State CustomEvent Name ()
-handleFocusChange ringChange s =
-  let newRing = ringChange (ring s)
-      -- When focus moves to List and selection is Nothing, initialize
-      newListState = case (focusGetCurrent newRing, listState s) of
-        (Just List, ListState Nothing offset) -> ListState (Just 0) offset
-        _ -> listState s
-   in redraw (setCurrentState $ s {ring = newRing, listState = newListState})
+handleFocusChange :: FocusOrigin -> State -> EventHandlerM State CustomEvent Name ()
+handleFocusChange focusOrigin s = do
+  let newRing = (if focusOrigin == FromNext then focusNext else focusPrev) (ring s)
+  -- When focus moves to List, update its state appropriately
+  when (focusGetCurrent newRing == Just List) $ do
+    L.labelListReceiveFocus List (listOfText s) (listState s) focusOrigin (\newLs s' -> s' {listState = newLs})
+  modifyState $ \s' -> s' {ring = newRing}
 
 renderApp :: M.Map Brushes Brush -> State -> ToDraw Consoles Brushes Name
 renderApp brushes s@State {playerPos, gameState} =
@@ -258,7 +258,7 @@ renderUI State {..} =
                         (Just black)
                     )
                 ),
-              bordered baseColours $ padded 2 $ labelList List listOfText id TLeft baseColours highlighted listState,
+              bordered baseColours $ padded 2 $ L.labelList List listOfText id TLeft baseColours highlighted listState,
               padded 2 $ textInput TextInput someText textColours (focusGetCurrent ring == Just TextInput),
               vSize (Fixed 1) $
                 button
