@@ -14,9 +14,11 @@ module Rogui.Components.List
     handleLabelListEvent,
     handleClickOnList,
     handleClickOnLabelList,
+    getCurrentSelection,
   )
 where
 
+import Data.List ((!?))
 import Rogui.Application.Event (Event (..), EventHandlerM, KeyDownDetails (..), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, keycode, modifyState, redraw, unhandled)
 import Rogui.Components
 import Rogui.Components.Label (label)
@@ -50,6 +52,9 @@ data ListDefinition n a = ListDefinition
 
 mkListState :: ListState
 mkListState = ListState Nothing 0
+
+getCurrentSelection :: ListDefinition n a -> ListState -> Maybe a
+getCurrentSelection ListDefinition {..} ListState {..} = selection >>= (items !?)
 
 -- | Update list state when it receives focus, initializing selection and scrolling appropriately.
 -- This handles the common pattern of selecting the first/last item when focus enters from different directions.
