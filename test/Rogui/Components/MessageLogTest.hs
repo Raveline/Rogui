@@ -113,7 +113,7 @@ testMultiColorChunks =
       instructions = renderMessageLog messages 20 10
       strings = extractStrings instructions
    in do
-        assertEqual "Should render both chunks" ["Red text", "blue text"] strings
+        assertEqual "Should render both chunks with space between" ["Red text", " ", "blue text"] strings
 
 testEmptyMessage :: IO ()
 testEmptyMessage =

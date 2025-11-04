@@ -11,6 +11,7 @@ where
 
 import Control.Monad (void)
 import Data.Foldable (foldrM, toList, traverse_)
+import Data.List (intersperse)
 import qualified Data.Sequence as Seq
 import Rogui.Components.Types (Component (..), DrawM, contextCellHeight, contextCellWidth, emptyComponent)
 import Rogui.Graphics (Cell (..), Colours, setColours, str)
@@ -51,13 +52,20 @@ drawMessageLog width msg remainingLines = do
   if msgLength > width
     then do
       let (onLine, nextLines) = getTextLikeUntil (getCell width) (length . snd) splitChunk msg
-      traverse_ drawChunk onLine
+      drawChunksWithSpaces onLine
       newLine
       drawMessageLog width nextLines (remainingLines - 1)
     else do
-      traverse_ drawChunk msg
+      drawChunksWithSpaces msg
       newLine
       pure (remainingLines - 1)
+
+drawChunksWithSpaces :: [LogChunk] -> DrawM n ()
+drawChunksWithSpaces chunks =
+  traverse_ drawChunkOrSpace (intersperse (Left " ") (Right <$> chunks))
+  where
+    drawChunkOrSpace (Left space) = str TLeft space
+    drawChunkOrSpace (Right chunk) = drawChunk chunk
 
 drawChunk :: LogChunk -> DrawM n ()
 drawChunk (chunkColour, chunkTxt) = do
