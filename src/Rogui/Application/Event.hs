@@ -33,6 +33,7 @@ module Rogui.Application.Event
 
     -- ** Event handling monad utilities
     modifyState,
+    getState,
     fireAppEvent,
     setCurrentState,
     fireEvent,
@@ -137,7 +138,7 @@ data EventHandlingResult a = Handled a | Unhandled
 
 -- | A simple utility mostly there to guarantee we can change
 -- the monadic stack if we ever need to without having to
--- rewrite all the signatures.
+-- rewrite all the signatures. You should not be using this type.
 type EventHandlingM s e n a = State (EventHandlingState s e n) a
 
 -- | Type used to know if a handler processed the event or not.
@@ -228,6 +229,10 @@ halt f = setResult Halt >> f
 -- | Convenience state modification to require a redraw
 redraw :: EventHandlerM s e n () -> EventHandlerM s e n ()
 redraw f = setResult Continue >> f
+
+-- | Convenience state access when handling events
+getState :: EventHandlerM state e n state
+getState = liftEH $ gets currentState
 
 -- | Convenience modification of the Event handling state to modify the application state.
 modifyState :: (state -> state) -> EventHandlerM state e n ()
