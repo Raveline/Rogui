@@ -54,7 +54,10 @@ extra-doc-files: CHANGELOG.md
 
 common warnings
     ghc-options:        -Wall -Werror
-    default-extensions: RecordWildCards
+    default-extensions:
+        FlexibleContexts
+        OverloadedStrings
+        RecordWildCards
 
 library
     -- Import common warning flags.
@@ -100,10 +103,12 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:
-        , base        ^>=4.20.0.0
+        , base          ^>=4.20.0.0
         , containers
         , data-clist
         , dlist
+        , monad-control
+        , monad-logger
         , mtl
         , sdl2
         , sdl2-image
@@ -163,6 +168,7 @@ executable rogui
         , array
         , base        ^>=4.20.0.0
         , containers
+        , monad-logger
         , mtl
         , rogui
         , sdl2

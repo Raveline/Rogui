@@ -9,6 +9,7 @@ module Main where
 
 import Control.Monad (when)
 import Control.Monad.Except
+import Control.Monad.Logger (MonadLogger)
 import Control.Monad.Writer
 import Data.Array.IArray (Array, genArray, (!))
 import Data.Map.Strict qualified as M
@@ -129,7 +130,7 @@ fakeLogs =
    in mconcat $ replicate 200 basicLogs
 
 guiMaker ::
-  (MonadIO m, MonadError (RoguiError Consoles Brushes) m) =>
+  (MonadIO m, MonadError (RoguiError Consoles Brushes) m, MonadLogger m) =>
   Rogui Consoles Brushes Name State CustomEvent ->
   m (Rogui Consoles Brushes Name State CustomEvent)
 guiMaker baseGui = do

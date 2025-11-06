@@ -10,6 +10,11 @@ module Rogui.Application.System
     addBrush,
     addConsole,
 
+    -- * Log wrapper
+    LogOutput (..),
+    withLogging,
+    withoutLogging,
+
     -- * Event handling utilities
     keyPressHandler,
     baseEventHandler,
@@ -23,11 +28,14 @@ import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.IO.Class
+import Control.Monad.Logger
 import Control.Monad.State hiding (state)
+import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Map qualified as M
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Sequence qualified as Seq
 import Data.Set qualified as S
+import Data.String
 import Data.Word
 import Rogui.Application.Error (RoguiError)
 import Rogui.Application.Event
@@ -42,14 +50,28 @@ import SDL.Image qualified as SDL
 import SDL.Internal.Numbered qualified as Numbered
 import SDL.Raw qualified as Raw
 
+data LogOutput = LogStdout | LogFile FilePath
+
+-- | Run an action with the specified logging output.
+-- This unwraps the LoggingT transformer based on the LogOutput choice.
+withLogging :: (MonadBaseControl IO m, MonadIO m) => LogOutput -> LoggingT m a -> m a
+withLogging ls f = case ls of
+  LogStdout -> runStdoutLoggingT f
+  LogFile filepath -> runFileLoggingT filepath f
+
+-- | Run an action without logging (discards all log messages).
+withoutLogging :: (MonadIO m) => NoLoggingT m a -> m a
+withoutLogging = runNoLoggingT
+
 convertSurface :: (MonadIO m) => SDL.Surface -> SDL.PixelFormat -> m SDL.Surface
 convertSurface (SDL.Surface s _) pixFmt = do
   fmt <- Raw.allocFormat (Numbered.toNumber pixFmt)
   surface <- SDL.Surface <$> Raw.convertSurface s fmt 0 <*> pure Nothing
   surface <$ Raw.freeFormat fmt
 
-loadBrush :: (MonadIO m) => SDL.Renderer -> FilePath -> TileSize -> m Brush
+loadBrush :: (MonadIO m, MonadLogger m) => SDL.Renderer -> FilePath -> TileSize -> m Brush
 loadBrush renderer path TileSize {..} = do
+  logDebugN $ "Loading brush at " <> fromString path
   fontSurface <- SDL.load path
   surface <- convertSurface fontSurface SDL.RGBA8888
   let black :: SDL.V4 Word8
@@ -77,7 +99,7 @@ loadBrush renderer path TileSize {..} = do
 --   >>= addBrush BigCharset "terminal_16x16.png" (TileSize 16 16)
 -- @
 addBrush ::
-  (MonadIO m, Ord rb) =>
+  (MonadIO m, MonadLogger m, Ord rb) =>
   -- | Brush reference constructor
   rb ->
   -- | Filepath to the brush
@@ -95,14 +117,15 @@ addConsole :: (Ord rc) => rc -> Console -> Rogui rc rb n s e -> Rogui rc rb n s 
 addConsole ref console rogui@Rogui {..} =
   rogui {consoles = M.insert ref console consoles}
 
--- | A utility for exiting at the first error and outputing it
+-- | A utility for exiting at the first error and outputing it.
+-- Automatically runs with stdout logging.
 bootAndPrintError ::
-  (Show rc, Show rb, Ord rb, Ord rc, Ord n, MonadIO m) =>
+  (Show rc, Show rb, Ord rb, Ord rc, Ord n) =>
   RoguiConfig rc rb n s e ->
-  (Rogui rc rb n s e -> ExceptT (RoguiError rc rb) m (Rogui rc rb n s e)) ->
+  (Rogui rc rb n s e -> ExceptT (RoguiError rc rb) (LoggingT IO) (Rogui rc rb n s e)) ->
   s ->
-  m ()
-bootAndPrintError c b i = do
+  IO ()
+bootAndPrintError c b i = runStdoutLoggingT $ do
   result <- runExceptT (boot c b i)
   either (liftIO . print) pure result
 
@@ -111,7 +134,7 @@ bootAndPrintError c b i = do
 -- before being run in the appLoop (starting with the initial state provided as last parameter).
 -- Boot will return once a `Halt` EventResult has been processed in the event handler.
 boot ::
-  (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m) =>
+  (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) =>
   RoguiConfig rc rb n s e ->
   (Rogui rc rb n s e -> m (Rogui rc rb n s e)) ->
   s ->
@@ -154,7 +177,7 @@ brushLookup :: (Ord rb, Show rb) => M.Map rb Brush -> rb -> Brush
 brushLookup m ref =
   fromMaybe (error $ "Brush not found: " ++ show ref) (M.lookup ref m)
 
-appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m) => Rogui rc rb n s e -> s -> m ()
+appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) => Rogui rc rb n s e -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
   sdlEvents <- getSDLEvents defaultBrush
   frameStart <- SDL.ticks
