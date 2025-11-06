@@ -12,6 +12,7 @@ module Rogui.Components.Core
     filled,
     renderComponents,
     switchBrush,
+    trySwitchBrush,
     -- exported for tests
     Layout (..),
     layout,
@@ -20,16 +21,18 @@ module Rogui.Components.Core
   )
 where
 
-import Control.Monad (foldM_)
+import Control.Monad (foldM_, when)
+import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.State.Strict
 import Control.Monad.Writer
 import Data.Bifunctor
 import Data.Foldable (traverse_)
+import Rogui.Application.Error (RoguiError (BrushConsoleMismatch), TileSizeMismatch (TileSizeMismatch))
 import Rogui.Components.Types (Component (..), DrawM, DrawingContext (..), ExtentMap, Size (..), changeBrush, changeConsole, emptyComponent)
 import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Colours, RGB, setConsoleBackground)
 import Rogui.Graphics.DSL.Eval (evalInstructions)
 import Rogui.Graphics.DSL.Instructions (setColours, withBorder, withBrush, withConsole)
-import Rogui.Graphics.Types (Cell (..), Console (..), Pixel (..), (.*=.), (./.=))
+import Rogui.Graphics.Types (Cell (..), Console (..), Pixel (..), fromBrush, (.*=.), (./.=))
 import Rogui.Types (Rogui (Rogui, defaultBrush, numberOfSteps, renderer, rootConsole))
 import SDL (V2 (..), (^*))
 
@@ -56,11 +59,31 @@ vBox components = emptyComponent {draw = layout Vertical components}
 hBox :: [Component n] -> Component n
 hBox components = emptyComponent {draw = layout Horizontal components}
 
--- | You might have several components that need different brushes
+-- | Safely switch to a different brush for rendering children components.
+-- If the new brush tilesize doesn't match the console expected tilesize,
+-- silently keeps the current brush instead.
+--
+-- TODO: Mismatches should be logged (logging support to be added later).
+trySwitchBrush :: Brush -> Component n -> Component n
+trySwitchBrush newBrush children =
+  let draw' = do
+        oldBrush <- gets brush
+        Console {tileSize = consoleTileSize} <- gets console
+        let brushTileSize = fromBrush newBrush
+        -- Only switch if tile sizes match, otherwise keep current brush
+        when (brushTileSize == consoleTileSize) $ changeBrush newBrush
+        draw children
+        changeBrush oldBrush
+   in emptyComponent {draw = draw'}
+
+-- | Unsafely switch to a different brush for rendering children components.
+-- If the new brush tilesize doesn't match the console expected tilesize,
+-- the validation error will be caught later when the component tree is rendered.
+--
+-- You might have several components that need different brushes
 -- on the same console. This is typically the case when you render
 -- the tilemap (and several layers on top of it, with various images
--- from different tilesets). Compose your component with this
--- to temporarily use a different brush.
+-- from different tilesets).
 switchBrush :: Brush -> Component n -> Component n
 switchBrush newBrush children =
   let draw' = do
@@ -139,8 +162,12 @@ layout direction children = do
         pure $ currentConsole {position = (position currentConsole) + (baseStep ^* (tilesToPixel direction brush newValue))}
   foldM_ render root children
 
-renderComponents :: (Ord n, MonadIO m) => Rogui rc rb n s e -> Brush -> Console -> Component n -> m (ExtentMap n)
-renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usingBrush usingConsole Component {..} =
+renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError rc rb) m) => Rogui rc rb n s e -> Brush -> Console -> Component n -> m (ExtentMap n)
+renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usingBrush usingConsole@Console {tileSize = consoleTileSize} Component {..} = do
+  let brushTileSize = fromBrush usingBrush
+  when (brushTileSize /= consoleTileSize) $
+    throwError $
+      BrushConsoleMismatch (TileSizeMismatch consoleTileSize brushTileSize)
   let afterRendering =
         execStateT
           rendering
@@ -151,4 +178,4 @@ renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usin
         withConsole usingConsole
         withBrush usingBrush
         draw
-   in evalInstructions renderer rootConsole defaultBrush instructions >> pure extents
+  evalInstructions renderer rootConsole defaultBrush instructions >> pure extents

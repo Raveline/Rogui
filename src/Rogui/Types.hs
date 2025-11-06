@@ -34,6 +34,9 @@ type ConsoleDrawers rc rb n state = M.Map rb Brush -> state -> ToDraw rc rb n
 -- * A console to use (`rootConsole` if nothing was provided);
 -- * A brush to use (`defaultBrush` if nothing was provided);
 -- * A component tree.
+--
+-- Be careful: if the brush you use doesn't match the expected tilesize in
+-- the console, an exception will be thrown.
 type ToDraw rc rb n = [(Maybe rc, Maybe rb, Component n)]
 
 -- | Rogui is the main datatype used to define an application.

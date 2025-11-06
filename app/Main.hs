@@ -133,12 +133,14 @@ guiMaker ::
   Rogui Consoles Brushes Name State CustomEvent ->
   m (Rogui Consoles Brushes Name State CustomEvent)
 guiMaker baseGui = do
-  addBrush Charset "terminal_10x16.png" (TileSize 10 16) baseGui
-    >>= addBrush BigCharset "terminal_16x16.png" (TileSize 16 16)
-    >>= addConsoleWithSpec StatusBar (TilesSize 100 1) TopLeft
-    >>= addConsoleWithSpec GameArea (SizeWindowPct 100 98) (Below StatusBar)
-    >>= addConsoleWithSpec ModalMenu (TilesSize 40 25) Center
-    >>= addConsoleWithSpec Logging FullWindow TopLeft
+  let ts10x16 = TileSize 10 16
+      ts16x16 = TileSize 16 16
+  addBrush Charset "terminal_10x16.png" ts10x16 baseGui
+    >>= addBrush BigCharset "terminal_16x16.png" ts16x16
+    >>= addConsoleWithSpec StatusBar ts10x16 (TilesSize 100 1) TopLeft
+    >>= addConsoleWithSpec GameArea ts16x16 (SizeWindowPct 100 98) (Below StatusBar)
+    >>= addConsoleWithSpec ModalMenu ts10x16 (TilesSize 40 25) Center
+    >>= addConsoleWithSpec Logging ts10x16 FullWindow TopLeft
 
 uiKeysHandler :: M.Map (SDL.Keycode, S.Set Modifier) (EventHandler State CustomEvent Name)
 uiKeysHandler =
@@ -226,7 +228,7 @@ renderApp brushes s@State {playerPos, gameState} =
       gameArea =
         multiLayeredGrid fullMapSize playerPos $
           [ gridTile ((!) arbitraryMap) tileToGlyphInfo,
-            switchBrush bigCharset . entitiesLayer ([playerPos] :: [V2 Cell]) (const $ GlyphInfo 1 charColours) id
+            trySwitchBrush bigCharset . entitiesLayer ([playerPos] :: [V2 Cell]) (const $ GlyphInfo 1 charColours) id
           ]
    in catMaybes $
         [ Just (Just StatusBar, Just Charset, statusBar),

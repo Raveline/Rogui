@@ -45,7 +45,8 @@ renderMessageLog messages widthInCells heightInCells =
         Console
           { width = Pixel (widthInCells * 16),
             height = Pixel (heightInCells * 16),
-            position = V2 (Pixel 0) (Pixel 0)
+            position = V2 (Pixel 0) (Pixel 0),
+            tileSize = TileSize 16 16
           }
       brush' = Brush {tileWidth = 16, tileHeight = 16, textureWidth = 256, textureHeight = 256, brush = undefined}
       dc :: DrawingContext Int

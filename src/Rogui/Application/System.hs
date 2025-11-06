@@ -124,7 +124,7 @@ boot RoguiConfig {..} guiBuilder initialState = do
   window <- SDL.createWindow appName SDL.defaultWindow {SDL.windowInitialSize = fromIntegral <$> windowSize}
   renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
   baseBrush <- loadBrush renderer defaultBrushPath brushTilesize
-  let baseConsole = Console {width = w, height = h, position = SDL.V2 0 0}
+  let baseConsole = Console {width = w, height = h, position = SDL.V2 0 0, tileSize = brushTilesize}
       frameTime = 1000 `div` fromIntegral targetFPS -- milliseconds per frame
       baseRogui =
         Rogui
@@ -154,7 +154,7 @@ brushLookup :: (Ord rb, Show rb) => M.Map rb Brush -> rb -> Brush
 brushLookup m ref =
   fromMaybe (error $ "Brush not found: " ++ show ref) (M.lookup ref m)
 
-appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m) => Rogui rc rb n s e -> s -> m ()
+appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m) => Rogui rc rb n s e -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
   sdlEvents <- getSDLEvents defaultBrush
   frameStart <- SDL.ticks

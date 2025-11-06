@@ -99,7 +99,8 @@ grid gd@GridDefinition {..} GridState {..} =
                   Console
                     { width = tileWidth .*=. cellWidth,
                       height = tileHeight .*=. cellHeight,
-                      position = position + cellPosInPixels
+                      position = position + cellPosInPixels,
+                      tileSize = tileSize
                     }
             changeConsole cellConsole
             when isSelected $ do

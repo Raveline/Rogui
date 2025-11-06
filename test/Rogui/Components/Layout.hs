@@ -26,8 +26,9 @@ layoutTests =
 
 testHBoxGreedySplit :: IO ()
 testHBoxGreedySplit =
-  let rootConsole = Console {width = Pixel (16 * 10), height = Pixel (16 * 8), position = V2 (Pixel 0) (Pixel 0)}
-      halfConsole = Console {width = width rootConsole `div` 2, height = height rootConsole, position = V2 (Pixel 0) (Pixel 0)}
+  let ts = TileSize 16 16
+      rootConsole = Console {width = Pixel (16 * 10), height = Pixel (16 * 8), position = V2 (Pixel 0) (Pixel 0), tileSize = ts}
+      halfConsole = Console {width = width rootConsole `div` 2, height = height rootConsole, position = V2 (Pixel 0) (Pixel 0), tileSize = ts}
       components = [emptyComponent, emptyComponent]
       consoles = extractConsoles Horizontal rootConsole components
    in [halfConsole, halfConsole {position = V2 (width rootConsole `div` 2) (Pixel 0)}] @=? consoles

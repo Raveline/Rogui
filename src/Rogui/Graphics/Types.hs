@@ -44,11 +44,13 @@ pixelDivPixelToCells :: Pixel -> Pixel -> Cell
 pixelDivPixelToCells = (./.=)
 
 -- | A virtual console.
--- Width, int, position are all in pixels.
+-- Width, height, position are all in pixels.
+-- TileSize indicates the expected tile dimensions for this console.
 data Console = Console
   { width :: Pixel,
     height :: Pixel,
-    position :: V2 Pixel
+    position :: V2 Pixel,
+    tileSize :: TileSize
   }
   deriving (Show, Eq)
 
@@ -71,6 +73,7 @@ data TileSize = TileSize
   { pixelWidth :: Pixel,
     pixelHeight :: Pixel
   }
+  deriving (Show, Eq)
 
 fromBrush :: Brush -> TileSize
 fromBrush Brush {..} = TileSize tileWidth tileHeight
