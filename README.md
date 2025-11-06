@@ -19,6 +19,9 @@ What it is not:
 computation, etc;
 - A complete UI library: components and features are limited;
 - An entity management system;
+- A multi-backend roguelike engine like
+[LambdaHack](https://github.com/LambdaHack/LambdaHack); I find LambdaHack to be
+a bit too complicated for my taste though I admire its flexibility.
 
 # Main concepts
 
@@ -28,20 +31,24 @@ One of the main goal of Rogui is to support the possibility of having several
 different tilesets, for roguelikes that come with a "tiles" view (and not a pure
 ASCII one). This is done throough the notion of Brush: a texture containing tiles.
 
-This comes at a price, however: dividing a pixel-based window into console cells
-depends on the tiles size. If you use brushes with different tile sizes, some of
-the utilities and default computed values might be off.
+This comes at a price, however: dividing a pixel-based window into console
+cells depends on the tiles size. If you could use brushes with different tile
+sizes, some of the utilities and default computed values might be off. So each
+console can only use tiles of the same sizes. If you absolutely need to support
+two tilesets of two different sizes, you are going to need to superimpose two
+different consoles.
 
 Brushes are mainly accessed through a enumerated type you'll have to define,
-typically called `rb` in the library (for "References Brush").
+typically called `rb` in the library (for "References Brush"). You get access
+to the map of all known brushes when defining the rendering.
 
 ## Console
 
 SDL2 doesn't offer an easy way to create virtual consoles and blit them on each
 others. The Console datatype offers an emulation of this. Each consoles maintain
-their own local coordinates. Consoles are mostly used:
+their own local coordinates. Consoles are used for two main reasons:
 
-- To define "main areas" of your UI, where you will positions different part of
+- To define "main areas" of your UI, where you will position different parts of
 your game and interface;
 - To support positioning when defining components.
 
@@ -67,7 +74,8 @@ Since writing a non-layout component is pretty straight-foward, the proposed
 components are more suggestions of implementations than official,
 "can-do-it-all" widgets.
 
-Layout support is not as advanced as Brick's wonderful system, though it is inspired by it. You basically get:
+Layout support is not as advanced as Brick's wonderful system, though it is
+inspired by it. You basically get:
 
 - Greedy components that take all possible space; "natural" space taken by
 components is not pre-computed, they'll get an equally divided space between all
