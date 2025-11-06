@@ -21,6 +21,7 @@ module Rogui.Application.System
 
     -- * Other utilities
     brushLookup,
+    calculateFPS,
   )
 where
 
@@ -36,6 +37,7 @@ import Data.Maybe (catMaybes, fromMaybe)
 import Data.Sequence qualified as Seq
 import Data.Set qualified as S
 import Data.String
+import Data.Text (pack)
 import Data.Word
 import Rogui.Application.Error (RoguiError)
 import Rogui.Application.Event
@@ -163,7 +165,9 @@ boot RoguiConfig {..} guiBuilder initialState = do
             lastStep = 0,
             numberOfSteps = 0,
             targetFrameTime = frameTime,
-            extentsMap = mempty
+            extentsMap = mempty,
+            recentFrameTimes = mempty,
+            lastFPSWarning = 0
           }
   gui <- guiBuilder baseRogui
 
@@ -176,6 +180,16 @@ boot RoguiConfig {..} guiBuilder initialState = do
 brushLookup :: (Ord rb, Show rb) => M.Map rb Brush -> rb -> Brush
 brushLookup m ref =
   fromMaybe (error $ "Brush not found: " ++ show ref) (M.lookup ref m)
+
+-- | Calculate current FPS from a window of recent frame times.
+-- Returns Nothing if there aren't enough samples yet.
+calculateFPS :: Seq.Seq Word32 -> Int -> Maybe Double
+calculateFPS frameTimes minSamples
+  | Seq.length frameTimes < minSamples = Nothing
+  | otherwise =
+      let totalTime = sum frameTimes
+          avgFrameTime = fromIntegral totalTime / fromIntegral (Seq.length frameTimes) :: Double
+       in Just (1000.0 / avgFrameTime)
 
 appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) => Rogui rc rb n s e -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
@@ -199,18 +213,46 @@ appLoop roGUI@Rogui {..} state = do
       else pure extentsMap
   unless (result == Halt) $ do
     frameEnd <- SDL.ticks
-    let elapsed = frameStart - frameEnd
+    let frameDuration = frameEnd - frameStart
+        elapsed = frameStart - frameEnd
         sleepMs =
           if elapsed < targetFrameTime
             then targetFrameTime - elapsed
             else 0
     liftIO $ threadDelay (fromIntegral sleepMs * 1000)
+
+    -- FPS tracking and logging
+    let maxFrameSamples = 60
+        newFrameTimes = Seq.take maxFrameSamples (frameDuration Seq.<| recentFrameTimes)
+        targetFPS' = fromIntegral (1000 `div` targetFrameTime) :: Double
+        threshold = targetFPS' * 0.8
+        fpsWarningCooldown = 5000 :: Word32 -- 5 seconds between warnings
+        shouldWarn = do
+          currentFPS <- calculateFPS newFrameTimes maxFrameSamples
+          if currentFPS < threshold && (frameEnd - lastFPSWarning) > fpsWarningCooldown
+            then Just currentFPS
+            else Nothing
+        newLastFPSWarning = case shouldWarn of
+          Just _ -> frameEnd
+          Nothing -> lastFPSWarning
+    case shouldWarn of
+      Just currentFPS ->
+        logWarnN $
+          "Low FPS detected: "
+            <> pack (show (round currentFPS :: Int))
+            <> " (target: "
+            <> pack (show (round targetFPS' :: Int))
+            <> ")"
+      Nothing -> pure ()
+
     let newRogui =
           roGUI
             { lastTicks = frameStart,
               lastStep = if reachedStep then frameStart else lastStep,
               numberOfSteps = if reachedStep then numberOfSteps + 1 else numberOfSteps,
-              extentsMap = newExtents
+              extentsMap = newExtents,
+              recentFrameTimes = newFrameTimes,
+              lastFPSWarning = newLastFPSWarning
             }
     appLoop newRogui currentState
 

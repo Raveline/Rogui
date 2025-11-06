@@ -12,6 +12,7 @@ module Rogui.Types
   )
 where
 
+import Data.Sequence (Seq)
 import qualified Data.Map as M
 import Data.Word (Word32)
 import Rogui.Application.Event (EventHandler, EventHandlerM, MouseClickDetails)
@@ -70,5 +71,9 @@ data Rogui rc rb n state e
     -- | Internal, milliseconds per frame
     targetFrameTime :: Word32,
     -- | List of known extents
-    extentsMap :: ExtentMap n
+    extentsMap :: ExtentMap n,
+    -- | Rolling window of recent frame durations (in milliseconds) for FPS tracking
+    recentFrameTimes :: Seq Word32,
+    -- | Timestamp of last FPS warning (for rate limiting)
+    lastFPSWarning :: Word32
   }
