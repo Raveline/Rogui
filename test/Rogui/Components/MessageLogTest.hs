@@ -13,7 +13,7 @@ import Data.List
 import Data.Maybe (mapMaybe)
 import Linear (V2 (..), V3 (..))
 import Rogui.Components.MessageLog (messageLog)
-import Rogui.Components.Types (Component (..), DrawingContext (..))
+import Rogui.Components.Core (Component (..), DrawingContext (..))
 import Rogui.Graphics (Colours (..))
 import Rogui.Graphics.DSL.Instructions (Instruction (..))
 import Rogui.Graphics.Primitives (RGB)

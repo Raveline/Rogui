@@ -16,7 +16,7 @@ import Data.Sequence (Seq)
 import qualified Data.Map as M
 import Data.Word (Word32)
 import Rogui.Application.Event (EventHandler, EventHandlerM, MouseClickDetails)
-import Rogui.Components.Types (Component, ExtentMap)
+import Rogui.Components.Core (Component, ExtentMap)
 import Rogui.Graphics.Types
 import SDL (Renderer)
 

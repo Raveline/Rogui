@@ -11,7 +11,7 @@ import Control.Monad (unless, when)
 import Control.Monad.State.Strict
 import qualified Data.Text as T
 import Rogui.Application.Event (Event (..), EventHandlerM, KeyDetails (..), KeyDownDetails (..), fireEvent, modifyState, redraw, unhandled)
-import Rogui.Components.Types (Component (..), DrawingContext (..), contextCellWidth, emptyComponent, recordExtent)
+import Rogui.Components.Core (Component (..), DrawingContext (..), contextCellWidth, emptyComponent, recordExtent)
 import Rogui.Graphics
 import SDL (TextInputEventData (textInputEventText))
 import qualified SDL

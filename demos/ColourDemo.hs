@@ -7,7 +7,6 @@ import Data.Foldable (traverse_)
 import Linear (V2 (..))
 import Rogui.Application.System
 import Rogui.Components.Core
-import Rogui.Components.Types
 import Rogui.Graphics
 import Rogui.Types (ConsoleDrawers)
 

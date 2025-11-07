@@ -5,8 +5,7 @@ where
 
 import Data.Text (Text)
 import Data.Word (Word32)
-import Rogui.Components (TileSize)
-import Rogui.Graphics (Cell)
+import Rogui.Graphics (Cell, TileSize)
 import Rogui.Types (ConsoleDrawers, EventHandler)
 import SDL (V2)
 

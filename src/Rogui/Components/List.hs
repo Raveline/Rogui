@@ -20,8 +20,9 @@ where
 
 import Data.List ((!?))
 import Rogui.Application.Event (Event (..), EventHandlerM, KeyDownDetails (..), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, keycode, modifyState, redraw, unhandled)
-import Rogui.Components
+import Rogui.Components.Core (contextCellHeight, recordExtent, vBox, vSize)
 import Rogui.Components.Label (label)
+import Rogui.Components.Types (Component (..), Size (..), emptyComponent)
 import Rogui.Graphics (Colours, TextAlign)
 import Rogui.Graphics.Types (Cell (..))
 import SDL (V2 (..))

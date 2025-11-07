@@ -121,8 +121,10 @@ import Control.Monad
 import Control.Monad.Except
 import Control.Monad.IO.Class
 import Control.Monad.Logger
-import Control.Monad.State hiding (state)
+import Control.Monad.State.Strict hiding (state)
 import Control.Monad.Trans.Control (MonadBaseControl)
+import Control.Monad.Writer.Strict
+import Data.Bifunctor
 import Data.Foldable (traverse_)
 import Data.Map qualified as M
 import Data.Maybe (catMaybes)
@@ -131,10 +133,10 @@ import Data.Set qualified as S
 import Data.String
 import Data.Text (pack)
 import Data.Word
-import Rogui.Application.Error (RoguiError (..))
+import Rogui.Application.Error (RoguiError (..), TileSizeMismatch (..))
 import Rogui.Application.Event
 import Rogui.Application.Types (RoguiConfig (..))
-import Rogui.Components (renderComponents)
+import Rogui.Components.Types
 import Rogui.ConsoleSpecs
 import Rogui.Graphics
 import Rogui.Types (Rogui (..))
@@ -508,3 +510,21 @@ keysymToKeyDetails SDL.Keysym {..} =
             if keyModifierAltGr then Just AltGr else Nothing
           ]
    in KeyDetails keysymKeycode (toModifier keysymModifier)
+
+renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError rc rb) m) => Rogui rc rb n s e -> Brush -> Console -> Component n -> m (ExtentMap n)
+renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usingBrush usingConsole@Console {tileSize = consoleTileSize} Component {..} = do
+  let brushTileSize = fromBrush usingBrush
+  when (brushTileSize /= consoleTileSize) $
+    throwError $
+      BrushConsoleMismatch (TileSizeMismatch consoleTileSize brushTileSize)
+  let afterRendering =
+        execStateT
+          rendering
+          DrawingContext {brush = usingBrush, console = usingConsole, steps = numberOfSteps, currentExtents = mempty}
+      (extents, instructions) =
+        first currentExtents $ runWriter afterRendering
+      rendering = do
+        withConsole usingConsole
+        withBrush usingBrush
+        draw
+  evalInstructions renderer rootConsole defaultBrush instructions >> pure extents

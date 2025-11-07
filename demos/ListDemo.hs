@@ -11,7 +11,6 @@ import Rogui.Application.Event
 import Rogui.Application.System
 import Rogui.Components.Core
 import Rogui.Components.List
-import Rogui.Components.Types
 import Rogui.Graphics
 import Rogui.Types (ClickHandler, ConsoleDrawers)
 

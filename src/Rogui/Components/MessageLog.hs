@@ -12,7 +12,7 @@ import Control.Monad (void)
 import Data.Foldable
 import Data.List (intersperse)
 import qualified Data.Sequence as Seq
-import Rogui.Components.Types (Component (..), DrawM, contextCellHeight, contextCellWidth, emptyComponent)
+import Rogui.Components.Core (Component (..), DrawM, contextCellHeight, contextCellWidth, emptyComponent)
 import Rogui.Graphics (Cell (..), Colours, setColours, str)
 import Rogui.Graphics.Console (TextAlign (TLeft))
 import Rogui.Graphics.DSL.Instructions (newLine)

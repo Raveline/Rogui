@@ -12,7 +12,7 @@ import Data.Foldable (traverse_)
 import Rogui.Components (Component (..), Size (..), emptyComponent)
 import Rogui.Components.Core (layered)
 import Rogui.Components.Game.Utils (GlyphInfo (..), MapViewport, computeMapViewport)
-import Rogui.Components.Types (DrawingContext (..), hSize, vSize)
+import Rogui.Components.Core (DrawingContext (..), hSize, vSize)
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Types (Brush (Brush, tileHeight, tileWidth), Cell, Console (..), (./.=))
 import SDL (V2 (..))

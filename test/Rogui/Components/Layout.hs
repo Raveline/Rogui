@@ -11,8 +11,8 @@ import Control.Monad.Writer (execWriter)
 import qualified Data.DList as D
 import Data.Maybe (mapMaybe)
 import Linear (V2 (..))
-import Rogui.Components.Core (Layout (Horizontal), layout)
-import Rogui.Components.Types (Component, DrawingContext (..), emptyComponent)
+import Rogui.Components.Core (Component, DrawingContext (..), emptyComponent)
+import Rogui.Components.Internal (Layout (Horizontal), layout)
 import Rogui.Graphics.DSL.Instructions (Instruction (..))
 import Rogui.Graphics.Types
 import Test.Tasty

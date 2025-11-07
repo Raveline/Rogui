@@ -8,12 +8,41 @@ import qualified Data.Map as M
 import Rogui.Application.Event (Event (..), fireEvent)
 import Rogui.Application.System (keyPressHandler)
 import Rogui.Components.Label (label)
-import Rogui.Components.Types (Component (..), recordExtent)
+import Rogui.Components.Core (Component (..), recordExtent)
 import Rogui.Graphics (Colours, TextAlign)
 import Rogui.Types (EventHandler)
 import qualified SDL
 
-button :: (Ord n) => n -> String -> TextAlign -> Colours -> Colours -> Bool -> Component n
+-- | A simple button with some text, and some options when focused.
+-- N.B.: this expects a `Name`, as we will record the extent, to support
+-- mouse clicks on this component.
+--
+-- @
+-- data Names = BigRedButton
+--
+-- renderButton :: FocusRing -> Component Name
+-- renderButton fr =
+--   button
+--     BigRedButton
+--     "Do not press !"
+--     TLeft (Colours (Just white) (Just black))
+--     (Colours (Just black) (Just white))
+--     (focusGetCurrent fr == Just BigRedButton)
+button ::
+  (Ord n) =>
+  n ->
+  -- Name of the component.
+  String ->
+  -- Text content
+  TextAlign ->
+  -- Text alignment
+  Colours ->
+  -- Colours when not focused
+  Colours ->
+  -- Colours when focused
+  Bool ->
+  -- Is the component focused ?
+  Component n
 button n content baseAlignment normalColours focusedColours focused =
   let pickColour = if focused then focusedColours else normalColours
       labelComponent = label content baseAlignment pickColour
@@ -21,7 +50,9 @@ button n content baseAlignment normalColours focusedColours focused =
         { draw = recordExtent n >> draw labelComponent
         }
 
--- | Fire the given event when getting enter, focus next and prev on arrows up and down
+-- | A sensible default implementation for the button component.
+-- This will fire the given event when getting enter, and
+-- focus next and prev on arrows up and down.
 handleButtonEvent :: Event e -> EventHandler state e n
 handleButtonEvent toFire =
   let keyHandler =

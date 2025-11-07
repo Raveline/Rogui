@@ -48,11 +48,11 @@ module Rogui.Application.Event
 where
 
 import Control.Applicative
-import Control.Monad.State hiding (state)
+import Control.Monad.State.Strict hiding (state)
 import qualified Data.Map.Strict as M
 import Data.Sequence (Seq (..), (|>))
 import qualified Data.Set as S
-import Rogui.Components.Types (Extent (..), ExtentMap, isInExtent)
+import Rogui.Components.Core (Extent (..), ExtentMap, isInExtent)
 import Rogui.Graphics.Types (Cell, Pixel)
 import SDL (EventPayload, Keycode, MouseButton (..))
 import SDL.Vect (V2 (..))

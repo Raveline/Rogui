@@ -13,7 +13,7 @@ import Rogui.Components.Core
 import Rogui.Components.Grid
 import Rogui.Components.Label (label)
 import Rogui.Components.ProgressBar
-import Rogui.Components.Types
+import Rogui.Components.Core
 import Rogui.Graphics
 import Rogui.Types (ConsoleDrawers, EventHandler)
 
@@ -87,7 +87,7 @@ renderGridComponent selected =
       barColour = if selected then Colours (Just red) (Just white) else bnw
    in \case
         (Just (Label s)) -> label s TLeft colour
-        (Just (ProgressBar pct)) -> progressBar 0 100 pct barColour barColour fullBlock lightShade
+        (Just (ProgressBar pct)) -> progressBar (ProgressBarDefinition 0 100 pct barColour barColour fullBlock lightShade)
         Nothing -> emptyComponent
 
 demoGrid :: GridDefinition GridContent Names

@@ -29,7 +29,6 @@ import Rogui.Components.List qualified as L
 import Rogui.Components.MessageLog (LogMessage, messageLog)
 import Rogui.Components.ProgressBar
 import Rogui.Components.TextInput
-import Rogui.Components.Types
 import Rogui.Components.Viewport (ViewportState (..), handleViewportEvent, viewport)
 import Rogui.FocusRing
 import Rogui.Graphics
@@ -220,9 +219,19 @@ renderApp brushes s@State {playerPos, gameState} =
       charColours = Colours (Just white) Nothing
       bigCharset = brushes M.! BigCharset
       fullMapSize = V2 100 100
+      statusBarDefinition =
+        ProgressBarDefinition
+          { minimumValue = 0,
+            maximumValue = 100,
+            value = 100,
+            coloursFilled = baseColours,
+            coloursUnfilled = baseColours,
+            glyphFilled = fullBlock,
+            glyphUnfilled = lightShade
+          }
       statusBar =
         hBox
-          [ progressBar 0 20 10 baseColours baseColours fullBlock lightShade
+          [ progressBar statusBarDefinition
           ]
       gameArea =
         multiLayeredGrid

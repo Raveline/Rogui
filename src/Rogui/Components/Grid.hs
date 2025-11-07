@@ -19,7 +19,7 @@ import Control.Monad.State.Strict hiding (state)
 import Data.Foldable (traverse_)
 import qualified Data.List.NonEmpty as NE
 import Rogui.Application.Event (Event (..), EventHandlerM, KeyDetails (..), KeyDownDetails (KeyDownDetails, key), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw, unhandled)
-import Rogui.Components.Types
+import Rogui.Components.Core
 import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Cell (..), Colours (..))
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Types (Console (..), (.*=.))

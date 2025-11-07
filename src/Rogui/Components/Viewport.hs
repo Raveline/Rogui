@@ -10,7 +10,7 @@ module Rogui.Components.Viewport
 where
 
 import Rogui.Application.Event (Event (..), EventHandlerM, KeyDetails (..), KeyDownDetails (..), getExtentSize, modifyState, unhandled)
-import Rogui.Components.Types (Component (..), emptyComponent, recordExtent)
+import Rogui.Components.Core (Component (..), emptyComponent, recordExtent)
 import Rogui.Graphics (Cell (..))
 import Rogui.Graphics.DSL.Instructions (pencilAt)
 import SDL (V2 (V2))

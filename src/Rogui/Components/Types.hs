@@ -1,35 +1,57 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE RankNTypes #-}
-
 module Rogui.Components.Types
   ( Component (..),
     DrawingContext (..),
-    Size (..),
     DrawM,
     Extent (..),
     ExtentMap,
-    -- Convenience reexport
-    TileSize (..),
+    Size (..),
     emptyComponent,
-    contextCellWidth,
-    contextCellHeight,
-    recordExtent,
-    vSize,
-    hSize,
-    changeBrush,
-    changeConsole,
-    isInExtent,
   )
 where
 
-import Control.Monad.State.Strict (StateT, get, modify)
-import Control.Monad.Writer.Lazy
+import Control.Monad.State.Strict (StateT)
+import Control.Monad.Writer.Strict (Writer)
 import qualified Data.Map as M
-import Rogui.Graphics (Brush, Pixel, (./.=))
-import Rogui.Graphics.DSL.Instructions
-import Rogui.Graphics.Types (Brush (Brush, tileHeight, tileWidth), Cell, Console (..), TileSize (..))
-import SDL (V2 (..))
+import Rogui.Graphics (Brush, Console)
+import Rogui.Graphics.DSL.Instructions (Instructions)
+import Rogui.Graphics.Types (Cell)
+import SDL (V2)
+
+-- The actual stack used when drawing
+type DrawM n a = StateT (DrawingContext n) (Writer Instructions) a
+
+-- | Components are composable widgets (a bit like Brick, but
+-- in less sophisticated).
+--
+-- Rather than trying to set `horizontalSize` and `verticalSize`
+-- manually, you should compose with `vSized` and `hSized` for
+-- simplicity's sake.
+--
+-- The meat of the component is `Draw`: a function that handles
+-- its rendering, according to a `DisplayContext`. Rendering is
+-- done by giving a series of `Instruction` from `Rogui.Graphics.DSL.Instructions`.
+--
+-- This datatype doesn't handle anything related to interactivity, and only concerns
+-- itself with _rendering_. Interactions are dependent upon
+-- the client's state. See the different components and the
+-- various demo executables to get an idea of how to implement
+-- interactions. The `n` parameter (for `Name`) is used specifically
+-- for this, so you have a way to retrieve some information about
+-- the component when handling events.
+--
+-- Components are written (and should be written) using their local
+-- coordinates (so 0,0 is *their* top left, not the global one).
+--
+-- To ensure that components are properly laid out, you should wrap
+-- them in a layout component, that will ensure they each receive
+-- their own dedicated consoles. The main layouts available by default in
+-- Rogui are the simple `vBox` and `hBox` components, or the
+-- more involved `Grid` component.
+data Component n = Component
+  { draw :: DrawM n (),
+    verticalSize :: Size,
+    horizontalSize :: Size
+  }
 
 -- | A concept borrowed from Brick: store the actual size
 -- of a component so it can be retrieved later on. This is
@@ -45,102 +67,42 @@ data Extent = Extent
 
 type ExtentMap n = M.Map n Extent
 
+-- | The available state when rendering components.  The `draw` function exposed
+-- by components execute with this type in its `State`. Technically, `steps`
+-- should be a read only value, but to avoid a complicated monadic stack, it
+-- is exposed in the state; similarly, `currentExtents` should be a Writer
+-- (there is no reason to read from it when rendering). But we already use
+-- a Writer for instructions, so again, extents are stored as a state for
+-- simplicity sake.
+--
+-- When implementing your own components, you're most likely going to need
+-- `console` to compute the available size when drawing and `steps` for
+-- simple animations.
+--
+-- If you need to know the actual size and position of a component for
+-- later (typically, when processing events), use `recordExtents` so that
+-- the `currentExtents` map stores it.
 data DrawingContext n = DrawingContext
-  { brush :: Brush,
+  { -- | The current brush being used
+    brush :: Brush,
+    -- | The current console being used
     console :: Console,
+    -- | The number of steps events emitted by the application. Can be
+    -- used for simple animations.
     steps :: Int,
+    -- | The size of named components after rendering them if `recordExtent` was used.
     currentExtents :: ExtentMap n
   }
 
-type DrawM n a = StateT (DrawingContext n) (Writer Instructions) a
-
+-- | A size type expressing how layout should try to size a component.  A
+-- `Greedy` component should take as much size as possible. When there are
+-- several Greedy components, the available space will be equitably spread
+-- between them. Rogui default layout tools _don't_ take into consideration the
+-- actual size of components when doing this, our system is not as smart as
+-- what Brick does.
 data Size = Greedy | Fixed Cell
   deriving (Eq)
-
-changeBrush :: Brush -> DrawM n ()
-changeBrush b = do
-  withBrush b
-  modify $ \s -> s {brush = b}
-
-changeConsole :: Console -> DrawM n ()
-changeConsole c = do
-  withConsole c
-  modify $ \s -> s {console = c}
-
-contextCellWidth :: DrawM n Cell
-contextCellWidth = do
-  DrawingContext {..} <- get
-  let Console {width} = console
-      Brush {tileWidth} = brush
-  pure $ width ./.= tileWidth
-
-contextCellHeight :: DrawM n Cell
-contextCellHeight = do
-  DrawingContext {..} <- get
-  let Console {height} = console
-      Brush {tileHeight} = brush
-  pure $ height ./.= tileHeight
-
--- | Components are composable widgets (a bit like Brick, but
--- in less sophisticated).
--- Main field is `draw`, which receives a TileSize and a Console.
---
--- Layout components (like vBox and hBox) are responsible with handling
--- this Console object and positioning / sizing it. They also handle
--- bordering and padding computation (see vBox and hBox implementation).
---
--- Components are written (and should be written) using their local
--- coordinates (so 0,0 is *their* top left, not the global one).
--- Using border or padding will have an impact on these.
--- You can change brush during component drawing, but they are expected to
--- be the same size (given by the TileSize parameter). This is not enforced
--- though.
--- Unfortunately, some computation require reasoning in pixel width and
--- others in tile width. Both element are given as a function to ease
--- coordinates translation.
---
--- Component are parametered over a name which are used to handle focus.
-data Component name = Component
-  { draw :: DrawM name (),
-    verticalSize :: Size,
-    horizontalSize :: Size
-  }
 
 emptyComponent :: Component name
 emptyComponent =
   Component {draw = pure (), verticalSize = Greedy, horizontalSize = Greedy}
-
-vSize :: Size -> Component n -> Component n
-vSize size component = component {verticalSize = size}
-
-hSize :: Size -> Component n -> Component n
-hSize size component = component {horizontalSize = size}
-
--- | Save the actual rendered size of this component, using its name to keep
--- track of it. This is useful for interactive components (focusable,
--- clickable...) or components with a viewport attached to them. Event
--- handler can then query the extent using the same name to know
--- the size and position of the component.
-recordExtent :: (Ord n) => n -> DrawM n ()
-recordExtent name = do
-  DrawingContext {console, brush, currentExtents} <- get
-  let extent = consoleToExtent brush console
-  modify $ \s -> s {currentExtents = M.insert name extent currentExtents}
-
-consoleToExtent :: Brush -> Console -> Extent
-consoleToExtent Brush {tileWidth, tileHeight} console@Console {position, width, height} =
-  let (V2 x y) = position
-   in Extent
-        { extentPosition = V2 (x ./.= tileWidth) (y ./.= tileHeight),
-          extentSize = V2 (width ./.= tileWidth) (height ./.= tileHeight),
-          extentConsole = console
-        }
-
--- | Mostly used to check for mouse click. Given a mouse coordinate
--- in pixels, check if it is inside an extent
-isInExtent :: V2 Pixel -> Extent -> Bool
-isInExtent (V2 mx my) Extent {extentConsole} =
-  let Console {..} = extentConsole
-      (V2 x y) = position
-      (V2 w h) = V2 width height
-   in mx >= x && mx < x + w && my >= y && my < y + h
