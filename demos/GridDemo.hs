@@ -38,7 +38,7 @@ main = do
         RoguiConfig
           { brushTilesize = TileSize 10 16,
             appName = "RoGUI grid demo",
-            consoleCellSize = (V2 50 38),
+            consoleCellSize = V2 50 38,
             targetFPS = 60,
             rootConsoleReference = Root,
             defaultBrushReference = Charset,
@@ -85,7 +85,7 @@ bnw = Colours (Just white) (Just black)
 renderGridComponent :: Bool -> Maybe GridContent -> Component Names
 renderGridComponent selected =
   let colour = if selected then invert bnw else bnw
-      barColour = if selected then (Colours (Just red) (Just white)) else bnw
+      barColour = if selected then Colours (Just red) (Just white) else bnw
    in \case
         (Just (Label s)) -> label s TLeft colour
         (Just (ProgressBar pct)) -> progressBar 0 100 pct barColour barColour fullBlock lightShade
@@ -119,7 +119,7 @@ renderApp _ DemoState {..} =
         bordered bnw
           . vBox
           $ [ vSize (Fixed 2) $ label labelContent TLeft bnw,
-              vSize (Fixed 2) $ pickedContent,
+              vSize (Fixed 2) pickedContent,
               grid demoGrid gridState
             ]
    in [(Nothing, Nothing, content)]

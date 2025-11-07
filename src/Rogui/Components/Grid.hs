@@ -42,7 +42,7 @@ data GridDefinition a n = GridDefinition
     -- | Grid content datatype in the grid, declared from left to right and top to bottom
     gridContent :: [a],
     -- | A function to render each component from the datatype. First parameters are column and row.
-    renderCell :: (Int -> Int -> Bool -> Maybe a -> Component n),
+    renderCell :: Int -> Int -> Bool -> Maybe a -> Component n,
     -- | Expected width
     cellWidths :: NE.NonEmpty Cell,
     -- Expected height
@@ -84,9 +84,9 @@ grid gd@GridDefinition {..} GridState {..} =
             colPositions = columnPositions gd
             visibleRows = getCell (visibleHeight `div` cellHeightWithSpacing)
             visibleGridRows = take visibleRows $ drop (getCell scrollOffset) [0 .. gridRows - 1]
-        forM_ visibleGridRows $ \row -> do
+        forM_ visibleGridRows $ \row ->
           forM_ [0 .. nbOfColumns - 1] $ \col -> do
-            let renderRow = row - (getCell scrollOffset)
+            let renderRow = row - getCell scrollOffset
                 cellColPosition = colPositions !! col
                 cellWidth = cellWidths NE.!! col
                 (V2 cpx cpy) = V2 cellColPosition (Cell renderRow * cellHeightWithSpacing)

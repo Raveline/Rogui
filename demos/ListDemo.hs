@@ -25,9 +25,7 @@ data Brushes = Charset
 data Names = DemoList
   deriving (Show, Eq, Ord)
 
-data DemoState = DemoState
-  { listState :: ListState
-  }
+newtype DemoState = DemoState {listState :: ListState}
 
 main :: IO ()
 main = do
@@ -35,7 +33,7 @@ main = do
         RoguiConfig
           { brushTilesize = TileSize 10 16,
             appName = "RoGUI list demo",
-            consoleCellSize = (V2 80 38),
+            consoleCellSize = V2 80 38,
             targetFPS = 60,
             rootConsoleReference = Root,
             defaultBrushReference = Charset,
@@ -91,10 +89,10 @@ manyLineDescription item focused =
         DungeonsOfDredmor -> "The one with good music"
       draw' = do
         when focused (setConsoleBackground white)
-        setColours $ if focused then (invert titleColour) else titleColour
+        setColours $ if focused then invert titleColour else titleColour
         strLn TLeft (show item)
         strLn TLeft ""
-        setColours $ if focused then (invert colours) else colours
+        setColours $ if focused then invert colours else colours
         strLn TLeft description
    in emptyComponent {draw = draw'}
 

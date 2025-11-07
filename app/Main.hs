@@ -79,7 +79,7 @@ arbitraryMap :: Array (V2 Cell) TileType
 arbitraryMap =
   let generator (V2 x y) =
         if (x `mod` 3 == 0) && (y `mod` 3 == 0) then Wall else Floor
-   in genArray ((V2 0 0), (V2 100 100)) generator
+   in genArray (V2 0 0, V2 100 100) generator
 
 data Name
   = List
@@ -96,7 +96,7 @@ main = do
         RoguiConfig
           { brushTilesize = TileSize 16 16,
             appName = "RoGUI example",
-            consoleCellSize = (V2 50 38),
+            consoleCellSize = V2 50 38,
             targetFPS = 60,
             rootConsoleReference = Root,
             defaultBrushReference = Drawings,
@@ -145,20 +145,20 @@ guiMaker baseGui = do
 
 uiKeysHandler :: M.Map (SDL.Keycode, S.Set Modifier) (EventHandler State CustomEvent Name)
 uiKeysHandler =
-  M.fromList $
+  M.fromList
     [ ((SDL.KeycodeTab, []), \_ _ -> fireEvent FocusNext),
       ((SDL.KeycodeEscape, []), \_ _ -> fireAppEvent ToggleUI)
     ]
 
 gameKeysHandler :: M.Map (SDL.Keycode, S.Set Modifier) (EventHandler State CustomEvent Name)
 gameKeysHandler =
-  M.fromList $
+  M.fromList
     [ ((SDL.KeycodeUp, []), \_ _ -> fireAppEvent . Move $ V2 0 (-1)),
       ((SDL.KeycodeDown, []), \_ _ -> fireAppEvent . Move $ V2 0 1),
       ((SDL.KeycodeLeft, []), \_ _ -> fireAppEvent . Move $ V2 (-1) 0),
       ((SDL.KeycodeRight, []), \_ _ -> fireAppEvent . Move $ V2 1 0),
-      ((SDL.KeycodeF1, []), \_ _ -> fireAppEvent $ ToggleUI),
-      ((SDL.KeycodeF2, []), \_ _ -> fireAppEvent $ ToggleLogs)
+      ((SDL.KeycodeF1, []), \_ _ -> fireAppEvent ToggleUI),
+      ((SDL.KeycodeF2, []), \_ _ -> fireAppEvent ToggleLogs)
     ]
 
 eventHandler :: EventHandler State CustomEvent Name
@@ -181,7 +181,7 @@ gameEventHandler State {..} = \case
 
 logEventHandler :: EventHandler State CustomEvent Name
 logEventHandler =
-  let keyHandler = M.fromList [((SDL.KeycodeEscape, []), \_ _ -> fireAppEvent $ ToggleUI)]
+  let keyHandler = M.fromList [((SDL.KeycodeEscape, []), \_ _ -> fireAppEvent ToggleUI)]
       eventHandler' s = \case
         (AppEvent ToggleUI) -> modifyState $ \s' -> s' {gameState = PlayingGame}
         e -> handleViewportEvent MessageLogs e (logViewport s) $ \newViewport s' -> s' {logViewport = newViewport}
@@ -198,7 +198,7 @@ uiEventHandler state@State {..} = \case
   (AppEvent ToggleUI) -> modifyState $ \s -> s {gameState = PlayingGame}
   e -> case focusGetCurrent ring of
     (Just List) -> L.handleLabelListEvent List listOfText False e listState (\newLs s -> s {listState = newLs})
-    (Just QuitButton) -> handleButtonEvent (Quit) state e
+    (Just QuitButton) -> handleButtonEvent Quit state e
     (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
     _ -> unhandled
 
@@ -221,17 +221,19 @@ renderApp brushes s@State {playerPos, gameState} =
   let baseColours = Colours (Just white) (Just black)
       charColours = Colours (Just white) Nothing
       bigCharset = brushes M.! BigCharset
-      fullMapSize = (V2 100 100)
+      fullMapSize = V2 100 100
       statusBar =
         hBox
           [ progressBar 0 20 10 baseColours baseColours fullBlock lightShade
           ]
       gameArea =
-        multiLayeredGrid fullMapSize playerPos $
-          [ gridTile ((!) arbitraryMap) tileToGlyphInfo,
+        multiLayeredGrid
+          fullMapSize
+          playerPos
+          [ gridTile (arbitraryMap !) tileToGlyphInfo,
             trySwitchBrush bigCharset . entitiesLayer ([playerPos] :: [V2 Cell]) (const $ GlyphInfo 1 charColours) id
           ]
-   in catMaybes $
+   in catMaybes
         [ Just (Just StatusBar, Just Charset, statusBar),
           Just (Just GameArea, Just Drawings, gameArea),
           if gameState == UI then Just (Just ModalMenu, Just Charset, renderUI s) else Nothing,
@@ -252,7 +254,8 @@ renderUI State {..} =
                   ("Mouse at: " <> show (x, y))
                   TRight
                   baseColours,
-              vSize (Fixed 2) $
+              vSize
+                (Fixed 2)
                 ( label
                     textValue
                     TCenter

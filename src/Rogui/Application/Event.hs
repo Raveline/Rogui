@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
@@ -289,4 +288,4 @@ unhandled = empty
 
 -- | Alternative specialized over event handler
 (<||>) :: EventHandler s e n -> EventHandler s e n -> EventHandler s e n
-eh <||> eh' = \s e -> (eh s e) <|> (eh' s e)
+eh <||> eh' = \s e -> eh s e <|> eh' s e

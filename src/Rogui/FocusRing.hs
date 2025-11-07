@@ -33,9 +33,7 @@ focusPrev r@(FocusRing l)
 
 focusSetCurrent :: (Eq n) => n -> FocusRing n -> FocusRing n
 focusSetCurrent n r@(FocusRing l) =
-  case C.rotateTo n l of
-    Nothing -> r
-    Just l' -> FocusRing l'
+  maybe r FocusRing $ C.rotateTo n l
 
 focusRingLength :: FocusRing n -> Int
 focusRingLength (FocusRing l) = C.size l

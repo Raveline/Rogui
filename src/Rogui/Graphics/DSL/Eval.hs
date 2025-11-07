@@ -1,6 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Rogui.Graphics.DSL.Eval
   ( evalInstructions,
@@ -48,7 +46,7 @@ eval instruction = do
       fillConsoleWith renderer console rgb
     NewLine ->
       let (V2 px _) = position
-       in modify (\s -> s {position = position + (V2 (-px) 1)})
+       in modify (\s -> s {position = position + V2 (-px) 1})
     DrawGlyph glyphId ->
       printCharAt renderer console brush front back glyphId position
     MoveTo pos ->
@@ -59,5 +57,5 @@ eval instruction = do
       modify (\s -> s {colours = col})
     DrawHorizontalLine to glyph ->
       let (V2 fromX fromY) = position
-          cells = [(V2 x y) | x <- [fromX .. to], y <- [fromY]]
+          cells = [V2 x y | x <- [fromX .. to], y <- [fromY]]
        in traverse_ (printCharAt renderer console brush front back glyph) cells

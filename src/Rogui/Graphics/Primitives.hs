@@ -38,7 +38,7 @@ charIdToPosition Brush {..} tileId =
   let numberOfColumns = getPixel $ textureWidth `div` tileWidth
       x = tileId `mod` numberOfColumns
       y = tileId `div` numberOfColumns
-   in fromIntegral <$> Rectangle (P $ V2 (x * getPixel tileWidth) (y * getPixel tileHeight)) (fromIntegral <$> (V2 tileWidth tileHeight))
+   in fromIntegral <$> Rectangle (P $ V2 (x * getPixel tileWidth) (y * getPixel tileHeight)) (fromIntegral <$> V2 tileWidth tileHeight)
 
 printCharAt ::
   (MonadIO m) =>
@@ -60,14 +60,14 @@ printCharAt ::
 printCharAt renderer Console {..} b@Brush {..} frontColour backColour n at = do
   let cInt x = fromIntegral <$> x
       getScreenPos (V2 x y) = V2 (tileWidth .*=. x) (tileHeight .*=. y)
-      realRectangle = Rectangle (P $ cInt $ (position + getScreenPos at)) (cInt $ V2 tileWidth tileHeight)
+      realRectangle = Rectangle (P $ cInt (position + getScreenPos at)) (cInt $ V2 tileWidth tileHeight)
   traverse_ (setBackColour renderer realRectangle) backColour
   traverse_ (setFrontColour brush) frontColour
   SDL.copy
     renderer
     brush
     (pure $ charIdToPosition b n)
-    (pure $ realRectangle)
+    (pure realRectangle)
 
 getConsoleRect :: Console -> Rectangle CInt
 getConsoleRect Console {..} =

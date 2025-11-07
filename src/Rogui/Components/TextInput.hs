@@ -31,13 +31,13 @@ textInput n txt colours focused =
 
 handleTextInputEvent :: Event e -> String -> (String -> s -> s) -> EventHandlerM s e n ()
 handleTextInputEvent event txt modifier = case event of
-  KeyDown (KeyDownDetails {key}) ->
-    case (keycode key) of
+  KeyDown KeyDownDetails {key} ->
+    case keycode key of
       SDL.KeycodeBackspace ->
-        unless (null txt) . redraw . modifyState $ modifier (init txt)
+        unless (null txt) . redraw . modifyState . modifier $ init txt
       SDL.KeycodeUp -> fireEvent FocusPrev
       SDL.KeycodeDown -> fireEvent FocusNext
       _ -> unhandled
-  OtherSDLEvent (SDL.TextInputEvent (SDL.TextInputEventData {textInputEventText})) ->
+  OtherSDLEvent (SDL.TextInputEvent SDL.TextInputEventData {textInputEventText}) ->
     redraw $ modifyState (modifier $ txt <> T.unpack textInputEventText)
   _ -> unhandled

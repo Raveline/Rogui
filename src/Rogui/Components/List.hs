@@ -77,17 +77,14 @@ listReceiveFocus ListDefinition {name, items, itemHeight} ls origin modifier = d
 
 -- | A specialized version of labelListReceiveFocus that doesn't need a ListDefinition
 labelListReceiveFocus :: (Ord n) => n -> [a] -> ListState -> FocusOrigin -> (ListState -> s -> s) -> EventHandlerM s e n ()
-labelListReceiveFocus name items ls origin modifier = do
+labelListReceiveFocus name items =
   listReceiveFocus
     (ListDefinition {name = name, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround = False})
-    ls
-    origin
-    modifier
 
 -- | A simple list made of labels.
 labelList :: (Ord n) => n -> [a] -> (a -> String) -> TextAlign -> Colours -> Colours -> ListState -> Component n
 labelList n items toText baseAlignment baseColour highlightedColours ls =
-  let renderLabel item selected = do
+  let renderLabel item selected =
         label (toText item) baseAlignment (if selected then highlightedColours else baseColour)
    in list ListDefinition {name = n, items = items, renderItem = renderLabel, itemHeight = 1, wrapAround = False} ls
 
@@ -108,8 +105,8 @@ list ListDefinition {..} ListState {..} =
    in emptyComponent {draw = draw'}
 
 handleClickOnLabelList :: (Ord n) => n -> [a] -> ListState -> (ListState -> s -> s) -> MouseClickDetails -> EventHandlerM s e n ()
-handleClickOnLabelList n items ls modifier mcd =
-  handleClickOnList ListDefinition {name = n, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround = False} Nothing ls modifier mcd
+handleClickOnLabelList n items =
+  handleClickOnList ListDefinition {name = n, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround = False} Nothing
 
 handleClickOnList ::
   (Ord n) =>
@@ -137,8 +134,8 @@ handleClickOnList ListDefinition {name, items, itemHeight} onSelectedClick ls@Li
 handleClickOnList _ _ _ _ _ = unhandled
 
 handleLabelListEvent :: (Ord n) => n -> [a] -> Bool -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlerM s e n ()
-handleLabelListEvent n items wrapAround e ls modifier =
-  handleListEvent (ListDefinition {name = n, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround}) e ls modifier
+handleLabelListEvent n items wrapAround =
+  handleListEvent (ListDefinition {name = n, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround})
 
 handleListEvent :: (Ord n) => ListDefinition n a -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlerM s e n ()
 handleListEvent ListDefinition {..} event state@ListState {selection, scrollOffset} modifier = do
@@ -156,19 +153,19 @@ handleListEvent ListDefinition {..} event state@ListState {selection, scrollOffs
       SDL.KeycodeDown ->
         let newIndex = maybe 0 (+ 1) selection
          in if newIndex >= listLength
-              then do
+              then
                 if wrapAround
                   then redraw . modifyState . modifier $ state {selection = Just 0, scrollOffset = autoScroll 0}
                   else (modifyState . modifier $ state {selection = Nothing}) >> fireEvent FocusNext
-              else do
+              else
                 redraw . modifyState . modifier $ state {selection = Just newIndex, scrollOffset = autoScroll newIndex}
       SDL.KeycodeUp ->
-        let newIndex = maybe (listLength - 1) (\n -> (n - 1)) selection
+        let newIndex = maybe (listLength - 1) (\n -> n - 1) selection
          in if newIndex >= 0
               then do
                 let newScroll = autoScroll newIndex
                 modifyState (modifier $ state {selection = Just newIndex, scrollOffset = newScroll})
-              else do
+              else
                 if wrapAround
                   then redraw . modifyState . modifier $ state {selection = Just (listLength - 1), scrollOffset = autoScroll (listLength - 1)}
                   else (modifyState . modifier $ state {selection = Nothing}) >> fireEvent FocusPrev

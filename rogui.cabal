@@ -103,7 +103,7 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:
-        , base          ^>=4.20.0.0
+        , base
         , containers
         , data-clist
         , dlist
@@ -166,7 +166,7 @@ executable rogui
     -- Other library packages from which modules are imported.
     build-depends:
         , array
-        , base        ^>=4.20.0.0
+        , base
         , containers
         , monad-logger
         , mtl
@@ -205,7 +205,7 @@ test-suite rogui-test
 
     -- Test dependencies.
     build-depends:
-        , base         ^>=4.20.0.0
+        , base
         , dlist
         , linear
         , mtl

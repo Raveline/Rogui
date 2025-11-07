@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TupleSections #-}
 
 module Rogui.Components.MessageLog
   ( messageLog,
@@ -10,7 +9,7 @@ module Rogui.Components.MessageLog
 where
 
 import Control.Monad (void)
-import Data.Foldable (foldrM, toList, traverse_)
+import Data.Foldable
 import Data.List (intersperse)
 import qualified Data.Sequence as Seq
 import Rogui.Components.Types (Component (..), DrawM, contextCellHeight, contextCellWidth, emptyComponent)
@@ -42,13 +41,13 @@ getTextLikeUntil width getLength breaker ts =
                 (width, collected, left Seq.|> tooBig)
         | otherwise =
             (size + getLength item, collected Seq.|> item, left)
-      getResult (_, taken, left) = (toList $ taken, toList left)
+      getResult (_, taken, left) = (toList taken, toList left)
    in getResult . foldl' folder (0, Seq.empty, Seq.empty) $ ts
 
 drawMessageLog :: Cell -> LogMessage -> Cell -> DrawM n Cell
 drawMessageLog _ _ 0 = pure 0
 drawMessageLog width msg remainingLines = do
-  let msgLength = Cell $ sum $ (fmap (length . snd)) msg
+  let msgLength = Cell $ sum $ fmap (length . snd) msg
   if msgLength > width
     then do
       let (onLine, nextLines) = getTextLikeUntil (getCell width) (length . snd) splitChunk msg

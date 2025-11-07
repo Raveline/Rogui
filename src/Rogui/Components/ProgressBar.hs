@@ -14,7 +14,7 @@ progressBar :: Int -> Int -> Int -> Colours -> Colours -> Int -> Int -> Componen
 progressBar minimumValue maximumValue value filled unfilled glyphFilled glyphUnfilled =
   let draw = do
         widthInTile <- contextCellWidth
-        let pct = fromIntegral (value - minimumValue) / (fromIntegral (maximumValue - minimumValue))
+        let pct = fromIntegral (value - minimumValue) / fromIntegral (maximumValue - minimumValue)
             progressed = round @Double @Cell (fromIntegral widthInTile * pct)
             remaining = widthInTile - progressed
         setColours filled

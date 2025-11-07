@@ -24,7 +24,7 @@ main = do
         RoguiConfig
           { brushTilesize = TileSize 16 16,
             appName = "RoGUI colour demo",
-            consoleCellSize = (V2 50 38),
+            consoleCellSize = V2 50 38,
             targetFPS = 60,
             rootConsoleReference = Root,
             defaultBrushReference = Charset,
@@ -35,8 +35,8 @@ main = do
           }
   bootAndPrintError
     config
-    (pure)
-    $ ()
+    pure
+    ()
 
 renderApp :: ConsoleDrawers Consoles Brushes () ()
 renderApp _ _ =

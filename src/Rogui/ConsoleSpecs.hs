@@ -87,5 +87,5 @@ addConsoleWithSpec ref consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
         PixelsPos px py -> pure $ V2 px py
         Below rc -> consoleBelow rc rogui
         RightOf rc -> consoleRight rc rogui
-  console <- Console <$> pure w <*> pure h <*> pos <*> pure consoleTS
+  console <- (Console w h <$> pos) <*> pure consoleTS
   pure $ addConsole ref console rogui

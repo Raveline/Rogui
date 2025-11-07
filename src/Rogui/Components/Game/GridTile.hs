@@ -18,7 +18,7 @@ import Rogui.Graphics.Types (Brush (Brush, tileHeight, tileWidth), Cell, Console
 import SDL (V2 (..))
 
 cellsInMapViewport :: (V2 Cell, V2 Cell) -> [V2 Cell]
-cellsInMapViewport ((V2 fromX fromY), (V2 toX toY)) =
+cellsInMapViewport (V2 fromX fromY, V2 toX toY) =
   [V2 x y | x <- [fromX .. toX], y <- [fromY .. toY]]
 
 gridTile :: (V2 Cell -> t) -> (t -> GlyphInfo) -> MapViewport -> Component n

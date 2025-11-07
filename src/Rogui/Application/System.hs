@@ -32,6 +32,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Logger
 import Control.Monad.State hiding (state)
 import Control.Monad.Trans.Control (MonadBaseControl)
+import Data.Foldable (traverse_)
 import Data.Map qualified as M
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Sequence qualified as Seq
@@ -200,7 +201,7 @@ appLoop roGUI@Rogui {..} state = do
       baseEventState = EventHandlingState {events = Seq.fromList baseEvents, currentState = state, result = ContinueNoRedraw, knownExtents = extentsMap}
       EventHandlingState {result, currentState} = execState (processWithLimit 30 roGUI) baseEventState
   newExtents <-
-    if (result == Continue)
+    if result == Continue
       then do
         SDL.clear renderer
         let drawConsole (console, brush, components) = do
@@ -262,7 +263,7 @@ processWithLimit n roGUI = do
   evs <- gets events
   if null evs
     then pure ()
-    else traverse (processEvent roGUI) evs >> processWithLimit (n - 1) roGUI
+    else traverse_ (processEvent roGUI) evs >> processWithLimit (n - 1) roGUI
 
 popEvent :: EventHandlingM state e n (Maybe (Event e))
 popEvent = do
@@ -299,7 +300,7 @@ baseEventHandler _ event =
   let ctrlC (KeyDetails SDL.KeycodeC [LeftCtrl]) = True
       ctrlC _ = False
    in case event of
-        KeyDown KeyDownDetails {key} -> if ctrlC key then (halt (pure ())) else unhandled
+        KeyDown KeyDownDetails {key} -> if ctrlC key then halt (pure ()) else unhandled
         OtherSDLEvent SDL.QuitEvent -> halt . pure $ ()
         Quit -> halt . pure $ ()
         OtherSDLEvent (SDL.WindowShownEvent _) -> redraw (pure ()) >> unhandled
@@ -321,7 +322,7 @@ keyPressHandler keyMap state event =
 getSDLEvents :: (MonadIO m) => Brush -> m [Event e]
 getSDLEvents Brush {..} =
   let toRoguiEvent (SDL.Event _timestamp payload) = case payload of
-        SDL.KeyboardEvent ke -> case (SDL.keyboardEventKeyMotion ke) of
+        SDL.KeyboardEvent ke -> case SDL.keyboardEventKeyMotion ke of
           SDL.Pressed -> KeyDown $ KeyDownDetails (SDL.keyboardEventRepeat ke) (keysymToKeyDetails $ SDL.keyboardEventKeysym ke)
           SDL.Released -> KeyUp . keysymToKeyDetails $ SDL.keyboardEventKeysym ke
         SDL.MouseMotionEvent MouseMotionEventData {..} ->
@@ -343,12 +344,12 @@ keysymToKeyDetails :: SDL.Keysym -> KeyDetails
 keysymToKeyDetails SDL.Keysym {..} =
   let toModifier SDL.KeyModifier {..} =
         S.fromList . catMaybes $
-          [ if keyModifierLeftShift then (Just LeftShift) else Nothing,
-            if keyModifierRightShift then (Just RightShift) else Nothing,
-            if keyModifierLeftCtrl then (Just LeftCtrl) else Nothing,
-            if keyModifierRightCtrl then (Just RightCtrl) else Nothing,
-            if keyModifierLeftAlt then (Just LeftAlt) else Nothing,
-            if keyModifierRightAlt then (Just RightAlt) else Nothing,
-            if keyModifierAltGr then (Just AltGr) else Nothing
+          [ if keyModifierLeftShift then Just LeftShift else Nothing,
+            if keyModifierRightShift then Just RightShift else Nothing,
+            if keyModifierLeftCtrl then Just LeftCtrl else Nothing,
+            if keyModifierRightCtrl then Just RightCtrl else Nothing,
+            if keyModifierLeftAlt then Just LeftAlt else Nothing,
+            if keyModifierRightAlt then Just RightAlt else Nothing,
+            if keyModifierAltGr then Just AltGr else Nothing
           ]
    in KeyDetails keysymKeycode (toModifier keysymModifier)

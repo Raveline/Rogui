@@ -142,5 +142,5 @@ isInExtent :: V2 Pixel -> Extent -> Bool
 isInExtent (V2 mx my) Extent {extentConsole} =
   let Console {..} = extentConsole
       (V2 x y) = position
-      (V2 w h) = (V2 width height)
+      (V2 w h) = V2 width height
    in mx >= x && mx < x + w && my >= y && my < y + h

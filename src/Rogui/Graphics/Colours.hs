@@ -29,14 +29,14 @@ rgbToHsv (V3 r g b) =
       delta = cmax - cmin
       h
         | delta == 0 = 0
-        | cmax == r' = 60 * (((g' - b') / delta) `mod'` 6)
-        | cmax == g' = 60 * (((b' - r') / delta) + 2)
-        | otherwise = 60 * (((r' - g') / delta) + 4)
+        | cmax == r' = 60 * ((g' - b') / delta) `mod'` 6
+        | cmax == g' = 60 * ((b' - r') / delta) + 2
+        | otherwise = 60 * ((r' - g') / delta) + 4
       s
         | cmax == 0 = 0
         | otherwise = delta / cmax
       v = cmax
-   in (V3 h s v)
+   in V3 h s v
 
 hsvToRgb :: HSV -> RGB
 hsvToRgb (V3 h s v) =

@@ -1,6 +1,5 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
@@ -113,7 +112,7 @@ padded n child =
                   position = position + V2 (tileWidth .*=. n) (tileHeight .*=. n)
                 }
         changeConsole newConsole
-        (draw child)
+        draw child
    in emptyComponent {draw = draw'}
 
 -- | Used for components who share the same DrawingContext.
@@ -146,7 +145,7 @@ layout direction children = do
           Greedy -> 0
           Fixed n -> n
       sumFixed = sum . map (countSize . toScan) $ children
-      greedySize = if numberGreedy > 0 then ((pixelToTiles direction brush toPartition) - sumFixed) `div` (Cell numberGreedy) else 0
+      greedySize = if numberGreedy > 0 then (pixelToTiles direction brush toPartition - sumFixed) `div` Cell numberGreedy else 0
       getSize child = case toScan child of
         Fixed n -> n
         Greedy -> greedySize
@@ -154,12 +153,12 @@ layout direction children = do
         let newValue = getSize child
             drawingConsole =
               currentConsole
-                { height = if direction == Vertical then (tilesToPixel direction brush newValue) else height,
-                  width = if direction == Horizontal then (tilesToPixel direction brush newValue) else width
+                { height = if direction == Vertical then tilesToPixel direction brush newValue else height,
+                  width = if direction == Horizontal then tilesToPixel direction brush newValue else width
                 }
         changeConsole drawingConsole
         draw child
-        pure $ currentConsole {position = (position currentConsole) + (baseStep ^* (tilesToPixel direction brush newValue))}
+        pure $ currentConsole {position = position currentConsole + (baseStep ^* tilesToPixel direction brush newValue)}
   foldM_ render root children
 
 renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError rc rb) m) => Rogui rc rb n s e -> Brush -> Console -> Component n -> m (ExtentMap n)
@@ -172,8 +171,8 @@ renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usin
         execStateT
           rendering
           DrawingContext {brush = usingBrush, console = usingConsole, steps = numberOfSteps, currentExtents = mempty}
-      (extents, instructions) = do
-        first (currentExtents) $ runWriter afterRendering
+      (extents, instructions) =
+        first currentExtents $ runWriter afterRendering
       rendering = do
         withConsole usingConsole
         withBrush usingBrush
