@@ -9,7 +9,6 @@ import Control.Monad (when)
 import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.System
-import Rogui.Application.Types (RoguiConfig (..))
 import Rogui.Components.Core
 import Rogui.Components.List
 import Rogui.Components.Types

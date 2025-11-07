@@ -9,7 +9,6 @@ import qualified Data.List.NonEmpty as NE
 import Linear (V2 (..))
 import Rogui.Application.Event (Event (MouseEvent), MouseEventDetails (MouseClick), modifyState, redraw, (<||>))
 import Rogui.Application.System
-import Rogui.Application.Types (RoguiConfig (..))
 import Rogui.Components.Core
 import Rogui.Components.Grid
 import Rogui.Components.Label (label)

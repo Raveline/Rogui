@@ -3,12 +3,100 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedLists #-}
 
+--
+-- @
+
+-- | This module contains the main entry point to use. Use either `boot` or `bootAndPrintError`
+-- to start a Rogui application. They will both expect a function to add brushes and
+-- console before actually starting the game loop.
+--
+-- == (Very) Quick start
+--
+-- Rogui expects you to provide a few types by yourself.
+--
+-- To boot, you'll need some references for consoles and for brushes:
+--
+-- @
+--
+-- data Consoles = Root | GameGrid | TopBar | ModalWindow
+-- data Brushes = Charset | Tileset
+--
+-- @
+--
+-- You also need a type that represents your application state. In this example,
+-- since we just want to compile, we'll keep things super simple and use `()`.
+--
+-- (You'll also most likely need other types for Event and Component managements, see
+-- `Rogui.Application.Events` and `Rogui.Components`)
+--
+-- You'll want to begin with a `RoguiConfig` object to define your application.
+--
+-- @
+--
+-- let conf = RoguiConfig
+--   { brushTilesize = TileSize 10 16,   -- The default brush tile size
+--     appName = "My app name",          -- Name for your app, will be the window title
+--     consoleCellSize = V2 50 38,       -- The full window size, given in cells with the default brush tile size.
+--     targetFPS = 60,                   -- The FPS to run at. Main loop will sleep to avoid going above.
+--     rootConsoleReference = Root,      -- One of the `Consoles` constructor we've defined above
+--     defaultBrushReference = Charset,  -- One of the `Brushes` constructor we've defined above
+--     defaultBrushPath = "tileset.png", -- Path to the resource
+--     drawingFunction = const [],       -- We'll describe this one later
+--     stepMs = 100,                     -- A custom step that will fire a "Step" event you can use.
+--     eventFunction = baseEventHandler  -- How to react to event. `baseEventHandler` ensures you can quit the app.
+-- }
+--
+-- @
+--
+-- The `drawingFunction` will receive the map of known brushes. And you're expected to return
+-- a list of triplets: `[(Consoles, Brushes, Component n)]`. See the `Rogui.Components` module
+-- for more details on the last type. Consoles will be drawn in the given order, so you
+-- typically want to keep them in your expected z-order (e.g.: modals should come last).
+-- In "real" applications, it often useful to have a `catMaybes` and a bunch of conditional
+-- to know if you want to display a given console or not. Here, we'll just return an empty
+-- map so that it compiles.
+--
+-- Before booting, we need a function to load all the consoles and the brush we're going to use.
+-- This function receives a `Rogui` object, and should return another. You will typically
+-- chain calls to `addBrush` and `addConsoleWithSpecs` inside, like this:
+--
+-- @
+--
+-- let guiMaker rogui =
+--     addBrush Tileset "path_other_tileset.png" (TileSize 16 16) rogui
+--     >>= addConsoleWithSpec TopBar (TileSize 10 16) (TilesSize 100 2) TopLeft
+--     >>= addConsoleWithSpec GameGrid (TileSize 16 16) (SizeWindowPct 100 98) (Below TopBar)
+--     >>= addConsoleWithSpec ModalWindow (TileSize 10 16) (TilesSize 80 80) Center
+--
+-- @
+--
+-- Pay attention to the fact that consoles have an expected tilesize. Here, we can use
+-- our `TileSet` brush on the `GameGrid` console, but not on the other consoles (an
+-- exception will be raised if we try). Conversely, we cannot use our `Charset` brush (which
+-- got automatically loaded from our `RoguiConfig` definition) on `GameGrid`.
+--
+-- But this doesn't matter in this example, because we're not rendering
+-- anything, just showcasing how to get rogui to boot and display a window.
+--
+-- With the configuration datatype and the loading function defined, we're ready
+-- to actually boot.  Rogui exposes two functions for this: `boot` and
+-- `bootAndPrintError`. The first one expects you to provide logging and error
+-- management. We'll use the latter that is designed for quick experiments.
+--
+-- @ bootAndPrintError config makeGui () @
+--
+-- This will return a window wih a black background. You can quit by pressing
+-- CTRL+C.  Reading on `Rogui.Components` will teach you how you can actually
+-- use the `drawingFunction` to render stuff.
 module Rogui.Application.System
   ( -- * Main entry point
     boot,
     bootAndPrintError,
+
+    -- * Setting up utilities
     addBrush,
     addConsole,
+    addConsoleWithSpec,
 
     -- * Log wrapper
     LogOutput (..),
@@ -21,7 +109,10 @@ module Rogui.Application.System
 
     -- * Other utilities
     brushLookup,
-    calculateFPS,
+
+    -- * Reexport for convenience
+    module Rogui.Application.Types,
+    module Rogui.ConsoleSpecs,
   )
 where
 
@@ -34,17 +125,18 @@ import Control.Monad.State hiding (state)
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Foldable (traverse_)
 import Data.Map qualified as M
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe (catMaybes)
 import Data.Sequence qualified as Seq
 import Data.Set qualified as S
 import Data.String
 import Data.Text (pack)
 import Data.Word
-import Rogui.Application.Error (RoguiError)
+import Rogui.Application.Error (RoguiError (..))
 import Rogui.Application.Event
 import Rogui.Application.Types (RoguiConfig (..))
 import Rogui.Components (renderComponents)
-import Rogui.Graphics.Types (Brush (..), Console (..), TileSize (..), (.*=.), (./.=))
+import Rogui.ConsoleSpecs
+import Rogui.Graphics
 import Rogui.Types (Rogui (..))
 import SDL (MouseMotionEventData (MouseMotionEventData))
 import SDL qualified
@@ -53,6 +145,8 @@ import SDL.Image qualified as SDL
 import SDL.Internal.Numbered qualified as Numbered
 import SDL.Raw qualified as Raw
 
+-- | How to output the logs: either directly to console or to
+-- a filepath.
 data LogOutput = LogStdout | LogFile FilePath
 
 -- | Run an action with the specified logging output.
@@ -77,9 +171,9 @@ loadBrush renderer path TileSize {..} = do
   logDebugN $ "Loading brush at " <> fromString path
   fontSurface <- SDL.load path
   surface <- convertSurface fontSurface SDL.RGBA8888
-  let black :: SDL.V4 Word8
-      black = SDL.V4 0 0 0 0x00
-  void $ SDL.surfaceColorKey surface SDL.$= pure black
+  let black' :: SDL.V4 Word8
+      black' = SDL.V4 0 0 0 0x00
+  void $ SDL.surfaceColorKey surface SDL.$= pure black'
   brush <- SDL.createTextureFromSurface renderer surface
   textInfo <- SDL.queryTexture brush
   pure $
@@ -96,7 +190,6 @@ loadBrush renderer path TileSize {..} = do
 -- Expected to be chained monadically like this:
 --
 -- @
--- prepareRogui :: (MonadIO m) => Rogui rc rb n s e -> m (Rogui rc rb n s e)
 -- prepareRogui baseGui = do
 --   addBrush Enum1 "pathToBrush.png" (TileSize 16 16) baseGui
 --   >>= addBrush BigCharset "terminal_16x16.png" (TileSize 16 16)
@@ -116,16 +209,76 @@ addBrush ref path tileSize rogui@Rogui {..} = do
   brush <- loadBrush renderer path tileSize
   pure $ rogui {brushes = M.insert ref brush brushes}
 
+-- | Store a console to be reused later on. Each console are registered with a
+-- given `rc` type (for References Console). You should typically prefer
+-- `addConsoleWithSpecs` (see `ConsoleSpecs` module).
 addConsole :: (Ord rc) => rc -> Console -> Rogui rc rb n s e -> Rogui rc rb n s e
 addConsole ref console rogui@Rogui {..} =
   rogui {consoles = M.insert ref console consoles}
 
--- | A utility for exiting at the first error and outputing it.
--- Automatically runs with stdout logging.
+-- | A helper to define a Console to be stored in the console list and
+-- referenced later, using your `rc` (References Console) type.
+-- This is to be used in the function expected by `boot`.
+--
+-- Note that trying to use a brush with a different tilesize than the one
+-- expected by the Console will raise an exception.
+--
+-- See `ConsoleSpecs` to see the available constructor for size and position
+-- helpers.
+--
+-- Example:
+--
+-- @
+-- addConsoles rogui =
+--   addConsoleWithSpec TopBarConsole (TileSize 10 16) (SizeWindowPct 100 2) TopLeft rogui
+--   >>= addConsoleWithSpec GameGrid (TileSize 16 16) (SizeWindowPct 100 98) (Below StatusBar)
+-- @
+addConsoleWithSpec ::
+  (Ord rc, MonadError (RoguiError rc rb) m) =>
+  -- | An enum type with the console reference
+  rc ->
+  -- | The size of the console cells, expressed in pixels
+  TileSize ->
+  -- | How should the size of this console be computed ?
+  SizeSpec ->
+  -- | Where should this console be positioned ?
+  PositionSpec rc ->
+  -- | The rogui datatype that will store this Console
+  Rogui rc rb n s e ->
+  m (Rogui rc rb n s e)
+addConsoleWithSpec ref consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
+  let Console {..} = rootConsole
+      (w, h) = case sizeSpec of
+        FullWindow -> (width, height)
+        SizeWindowPct wp hp -> (width * Pixel wp `div` 100, height * Pixel hp `div` 100)
+        TilesSize tw th -> (pixelWidth consoleTS .*=. tw, pixelHeight consoleTS .*=. th)
+        PixelsSize pw ph -> (pw, ph)
+      pos = case posSpec of
+        TopLeft -> pure $ SDL.V2 0 0
+        TopRight -> pure $ SDL.V2 (width - w) 0
+        BottomLeft -> pure $ SDL.V2 0 (height - h)
+        BottomRight -> pure $ SDL.V2 (width - w) (height - h)
+        Center -> pure $ SDL.V2 ((width - w) `div` 2) ((height - h) `div` 2)
+        PosWindowPct xp yp -> pure $ SDL.V2 (width * Pixel xp `div` 100) (height * Pixel yp `div` 100)
+        TilesPos tx ty -> pure $ SDL.V2 (pixelWidth consoleTS .*=. tx) (pixelHeight consoleTS .*=. ty)
+        PixelsPos px py -> pure $ SDL.V2 px py
+        Below rc -> consoleBelow rc rogui
+        RightOf rc -> consoleRight rc rogui
+  console <- (Console w h <$> pos) <*> pure consoleTS
+  pure $ addConsole ref console rogui
+
+-- | This is a simplified version of boot, that handles error management and
+-- logging for you. It will output any error (without trying to recover) and log
+-- to the standard output. This is typically useful while you're developing,
+-- or for prototyping, later to be ditched for a call to `boot` with more
+-- custom behaviour designed.
 bootAndPrintError ::
   (Show rc, Show rb, Ord rb, Ord rc, Ord n) =>
+  -- | A Configuration that will be used to make a Rogui datatype
   RoguiConfig rc rb n s e ->
+  -- | Function to load consoles and brushes
   (Rogui rc rb n s e -> ExceptT (RoguiError rc rb) (LoggingT IO) (Rogui rc rb n s e)) ->
+  -- | Initial state
   s ->
   IO ()
 bootAndPrintError c b i = runStdoutLoggingT $ do
@@ -138,8 +291,11 @@ bootAndPrintError c b i = runStdoutLoggingT $ do
 -- Boot will return once a `Halt` EventResult has been processed in the event handler.
 boot ::
   (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) =>
+  -- | A Configuration that will be used to make a Rogui datatype
   RoguiConfig rc rb n s e ->
+  -- | Function to load consoles and brushes
   (Rogui rc rb n s e -> m (Rogui rc rb n s e)) ->
+  -- | Initial state
   s ->
   m ()
 boot RoguiConfig {..} guiBuilder initialState = do
@@ -176,11 +332,10 @@ boot RoguiConfig {..} guiBuilder initialState = do
 
   SDL.destroyWindow window
 
--- | Utility to look for a given brush in a map of brushes.
--- This will later be patched to handle error more gracefully.
-brushLookup :: (Ord rb, Show rb) => M.Map rb Brush -> rb -> Brush
+-- | Lookup a brush by its reference. Throw an error if not found.
+brushLookup :: (Ord rb, Show rb, MonadError (RoguiError rc rb) m) => M.Map rb Brush -> rb -> m Brush
 brushLookup m ref =
-  fromMaybe (error $ "Brush not found: " ++ show ref) (M.lookup ref m)
+  maybe (throwError $ NoSuchBrush ref) pure (M.lookup ref m)
 
 -- | Calculate current FPS from a window of recent frame times.
 -- Returns Nothing if there aren't enough samples yet.
@@ -206,7 +361,7 @@ appLoop roGUI@Rogui {..} state = do
         SDL.clear renderer
         let drawConsole (console, brush, components) = do
               let onConsole = maybe rootConsole (consoles M.!) console
-                  usingBrush = maybe defaultBrush (brushLookup brushes) brush
+              usingBrush <- maybe (pure defaultBrush) (brushLookup brushes) brush
               renderComponents roGUI usingBrush onConsole components
         extents <- traverse drawConsole (draw brushes currentState)
         SDL.present renderer

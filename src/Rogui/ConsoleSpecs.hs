@@ -4,15 +4,16 @@
 module Rogui.ConsoleSpecs
   ( SizeSpec (..),
     PositionSpec (..),
-    addConsoleWithSpec,
+    findConsole,
+    consoleRight,
+    consoleBelow,
   )
 where
 
 import Control.Monad.Except
 import qualified Data.Map as M
 import Rogui.Application.Error (RoguiError (NoSuchConsole))
-import Rogui.Application.System (addConsole)
-import Rogui.Graphics (Cell, Console (..), Pixel (..), TileSize (..), (.*=.))
+import Rogui.Graphics (Cell, Console (..), Pixel (..))
 import Rogui.Types (Rogui (..))
 import SDL (V2 (..))
 
@@ -60,32 +61,3 @@ consoleRight :: (Ord rc, MonadError (RoguiError rc rb) m) => rc -> Rogui rc rb n
 consoleRight rc rogui = do
   Console {..} <- findConsole rc rogui
   pure $ position + V2 width 0
-
-addConsoleWithSpec ::
-  (Ord rc, MonadError (RoguiError rc rb) m) =>
-  rc ->
-  TileSize ->
-  SizeSpec ->
-  PositionSpec rc ->
-  Rogui rc rb n s e ->
-  m (Rogui rc rb n s e)
-addConsoleWithSpec ref consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
-  let Console {..} = rootConsole
-      (w, h) = case sizeSpec of
-        FullWindow -> (width, height)
-        SizeWindowPct wp hp -> (width * Pixel wp `div` 100, height * Pixel hp `div` 100)
-        TilesSize tw th -> (pixelWidth consoleTS .*=. tw, pixelHeight consoleTS .*=. th)
-        PixelsSize pw ph -> (pw, ph)
-      pos = case posSpec of
-        TopLeft -> pure $ V2 0 0
-        TopRight -> pure $ V2 (width - w) 0
-        BottomLeft -> pure $ V2 0 (height - h)
-        BottomRight -> pure $ V2 (width - w) (height - h)
-        Center -> pure $ V2 ((width - w) `div` 2) ((height - h) `div` 2)
-        PosWindowPct xp yp -> pure $ V2 (width * Pixel xp `div` 100) (height * Pixel yp `div` 100)
-        TilesPos tx ty -> pure $ V2 (pixelWidth consoleTS .*=. tx) (pixelHeight consoleTS .*=. ty)
-        PixelsPos px py -> pure $ V2 px py
-        Below rc -> consoleBelow rc rogui
-        RightOf rc -> consoleRight rc rogui
-  console <- (Console w h <$> pos) <*> pure consoleTS
-  pure $ addConsole ref console rogui

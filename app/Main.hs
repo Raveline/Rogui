@@ -18,7 +18,6 @@ import Data.Set qualified as S
 import Rogui.Application.Error (RoguiError)
 import Rogui.Application.Event
 import Rogui.Application.System
-import Rogui.Application.Types (RoguiConfig (..))
 import Rogui.Components.Button (button, handleButtonEvent)
 import Rogui.Components.Core
 import Rogui.Components.Game.EntitiesLayer (entitiesLayer)
@@ -32,7 +31,6 @@ import Rogui.Components.ProgressBar
 import Rogui.Components.TextInput
 import Rogui.Components.Types
 import Rogui.Components.Viewport (ViewportState (..), handleViewportEvent, viewport)
-import Rogui.ConsoleSpecs
 import Rogui.FocusRing
 import Rogui.Graphics
 import Rogui.Types

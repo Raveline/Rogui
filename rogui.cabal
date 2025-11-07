@@ -65,6 +65,7 @@ library
 
     -- Modules exported by the library.
     exposed-modules:
+        Rogui.Application
         Rogui.Application.Error
         Rogui.Application.Event
         Rogui.Application.System
