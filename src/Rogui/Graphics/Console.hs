@@ -27,7 +27,7 @@ cornerBottomRight437 = 217
 drawBorder :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGB -> Maybe RGB -> m ()
 drawBorder renderer console@Console {..} brush'@Brush {..} front back = do
   let (w, h) = (width ./.= tileWidth - 1, height ./.= tileHeight - 1)
-      draw = printCharAt renderer console brush' front back
+      draw = printCharAt renderer console brush' [] front back
       bottoms = [V2 x y | x <- [1 .. w - 1], y <- [h]]
       tops = [V2 x y | x <- [1 .. w - 1], y <- [0]]
       lefts = [V2 x y | x <- [0], y <- [1 .. h - 1]]
@@ -45,7 +45,7 @@ drawBorder renderer console@Console {..} brush'@Brush {..} front back = do
 -- Print from the position given with the alignment given.
 printStrAt :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGB -> Maybe RGB -> TextAlign -> String -> V2 Cell -> m ()
 printStrAt renderer console brush front back alignment str pos =
-  let draw n = printCharAt renderer console brush front back (ord n)
+  let draw n = printCharAt renderer console brush [] front back (ord n)
       basePos = case alignment of
         TCenter -> pos - V2 (Cell $ length str `div` 2) 0
         TRight -> pos - V2 (Cell $ length str) 0

@@ -3,11 +3,14 @@ module Rogui.Graphics.Primitives
     fillConsoleWith,
     clipToConsole,
     RGB,
+    Transformation (..),
+    Rotation (..),
   )
 where
 
 import Control.Monad.IO.Class
 import Data.Foldable (traverse_)
+import Data.Maybe (mapMaybe)
 import Data.Word
 import Foreign.C
 import Rogui.Graphics.Types
@@ -40,6 +43,38 @@ charIdToPosition Brush {..} tileId =
       y = tileId `div` numberOfColumns
    in fromIntegral <$> Rectangle (P $ V2 (x * getPixel tileWidth) (y * getPixel tileHeight)) (fromIntegral <$> V2 tileWidth tileHeight)
 
+-- | Transformations that can be applied to glyphs during rendering.
+-- Multiple transformations can be combined - rotations are summed
+-- (e.g., [Rotate R90, Rotate R90] = 180°) and flips are deduplicated.
+-- The order of transformation doesn't matter.
+--
+-- Rotation is always performed from the center of the glyph.
+--
+-- Note that using `RArbitrary` might break the "grid" feeling,
+-- it's mostly there for animation support.
+--
+-- Also note that rotations will clip for non square tilesets !
+-- Since rotations are implemented mostly with tileset in mind,
+-- we won't support rotating non square tilesets.
+data Transformation
+  = FlipX
+  | FlipY
+  | Rotate Rotation
+  deriving (Eq)
+
+data Rotation = R90 | R180 | R270 | RArbitrary Double
+  deriving (Eq)
+
+toDegree :: Transformation -> Maybe CDouble
+toDegree (Rotate R90) = Just 90
+toDegree (Rotate R180) = Just 180
+toDegree (Rotate R270) = Just 270
+toDegree (Rotate (RArbitrary d)) = Just (realToFrac d)
+toDegree _ = Nothing
+
+-- | Display a glyph on the renderer, with a given brush, on a given console, with a background
+-- and a foreground colour, at a given position on a given console, applying optional
+-- transformation over the glyph.
 printCharAt ::
   (MonadIO m) =>
   SDL.Renderer ->
@@ -47,6 +82,8 @@ printCharAt ::
   Console ->
   -- | With what you are painting
   Brush ->
+  -- | Series of transformation to perform on the glyph
+  [Transformation] ->
   -- | Frontcolour of the sprite.
   Maybe RGB ->
   -- | Backcolour of the sprite.
@@ -57,17 +94,22 @@ printCharAt ::
   -- | Logical position in the console (in brush size cells)
   V2 Cell ->
   m ()
-printCharAt renderer Console {..} b@Brush {..} frontColour backColour n at = do
+printCharAt renderer Console {..} b@Brush {..} trans frontColour backColour n at = do
   let cInt x = fromIntegral <$> x
       getScreenPos (V2 x y) = V2 (tileWidth .*=. x) (tileHeight .*=. y)
       realRectangle = Rectangle (P $ cInt (position + getScreenPos at)) (cInt $ V2 tileWidth tileHeight)
+      flip' = V2 (FlipX `elem` trans) (FlipY `elem` trans)
+      rotate = sum $ mapMaybe toDegree trans
   traverse_ (setBackColour renderer realRectangle) backColour
   traverse_ (setFrontColour brush) frontColour
-  SDL.copy
+  SDL.copyEx
     renderer
     brush
     (pure $ charIdToPosition b n)
     (pure realRectangle)
+    rotate
+    Nothing
+    flip'
 
 getConsoleRect :: Console -> Rectangle CInt
 getConsoleRect Console {..} =

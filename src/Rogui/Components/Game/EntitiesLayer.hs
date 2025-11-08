@@ -34,7 +34,7 @@ entitiesLayer entities entityDisplayInfo entityPos viewport@(topLeft, _) =
         when (isInViewport viewport $ entityPos e) $ do
           let GlyphInfo {..} = entityDisplayInfo e
           setColours colours
-          glyphAt (pos - topLeft) glyphId
+          glyphAt (pos - topLeft) glyphId transformations
       draw = do
         traverse_ drawSingle entities
    in emptyComponent {draw = draw}

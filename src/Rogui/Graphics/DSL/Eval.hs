@@ -47,8 +47,8 @@ eval instruction = do
     NewLine ->
       let (V2 px _) = position
        in modify (\s -> s {position = position + V2 (-px) 1})
-    DrawGlyph glyphId ->
-      printCharAt renderer console brush front back glyphId position
+    DrawGlyph glyphId trans ->
+      printCharAt renderer console brush trans front back glyphId position
     MoveTo pos ->
       modify (\s -> s {position = pos})
     MoveBy by ->
@@ -58,4 +58,4 @@ eval instruction = do
     DrawHorizontalLine to glyph ->
       let (V2 fromX fromY) = position
           cells = [V2 x y | x <- [fromX .. to], y <- [fromY]]
-       in traverse_ (printCharAt renderer console brush front back glyph) cells
+       in traverse_ (printCharAt renderer console brush [] front back glyph) cells

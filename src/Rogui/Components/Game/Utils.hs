@@ -6,17 +6,20 @@ module Rogui.Components.Game.Utils
   )
 where
 
-import Rogui.Graphics (Colours)
+import Rogui.Graphics (Colours, Transformation)
 import Rogui.Graphics.Types (Cell)
 import SDL (V2 (..))
 
 -- | The canonical representation of a single-cell glyph.
--- Expects an arbitrary id number and a set of colours.
+-- Expects an arbitrary id number, a set of colours
+-- and transformations if any
 data GlyphInfo = GlyphInfo
   { -- | The id of the glyph in your tileset / charset. For ASCII characters, if they are properly positionned in your tileset, you can use `ord` from Data.Char to retrieve their id.
     glyphId :: Int,
     -- | The colours for this glyph
-    colours :: Colours
+    colours :: Colours,
+    -- | Potential transformations on this glyph
+    transformations :: [Transformation]
   }
 
 -- | A map viewport is a pair of top-left, bottom-right bounds.

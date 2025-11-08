@@ -40,7 +40,7 @@ textInput n txt colours focused =
         drawHorizontalLine (width - 1) lightShade
         str TLeft txt
         when (focused && steps' `mod` 10 < 7) $
-          glyph fullBlock
+          glyph fullBlock []
    in emptyComponent {draw = draw'}
 
 -- | Default implementation for text input events, with support

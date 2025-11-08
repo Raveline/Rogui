@@ -69,7 +69,8 @@ tileToGlyphInfo :: TileType -> GlyphInfo
 tileToGlyphInfo t =
   GlyphInfo
     { colours = Colours Nothing Nothing,
-      glyphId = tileToGlyphId t
+      glyphId = tileToGlyphId t,
+      transformations = []
     }
 
 arbitraryMap :: Array (V2 Cell) TileType
@@ -238,7 +239,7 @@ renderApp brushes s@State {playerPos, gameState} =
           fullMapSize
           playerPos
           [ gridTile (arbitraryMap !) tileToGlyphInfo,
-            trySwitchBrush bigCharset . entitiesLayer ([playerPos] :: [V2 Cell]) (const $ GlyphInfo 1 charColours) id
+            trySwitchBrush bigCharset . entitiesLayer ([playerPos] :: [V2 Cell]) (const $ GlyphInfo 1 charColours []) id
           ]
    in catMaybes
         [ Just (Just StatusBar, Just Charset, statusBar),

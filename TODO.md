@@ -1,16 +1,16 @@
 High priority:
 
-[ ] Generate haddock documentation and see what needs documentation
+[X] Add flippable / rotable glyph
+[ ] Add support for mouse events on tilegrid and entity grid
+[ ] Ability to add an alpha overlay (to handle things like FOV, lighting effects)
 
 Medium priority:
 
-[ ] Add support for mouse events on tilegrid and entity grid
 [ ] Add customisable default handlers for components to override keys
-[ ] Add flippable / rotable glyph
 [ ] Add vertical line DSL instruction
-[ ] Ability to add an alpha overlay (to handle things like FOV, lighting effects)
 [ ] Particle utility, whatever form it might have...
 [ ] Add a more involved executable with a very basic game
+[ ] Generate haddock documentation and see what needs documentation
 
 Low priority:
 

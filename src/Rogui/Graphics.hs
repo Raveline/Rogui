@@ -1,5 +1,7 @@
 module Rogui.Graphics
-  ( module Rogui.Graphics.DSL.Instructions,
+  ( Rotation (..),
+    Transformation (..),
+    module Rogui.Graphics.DSL.Instructions,
     module Rogui.Graphics.DSL.Eval,
     module Rogui.Graphics.Console,
     module Rogui.Graphics.Primitives,

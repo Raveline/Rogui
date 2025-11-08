@@ -155,6 +155,16 @@ executable rogui-grid-demo
         , linear
         , rogui
 
+executable rogui-rotation-demo
+    hs-source-dirs:   demos
+    ghc-options:      -threaded -Wall -Wcompat -O2
+    default-language: Haskell2010
+    main-is:          RotationDemo.hs
+    build-depends:
+        , base
+        , linear
+        , rogui
+
 executable rogui
     -- Import common warning flags.
     import:           warnings

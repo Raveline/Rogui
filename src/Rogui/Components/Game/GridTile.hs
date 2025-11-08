@@ -36,7 +36,7 @@ gridTile getTile getTileDisplay viewport@(topLeft, _) =
       renderAt coords = do
         let GlyphInfo {..} = getTileDisplay . getTile $ coords
         setColours colours
-        glyphAt (coords - topLeft) glyphId
+        glyphAt (coords - topLeft) glyphId transformations
       draw = traverse_ renderAt tilesToPrint
    in emptyComponent {draw = draw}
 

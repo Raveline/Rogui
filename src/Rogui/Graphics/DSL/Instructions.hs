@@ -23,7 +23,7 @@ import Control.Monad.Writer (MonadWriter (tell))
 import Data.DList
 import Rogui.Graphics.Colours (Colours)
 import Rogui.Graphics.Console (TextAlign (..))
-import Rogui.Graphics.Primitives (RGB)
+import Rogui.Graphics.Primitives (RGB, Transformation)
 import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (V2 (..))
 
@@ -33,7 +33,7 @@ data Instruction
   | NewLine
   | OnConsole Console
   | WithBrush Brush
-  | DrawGlyph Int
+  | DrawGlyph Int [Transformation]
   | MoveTo (V2 Cell)
   | MoveBy (V2 Cell)
   | SetColours Colours
@@ -71,13 +71,13 @@ withBrush :: (MonadWriter Instructions m) => Brush -> m ()
 withBrush brush =
   tell (singleton $ WithBrush brush)
 
-glyph :: (MonadWriter Instructions m) => Int -> m ()
-glyph glyphId = tell (singleton $ DrawGlyph glyphId)
+glyph :: (MonadWriter Instructions m) => Int -> [Transformation] -> m ()
+glyph glyphId trans = tell $ singleton (DrawGlyph glyphId trans)
 
-glyphAt :: (MonadWriter Instructions m) => V2 Cell -> Int -> m ()
-glyphAt at glyphId =
+glyphAt :: (MonadWriter Instructions m) => V2 Cell -> Int -> [Transformation] -> m ()
+glyphAt at glyphId trans =
   pencilAt at
-    >> tell (singleton $ DrawGlyph glyphId)
+    >> glyph glyphId trans
 
 pencilAt :: (MonadWriter Instructions m) => V2 Cell -> m ()
 pencilAt at =
