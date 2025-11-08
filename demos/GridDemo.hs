@@ -13,7 +13,6 @@ import Rogui.Components.Core
 import Rogui.Components.Grid
 import Rogui.Components.Label (label)
 import Rogui.Components.ProgressBar
-import Rogui.Components.Core
 import Rogui.Graphics
 import Rogui.Types (ConsoleDrawers, EventHandler)
 

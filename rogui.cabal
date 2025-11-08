@@ -73,6 +73,7 @@ library
         Rogui.Components
         Rogui.Components.Button
         Rogui.Components.Core
+        Rogui.Components.Game
         Rogui.Components.Game.EntitiesLayer
         Rogui.Components.Game.GridTile
         Rogui.Components.Game.Utils
