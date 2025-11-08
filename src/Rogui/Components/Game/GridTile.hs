@@ -4,14 +4,18 @@
 module Rogui.Components.Game.GridTile
   ( gridTile,
     multiLayeredGrid,
+    mouseEventToWorldPos,
   )
 where
 
 import Control.Monad.State.Strict
 import Data.Foldable (traverse_)
+import qualified Data.Map.Strict as M
+import Rogui.Application
 import Rogui.Components (Component (..), Size (..), emptyComponent, layered)
-import Rogui.Components.Core (DrawingContext (..), hSize, vSize)
+import Rogui.Components.Core (DrawingContext (..), Extent (..), TileSize, hSize, vSize)
 import Rogui.Components.Game.Utils (GlyphInfo (..), MapViewport, computeMapViewport)
+import Rogui.Graphics (Pixel, v2PixelInTiles)
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Types (Brush (Brush, tileHeight, tileWidth), Cell, Console (..), (./.=))
 import SDL (V2 (..))
@@ -60,3 +64,31 @@ multiLayeredGrid mapDimension focus layers =
             viewport = computeMapViewport (V2 viewportWidth viewportHeight) mapDimension focus
         draw . vSize (Fixed viewportHeight) . hSize (Fixed viewportWidth) . layered . fmap (\c -> c viewport) $ layers
    in emptyComponent {draw = draw'}
+
+-- | Compute the corresponding world coordinates (if mouse coord hit the
+-- extent).  By default, grids do not record their extent, so if you need to get
+-- this, you'll want to wrap your grid (or `multiLayeredGrid`) in a
+-- `Rogui.Components.Core.withRecordedExtent` component.
+--
+-- This function is typically used to support mouse interaction on the grid;
+-- for instance to display information on the tile under the cursor,
+-- or to support picking a target entity with the mouse.
+mouseEventToWorldPos ::
+  (Ord n) =>
+  -- \| The extent name for the grid
+  n ->
+  -- | The tilesize used for rendering the grid
+  TileSize ->
+  -- | The max width and height of the map
+  V2 Cell ->
+  -- | The focus point of the grid (usually, player position)
+  V2 Cell ->
+  -- | A mouse position in pixel
+  V2 Pixel ->
+  EventHandlerM s e n (Maybe (V2 Cell))
+mouseEventToWorldPos n tilesize mapDimension focus mousePos = do
+  result <- liftEH $ gets (M.lookup n . knownExtents)
+  let withExtent Extent {..} =
+        let (viewportStart, _) = computeMapViewport extentSize mapDimension focus
+         in v2PixelInTiles (mousePos - position extentConsole) tilesize + viewportStart
+  pure $ result >>= Just . withExtent

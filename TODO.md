@@ -1,8 +1,9 @@
 High priority:
 
 [X] Add flippable / rotable glyph
-[ ] Add support for mouse events on tilegrid and entity grid
+[X] Add support for mouse events on tilegrid and entity grid
 [ ] Ability to add an alpha overlay (to handle things like FOV, lighting effects)
+[ ] Check if there isn't an off by one error on max map bounds in rogui example
 
 Medium priority:
 

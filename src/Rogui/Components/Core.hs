@@ -35,6 +35,7 @@ module Rogui.Components.Core
     ExtentMap,
     recordExtent,
     isInExtent,
+    withRecordedExtent,
 
     -- * Drawing utilities
     contextCellWidth,
@@ -105,6 +106,16 @@ recordExtent name = do
   DrawingContext {console, brush, currentExtents} <- get
   let extent = consoleToExtent brush console
   modify $ \s -> s {currentExtents = M.insert name extent currentExtents}
+
+-- | Record the extent of any arbitrary component, under the given
+-- name. Useful when you need the extent for a component that doesn't
+-- typically record it.
+withRecordedExtent :: (Ord n) => n -> Component n -> Component n
+withRecordedExtent n child =
+  let draw' = do
+        recordExtent n
+        draw child
+   in emptyComponent {draw = draw'}
 
 consoleToExtent :: Brush -> Console -> Extent
 consoleToExtent Brush {tileWidth, tileHeight} console@Console {position, width, height} =

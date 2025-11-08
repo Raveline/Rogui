@@ -46,6 +46,7 @@ data State = State
     textValue :: String,
     listOfText :: [String],
     mousePosition :: V2 Cell,
+    worldPosition :: Maybe (V2 Cell),
     ring :: FocusRing Name,
     listState :: ListState,
     someText :: String,
@@ -84,6 +85,7 @@ data Name
   | TextInput
   | QuitButton
   | MessageLogs
+  | GameGrid
   deriving (Eq, Ord)
 
 data CustomEvent = Move (V2 Cell) | ToggleUI | ToggleLogs
@@ -111,6 +113,7 @@ main = do
         textValue = "test",
         listOfText = longListOfText,
         mousePosition = V2 0 0,
+        worldPosition = Nothing,
         ring = focusRing [List, TextInput, QuitButton],
         listState = L.mkListState {L.selection = Just 0},
         someText = "",
@@ -162,7 +165,7 @@ gameKeysHandler =
 eventHandler :: EventHandler State CustomEvent Name
 eventHandler state@State {..} e =
   case gameState of
-    PlayingGame -> (keyPressHandler gameKeysHandler <||> gameEventHandler) state e
+    PlayingGame -> (keyPressHandler gameKeysHandler <||> gameEventHandler <||> gridMouseHandler) state e
     UI -> (keyPressHandler uiKeysHandler <||> uiEventHandler) state e
     LogView -> logEventHandler state e
 
@@ -175,6 +178,13 @@ gameEventHandler State {..} = \case
         \s -> s {playerPos = newPos}
   (AppEvent ToggleUI) -> modifyState $ \s -> s {gameState = UI}
   (AppEvent ToggleLogs) -> modifyState $ \s -> s {gameState = LogView}
+  _ -> unhandled
+
+gridMouseHandler :: EventHandler State CustomEvent Name
+gridMouseHandler State {..} = \case
+  (MouseEvent (MouseClick MouseClickDetails {..})) -> do
+    worldPos <- mouseEventToWorldPos GameGrid (TileSize 16 16) fullMapSize playerPos absoluteMousePosition
+    redraw $ modifyState (\s -> s {worldPosition = worldPos})
   _ -> unhandled
 
 logEventHandler :: EventHandler State CustomEvent Name
@@ -214,12 +224,14 @@ handleFocusChange focusOrigin s = do
     L.labelListReceiveFocus List (listOfText s) (listState s) focusOrigin (\newLs s' -> s' {listState = newLs})
   modifyState $ \s' -> s' {ring = newRing}
 
+fullMapSize :: V2 Cell
+fullMapSize = V2 100 100
+
 renderApp :: M.Map Brushes Brush -> State -> ToDraw Consoles Brushes Name
-renderApp brushes s@State {playerPos, gameState} =
+renderApp brushes s@State {playerPos, gameState, worldPosition} =
   let baseColours = Colours (Just white) (Just black)
       charColours = Colours (Just white) Nothing
       bigCharset = brushes M.! BigCharset
-      fullMapSize = V2 100 100
       statusBarDefinition =
         ProgressBarDefinition
           { minimumValue = 0,
@@ -231,16 +243,18 @@ renderApp brushes s@State {playerPos, gameState} =
             glyphUnfilled = lightShade
           }
       statusBar =
-        hBox
-          [ progressBar statusBarDefinition
+        hBox . catMaybes $
+          [ Just $ hSize (Fixed 20) $ progressBar statusBarDefinition,
+            (\wp -> Just $ label ("Clicked on " <> show wp) TLeft baseColours) =<< worldPosition
           ]
       gameArea =
-        multiLayeredGrid
-          fullMapSize
-          playerPos
-          [ gridTile (arbitraryMap !) tileToGlyphInfo,
-            trySwitchBrush bigCharset . entitiesLayer ([playerPos] :: [V2 Cell]) (const $ GlyphInfo 1 charColours []) id
-          ]
+        withRecordedExtent GameGrid $
+          multiLayeredGrid
+            fullMapSize
+            playerPos
+            [ gridTile (arbitraryMap !) tileToGlyphInfo,
+              trySwitchBrush bigCharset . entitiesLayer ([playerPos] :: [V2 Cell]) (const $ GlyphInfo 1 charColours []) id
+            ]
    in catMaybes
         [ Just (Just StatusBar, Just Charset, statusBar),
           Just (Just GameArea, Just Drawings, gameArea),

@@ -19,11 +19,12 @@ module Rogui.Graphics.Types
     (./.=),
     pixelDivPixelToCells,
     fromBrush,
+    v2PixelInTiles,
   )
 where
 
 import Data.Ix (Ix)
-import SDL (Texture, V2)
+import SDL (Texture, V2 (..))
 
 newtype Pixel = Pixel {getPixel :: Int}
   deriving newtype (Num, Integral, Real, Ord, Eq, Enum, Show)
@@ -42,6 +43,9 @@ pixelTimesCells = (.*=.)
 
 pixelDivPixelToCells :: Pixel -> Pixel -> Cell
 pixelDivPixelToCells = (./.=)
+
+v2PixelInTiles :: V2 Pixel -> TileSize -> V2 Cell
+v2PixelInTiles (V2 x y) (TileSize w h) = V2 (x ./.= w) (y ./.= h)
 
 -- | A virtual console.
 -- Width, height, position are all in pixels.
