@@ -16,7 +16,21 @@ import Rogui.Graphics
 import SDL (TextInputEventData (textInputEventText))
 import qualified SDL
 
-textInput :: (Ord n) => n -> String -> Colours -> Bool -> Component n
+-- | A single line text input component. It assumes you are using a CCSID 437
+-- charset, with a light shade and full block glyph id. If you don't, you'll
+-- have to roll your own implementation. The component records its extent so you
+-- can set focus to it on click.
+textInput ::
+  (Ord n) =>
+  -- | Name of the component
+  n ->
+  -- | Current input
+  String ->
+  -- | Colours to use
+  Colours ->
+  -- | Is the component focused ?
+  Bool ->
+  Component n
 textInput n txt colours focused =
   let draw' = do
         recordExtent n
@@ -29,7 +43,20 @@ textInput n txt colours focused =
           glyph fullBlock
    in emptyComponent {draw = draw'}
 
-handleTextInputEvent :: Event e -> String -> (String -> s -> s) -> EventHandlerM s e n ()
+-- | Default implementation for text input events, with support
+-- for these events:
+--
+-- * Backspace removes the last character;
+-- * SDL TextInputEvent are used to add new characters to the text;
+-- * Arrow down and up fire FocusNext / FocusPrev events.
+handleTextInputEvent ::
+  -- | Event to process
+  Event e ->
+  -- | Current text
+  String ->
+  -- | Function to modify the input text in your application state
+  (String -> s -> s) ->
+  EventHandlerM s e n ()
 handleTextInputEvent event txt modifier = case event of
   KeyDown KeyDownDetails {key} ->
     case keycode key of

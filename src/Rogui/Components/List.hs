@@ -1,6 +1,28 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
+-- | This module exposes simple list components.
+--
+-- Lists are offered as _vertical_ components (no horizontal lists, but you
+-- should be able to implement them by taking this module as an example),
+-- in two flavours:
+--
+-- - A simple `labelList` for basic list of texts;
+-- - A more involved `list` for arbitrary components.
+--
+-- Like all default Rogui components, it is assumed that you do not
+-- put interactive components inside other interactive components. So,
+-- a list inside of a list, for instance, is not supported.
+--
+-- Both components come with their own handlers for events and for
+-- mouse click management.
+--
+-- Finally, both components are scrollable if their content is too
+-- big to be displayed entirely on the available console space they
+-- received in the layout (or if you used a `Fixed` vSize that is
+-- smaller than the amount of items to display).
+-- As a result, you do not need to compose `list` with the `viewport`
+-- component.
 module Rogui.Components.List
   ( labelList,
     list,
@@ -28,6 +50,8 @@ import Rogui.Graphics.Types (Cell (..))
 import SDL (V2 (..))
 import qualified SDL
 
+-- | A list state, storing the index of the current selection
+-- and the offset for scrolling.
 data ListState = ListState
   { selection :: Maybe Int,
     scrollOffset :: Int -- For later when you add scrolling
@@ -37,6 +61,9 @@ data ListState = ListState
 data FocusOrigin = FromNext | FromPrev
   deriving (Eq)
 
+-- | A configuration object for creating lists.
+-- This is mostly here to avoid having a long and obscure series
+-- of parameters when defining a list.
 data ListDefinition n a = ListDefinition
   { -- | Name of the list, for extent management
     name :: n,
@@ -51,15 +78,36 @@ data ListDefinition n a = ListDefinition
     wrapAround :: Bool
   }
 
+-- | A default list state maker. Careful, if the list is the first
+-- element of your focus ring, this might not be suitable as it
+-- initialises the list as having no selection.
 mkListState :: ListState
 mkListState = ListState Nothing 0
 
-getCurrentSelection :: ListDefinition n a -> ListState -> Maybe a
+-- | A utility to extract the currently selected item,
+-- if any.
+getCurrentSelection ::
+  -- | The definition for the list
+  ListDefinition n a ->
+  -- | The current list state
+  ListState ->
+  Maybe a
 getCurrentSelection ListDefinition {..} ListState {..} = selection >>= (items !?)
 
--- | Update list state when it receives focus, initializing selection and scrolling appropriately.
--- This handles the common pattern of selecting the first/last item when focus enters from different directions.
-listReceiveFocus :: (Ord n) => ListDefinition n a -> ListState -> FocusOrigin -> (ListState -> s -> s) -> EventHandlerM s e n ()
+-- | Update list state when it receives focus, initialising selection and
+-- scrolling appropriately.  This handles the common pattern of selecting the
+-- first/last item when focus enters from different directions.
+listReceiveFocus ::
+  (Ord n) =>
+  -- | The definition for the list
+  ListDefinition n a ->
+  -- | The current list state
+  ListState ->
+  -- | Was the focus a FocusNext or a FocusPrev event
+  FocusOrigin ->
+  -- | A function to update the application state, given an updated ListState.
+  (ListState -> s -> s) ->
+  EventHandlerM s e n ()
 listReceiveFocus ListDefinition {name, items, itemHeight} ls origin modifier = do
   V2 _ visibleHeight <- getExtentSize name
   let listLength = length items
@@ -83,7 +131,23 @@ labelListReceiveFocus name items =
     (ListDefinition {name = name, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround = False})
 
 -- | A simple list made of labels.
-labelList :: (Ord n) => n -> [a] -> (a -> String) -> TextAlign -> Colours -> Colours -> ListState -> Component n
+labelList ::
+  (Ord n) =>
+  -- | Name of this component. Lists do register their extent, so a name is always needed.
+  n ->
+  -- | List of items
+  [a] ->
+  -- | Item to string conversion (e.g., `show` if suitable).
+  (a -> String) ->
+  -- | Expected alignment for the items
+  TextAlign ->
+  -- | Colours when not selected
+  Colours ->
+  -- | Colours when selected
+  Colours ->
+  -- | Current list state
+  ListState ->
+  Component n
 labelList n items toText baseAlignment baseColour highlightedColours ls =
   let renderLabel item selected =
         label (toText item) baseAlignment (if selected then highlightedColours else baseColour)
@@ -92,7 +156,13 @@ labelList n items toText baseAlignment baseColour highlightedColours ls =
 -- | A list of arbitrary components. Pay attention that the list does not support
 -- interactive components (so you can't have a list in a list, or a grid in a list, for instance),
 -- though some modicum of interaction is possible by chaining handleListEvent with another handler.
-list :: (Ord n) => ListDefinition n a -> ListState -> Component n
+list ::
+  (Ord n) =>
+  -- | A list definition for this list.
+  ListDefinition n a ->
+  -- | The current list state
+  ListState ->
+  Component n
 list ListDefinition {..} ListState {..} =
   let draw' = do
         recordExtent name
@@ -105,16 +175,38 @@ list ListDefinition {..} ListState {..} =
         draw content
    in emptyComponent {draw = draw'}
 
-handleClickOnLabelList :: (Ord n) => n -> [a] -> ListState -> (ListState -> s -> s) -> MouseClickDetails -> EventHandlerM s e n ()
+-- | Utility to detect selection of an item in the list when the mouse
+-- is clicked.
+handleClickOnLabelList ::
+  (Ord n) =>
+  -- | The name of the component, needed to retrieve its Extent.
+  n ->
+  -- | The list of items
+  [a] ->
+  -- | The current list state
+  ListState ->
+  -- | A function to modify the application state with the updated `ListState`.
+  (ListState -> s -> s) ->
+  -- | The details of the click event
+  MouseClickDetails ->
+  EventHandlerM s e n ()
 handleClickOnLabelList n items =
   handleClickOnList ListDefinition {name = n, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround = False} Nothing
 
+-- | Utility to detect selection of an item in the list when the mouse
+-- is clicked. You can also require a specific behaviour if the user
+-- clicked on an item that was already selected.
 handleClickOnList ::
   (Ord n) =>
+  -- | The list definition
   ListDefinition n a ->
+  -- | Action to perform when an item was already selected and is clicked
   Maybe (V2 Cell -> a -> EventHandlerM s e n ()) ->
+  -- | The current list state
   ListState ->
+  -- A function to modify the application state with the updated `ListState`.
   (ListState -> s -> s) ->
+  -- The details of the click event
   MouseClickDetails ->
   EventHandlerM s e n ()
 handleClickOnList ListDefinition {name, items, itemHeight} onSelectedClick ls@ListState {..} modifier (MouseClickDetails _ (SDL.V2 mcx mcy) SDL.ButtonLeft) = do
@@ -134,10 +226,30 @@ handleClickOnList ListDefinition {name, items, itemHeight} onSelectedClick ls@Li
     else unhandled
 handleClickOnList _ _ _ _ _ = unhandled
 
-handleLabelListEvent :: (Ord n) => n -> [a] -> Bool -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlerM s e n ()
+-- | A default event handler for label list. Works like `handleListEvent`, but doesn't need a full list definition.
+handleLabelListEvent ::
+  (Ord n) =>
+  -- | The name of the component, needed to retrieve its Extent.
+  n ->
+  -- | The underlying list of items
+  [a] ->
+  -- | If the last item has been reached, should up / down keys return to the beginning or send a focus next / focus prev event ?
+  Bool ->
+  -- | The received event
+  Event e ->
+  -- | The current list state
+  ListState ->
+  -- | A function to modify the application state with the updated `ListState`.
+  (ListState -> s -> s) ->
+  EventHandlerM s e n ()
 handleLabelListEvent n items wrapAround =
   handleListEvent (ListDefinition {name = n, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround})
 
+-- | A default event handler for list. Up and down move selection and
+-- will send focusNext or focusPrev when you reach the limit of the list,
+-- unless the listDefinition sets `wrapAround` to `True`.
+-- If you want other interactions (e.g., something should happen when user
+-- press enter), you should chain this eventHandler with another, custom one.
 handleListEvent :: (Ord n) => ListDefinition n a -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlerM s e n ()
 handleListEvent ListDefinition {..} event state@ListState {selection, scrollOffset} modifier = do
   V2 _ visibleHeight <- getExtentSize name

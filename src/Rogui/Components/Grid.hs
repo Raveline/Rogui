@@ -1,8 +1,11 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
--- | A grid component for geometric layouts.
--- Default implementation offer selectable grid and
--- key handling to move selection and handle vertical scrolling.
+-- | A grid component for geometric layouts.  Default implementation offers
+-- selectable grid and key handling to move selection and handle vertical
+-- scrolling.
+--
+-- This is a grid _layout_ for the UI, not a grid of tiles ! Tilegrids have
+-- their own component in `Rogui.Components.Game.GridTile`.
 module Rogui.Components.Grid
   ( grid,
     GridDefinition (..),
@@ -26,14 +29,21 @@ import Rogui.Graphics.Types (Console (..), (.*=.))
 import SDL (V2 (..))
 import qualified SDL
 
+-- | State of the grid, containing the current selection and
+-- its offset. Selection is given as a pair (column, row).
 data GridState = GridState
   { selection :: Maybe (Int, Int),
     scrollOffset :: Cell
   }
 
+-- | Make a default grid state. Note that it starts with
+-- no selection, which might not be suitable if your component
+-- starts already focused.
 mkGridState :: GridState
 mkGridState = GridState Nothing 0
 
+-- | A configuration type carrying the information needed to
+-- draw a grid or react to events on a grid.
 data GridDefinition a n = GridDefinition
   { -- | Constant reference type used to store grid extent
     gridName :: n,
@@ -110,7 +120,13 @@ grid gd@GridDefinition {..} GridState {..} =
             changeConsole oldConsole
    in emptyComponent {draw = draw'}
 
-selectedGridItem :: GridDefinition a n -> GridState -> Maybe a
+-- | Return the actual item selected in the Grid, if any.
+selectedGridItem ::
+  -- | The grid definition used for rendering the grid
+  GridDefinition a n ->
+  -- | The grid state
+  GridState ->
+  Maybe a
 selectedGridItem GridDefinition {..} GridState {..} =
   let numCols = NE.length cellWidths
    in selection >>= getItemAt gridContent numCols
@@ -123,6 +139,13 @@ getItemAt items nbCols (col, row) =
         else Nothing
 
 -- | A default handler to select an item in a grid.
+--
+-- This supports:
+--
+-- * Moving the selection on the grid using arrow keys
+-- * Doing an action (depending on current selection) on pressing enter;
+--
+-- Getting out of the grid limits will trigger a `FocusNext` or `FocusPrev` event.
 handleGridEvent ::
   (Ord n) =>
   -- | The grid definition used at rendering
@@ -182,6 +205,9 @@ handleGridEvent GridDefinition {..} event state@GridState {..} modifier onEnter 
       _ -> pure ()
     _ -> pure ()
 
+-- | A default event handler for the grid component. This will
+-- select the clicked item, if any, and trigger an action
+-- depending on the component clicked.
 handleClickOnGrid ::
   (Ord n) =>
   -- | The grid definition used at rendering

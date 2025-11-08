@@ -285,7 +285,7 @@ renderUI State {..} =
 
 renderLogging :: State -> Component Name
 renderLogging State {logViewport} =
-  filled black $ bordered (Colours (Just white) (Just black)) $ vBox [viewport MessageLogs (scrollOffset logViewport) $ messageLog fakeLogs]
+  filled black $ bordered (Colours (Just white) (Just black)) $ vBox [viewport MessageLogs logViewport $ messageLog fakeLogs]
 
 -- Intentionally long to trigger scrolling behaviour
 longListOfText :: [String]
