@@ -7,13 +7,44 @@ module Main where
 
 import qualified Data.List.NonEmpty as NE
 import Linear (V2 (..))
-import Rogui.Application.Event (Event (MouseEvent), MouseEventDetails (MouseClick), modifyState, redraw, (<||>))
+import Rogui.Application.Event (Event (MouseEvent), MouseEventDetails (MouseClick), baseEventHandler, modifyState, redraw, (<||>))
 import Rogui.Application.System
+  ( RoguiConfig (..),
+    bootAndPrintError,
+  )
 import Rogui.Components.Core
+  ( Component,
+    Size (..),
+    TileSize (..),
+    bordered,
+    emptyComponent,
+    vBox,
+    vSize,
+  )
 import Rogui.Components.Grid
+  ( GridDefinition (..),
+    GridState,
+    grid,
+    handleClickOnGrid,
+    handleGridEvent,
+    mkGridState,
+    selectedGridItem,
+  )
 import Rogui.Components.Label (label)
 import Rogui.Components.ProgressBar
+  ( ProgressBarDefinition (..),
+    progressBar,
+  )
 import Rogui.Graphics
+  ( Colours (..),
+    TextAlign (..),
+    black,
+    fullBlock,
+    invert,
+    lightShade,
+    red,
+    white,
+  )
 import Rogui.Types (ConsoleDrawers, EventHandler)
 
 data Consoles = Root

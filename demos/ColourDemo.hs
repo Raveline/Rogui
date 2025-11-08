@@ -5,7 +5,7 @@ module Main where
 
 import Data.Foldable (traverse_)
 import Linear (V2 (..))
-import Rogui.Application.System
+import Rogui.Application
 import Rogui.Components.Core
 import Rogui.Graphics
 import Rogui.Types (ConsoleDrawers)

@@ -90,10 +90,6 @@ module Rogui.Application
     withLogging,
     withoutLogging,
 
-    -- * Event handling utilities
-    keyPressHandler,
-    baseEventHandler,
-
     -- * Other utilities
     brushLookup,
 

@@ -5,10 +5,9 @@ module Rogui.Components.Button
 where
 
 import qualified Data.Map as M
-import Rogui.Application.Event (Event (..), fireEvent)
-import Rogui.Application.System (keyPressHandler)
-import Rogui.Components.Label (label)
+import Rogui.Application.Event (Event (..), fireEvent, keyPressHandler)
 import Rogui.Components.Core (Component (..), recordExtent)
+import Rogui.Components.Label (label)
 import Rogui.Graphics (Colours, TextAlign)
 import Rogui.Types (EventHandler)
 import qualified SDL

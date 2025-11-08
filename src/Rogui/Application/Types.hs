@@ -10,6 +10,8 @@ import Rogui.Types (ConsoleDrawers, EventHandler)
 import SDL (V2)
 
 -- | A simple configuration type provided to the `boot` function.
+-- To see how this can be used in practice, read `Application.System` documentation.
+-- To understand drawingFunction and eventFunction, read `Rogui.Types` documentation.
 data RoguiConfig rc rb name state event = RoguiConfig
   { -- | A default brush tilesize.
     brushTilesize :: TileSize,
@@ -19,7 +21,7 @@ data RoguiConfig rc rb name state event = RoguiConfig
     consoleCellSize :: V2 Cell,
     -- | Desired FPS.
     targetFPS :: Int,
-    -- | Desire milliseconds before firing a "Step" event.
+    -- | Desired milliseconds before firing a "Step" event.
     stepMs :: Word32,
     -- | Constructor to be associated to the root console
     rootConsoleReference :: rc,

@@ -103,10 +103,6 @@ module Rogui.Application.System
     withLogging,
     withoutLogging,
 
-    -- * Event handling utilities
-    keyPressHandler,
-    baseEventHandler,
-
     -- * Other utilities
     brushLookup,
 
@@ -438,44 +434,6 @@ processEvent Rogui {..} event = do
   void . runEventHandler . onEvent currentState $ event
   pure ()
 
--- | A default event handler that will:
---
--- * React to ALT+F4, clicking the window cross, or ctrl+C to quit the
--- application
---
--- * Ensure that a first render is done on window shown
---
--- * Ensure that rendering is done when Step is reached
---
--- Other events are to be manually implemented.  Feed your own event handler to
--- this so you get an easy way to leave your applications through common
--- shortcuts.
-baseEventHandler ::
-  -- | Sink for events that have not been processed.
-  EventHandler state e n
-baseEventHandler _ event =
-  let ctrlC (KeyDetails SDL.KeycodeC [LeftCtrl]) = True
-      ctrlC _ = False
-   in case event of
-        KeyDown KeyDownDetails {key} -> if ctrlC key then halt (pure ()) else unhandled
-        OtherSDLEvent SDL.QuitEvent -> halt . pure $ ()
-        Quit -> halt . pure $ ()
-        OtherSDLEvent (SDL.WindowShownEvent _) -> redraw (pure ()) >> unhandled
-        Step -> redraw (pure ()) >> unhandled
-        _ -> unhandled
-
--- | A utility to react to key presses listed in a Map
-keyPressHandler ::
-  -- | A map of expected key codes and the actions to perform if this key was pressed
-  M.Map (SDL.Keycode, S.Set Modifier) (EventHandler state e n) ->
-  EventHandler state e n
-keyPressHandler keyMap state event =
-  case event of
-    KeyDown KeyDownDetails {key} ->
-      let handler = (keycode key, modifiers key) `M.lookup` keyMap
-       in maybe unhandled (\h -> h state event) handler
-    _ -> unhandled
-
 getSDLEvents :: (MonadIO m) => Brush -> m [Event e]
 getSDLEvents Brush {..} =
   let toRoguiEvent (SDL.Event _timestamp payload) = case payload of
@@ -492,7 +450,7 @@ getSDLEvents Brush {..} =
           let (SDL.P mousePos) = mouseButtonEventPos
               absoluteMousePosition@(SDL.V2 x y) = fromIntegral <$> mousePos
               defaultTileSizePosition = SDL.V2 (x ./.= tileWidth) (y ./.= tileHeight)
-              buttonCliked = mouseButtonEventButton
+              buttonClicked = mouseButtonEventButton
            in MouseEvent . MouseClick $ MouseClickDetails {..}
         e -> OtherSDLEvent e
    in fmap (fmap toRoguiEvent) SDL.pollEvents

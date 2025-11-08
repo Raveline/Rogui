@@ -8,11 +8,19 @@ module Main where
 import Control.Monad (when)
 import Linear (V2 (..))
 import Rogui.Application.Event
-import Rogui.Application.System
-import Rogui.Components.Core
+  ( ClickHandler,
+    Event (..),
+    EventHandler,
+    MouseEventDetails (..),
+    baseEventHandler,
+    foundClickedExtents,
+    (<||>),
+  )
+import Rogui.Application.System (RoguiConfig (..), bootAndPrintError)
+import Rogui.Components.Core (Component (..), bordered, emptyComponent, vBox)
 import Rogui.Components.List
 import Rogui.Graphics
-import Rogui.Types (ClickHandler, ConsoleDrawers)
+import Rogui.Types (ConsoleDrawers)
 
 data Consoles = Root
   deriving (Show, Eq, Ord)

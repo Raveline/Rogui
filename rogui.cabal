@@ -68,6 +68,9 @@ library
         Rogui.Application
         Rogui.Application.Error
         Rogui.Application.Event
+        Rogui.Application.Event.Handlers
+        Rogui.Application.Event.Monad
+        Rogui.Application.Event.Types
         Rogui.Application.System
         Rogui.Application.Types
         Rogui.Components
