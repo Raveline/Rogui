@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedLists #-}
-
 -- | Main entry point for RoGUI applications. This module re-exports everything you need
 -- to bootstrap and run a RoGUI application.
 --

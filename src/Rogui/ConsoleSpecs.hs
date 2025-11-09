@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
 module Rogui.ConsoleSpecs
   ( SizeSpec (..),

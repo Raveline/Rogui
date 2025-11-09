@@ -21,5 +21,5 @@ gridOverlay getOverlay viewport@(topLeft, _) =
   let draw' = traverse_ drawCell (cellsInMapViewport viewport)
       drawCell worldPos = do
         overlay <- getOverlay worldPos
-        maybe (pure ()) (overlayAt (worldPos - topLeft)) $ overlay
+        maybe (pure ()) (overlayAt (worldPos - topLeft)) overlay
    in emptyComponent {draw = draw'}
