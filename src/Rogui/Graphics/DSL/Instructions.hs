@@ -1,5 +1,20 @@
 {-# LANGUAGE FlexibleContexts #-}
 
+-- | A basic DSL to write a sequence of `Instruction` that will be
+-- statefully interpreted by `Rogui.Graphis.DSL.Eval.evalInstructions`.
+-- The functions defined in this module are what `Rogui.Components.Types.Component` are expected to use when defining how they are drawn. Here is
+-- an example to draw a small text with changing colours:
+--
+-- @
+-- setColours (Colour (Just yellow) (Just black))
+-- strLn TLeft "It is a period of civil war. Rebel spaceship,"
+-- strLn TLeft "striking from a hidden base, have won their first"
+-- str TLeft "victory against the evil"
+-- setColours (Colour (Just red) (Just black))
+-- str TLeft "Galactic Empire"
+-- setColours (Colour (Just yellow) (Just black))
+-- str "."
+-- @
 module Rogui.Graphics.DSL.Instructions
   ( Instruction (..),
     Instructions,
@@ -60,6 +75,7 @@ data Instruction
 
 type Instructions = DList Instruction
 
+-- | Set pencil at the leftmost cell on the line after the current one.
 newLine :: (MonadWriter Instructions m) => m ()
 newLine = tell (singleton NewLine)
 
@@ -77,34 +93,45 @@ str align txt =
   tell (singleton $ DrawString align txt)
     >> movePencilBy (V2 (Cell $ length txt) 0)
 
+-- | Add a border on the current console. Border drawing algorithm
+-- expects a CSSID 437 tileset.
 withBorder :: (MonadWriter Instructions m) => m ()
 withBorder = tell . singleton $ DrawBorder
 
+-- | Use the provided console for the subsequent instructions.
 withConsole :: (MonadWriter Instructions m) => Console -> m ()
 withConsole console =
   tell (singleton $ OnConsole console)
     >> pencilAt (V2 0 0)
 
+-- | Use the provided brush for the subsequent instructions.
 withBrush :: (MonadWriter Instructions m) => Brush -> m ()
 withBrush brush =
   tell (singleton $ WithBrush brush)
 
+-- | Draw a glyph at the current pencil position, applying
+-- the eventual transformations provided.
 glyph :: (MonadWriter Instructions m) => Int -> [Transformation] -> m ()
 glyph glyphId trans = tell $ singleton (DrawGlyph glyphId trans)
 
+-- | Draw a glyph at the given position, applying the eventual transformations
+-- provided.
 glyphAt :: (MonadWriter Instructions m) => V2 Cell -> Int -> [Transformation] -> m ()
 glyphAt at glyphId trans =
   pencilAt at
     >> glyph glyphId trans
 
+-- | Move the pencil at the given coordinates.
 pencilAt :: (MonadWriter Instructions m) => V2 Cell -> m ()
 pencilAt at =
   tell (singleton $ MoveTo at)
 
+-- | Move the pencil by the given vector.
 movePencilBy :: (MonadWriter Instructions m) => V2 Cell -> m ()
 movePencilBy by =
   tell (singleton $ MoveBy by)
 
+-- | Set the current drawing colours.
 setColours :: (MonadWriter Instructions m) => Colours -> m ()
 setColours colours =
   tell (singleton $ SetColours colours)
@@ -128,9 +155,11 @@ drawVerticalLine (V2 fromX fromY) to =
 drawGlyphAts :: (MonadWriter Instructions m) => [V2 Cell] -> Int -> m ()
 drawGlyphAts cells glyphId = tell (singleton $ DrawGlyphAts cells glyphId)
 
+-- | Set the current console background colour.
 setConsoleBackground :: (MonadWriter Instructions m) => RGB -> m ()
 setConsoleBackground r = tell (singleton $ SetConsoleBackground r)
 
+-- | Add a RGBA overlay (with alpha blending) on the given cell.
 overlayAt :: (MonadWriter Instructions m) => V2 Cell -> RGBA -> m ()
 overlayAt at colour =
   tell (singleton $ OverlayAt at colour)

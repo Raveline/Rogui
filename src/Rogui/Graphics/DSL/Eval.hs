@@ -1,5 +1,13 @@
 {-# LANGUAGE FlexibleContexts #-}
 
+-- | The simple DSL defined in `Graphics.DSL.Instructions` gets evaluated
+-- in this module. Implementation details are not exposed, but here's a
+-- quick summary: we create a drawing state to track console, brush,
+-- pencil position and current colours. Instructions are followed in
+-- their declaration order. Each drawing instruction creates a SDL
+-- call. This logic is not optimized to batch calls, mostly because
+-- we have yet to run in actual performance issues - but some potential
+-- optimisations could be added in future versions if the need arise.
 module Rogui.Graphics.DSL.Eval
   ( evalInstructions,
   )
@@ -23,6 +31,8 @@ data DrawingState = DrawingState
     colours :: Colours
   }
 
+-- | Using the given render, default console and default brush, apply a set
+-- of instructions.
 evalInstructions :: (MonadIO m) => Renderer -> Console -> Brush -> Instructions -> m ()
 evalInstructions renderer console brush instructions =
   let position = V2 0 0

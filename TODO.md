@@ -1,6 +1,5 @@
 High priority:
 
-[ ] Add vertical line DSL instruction
 [ ] Add customisable default handlers for components to override keys
 
 Medium priority:
