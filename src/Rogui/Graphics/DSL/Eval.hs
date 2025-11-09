@@ -55,9 +55,7 @@ eval instruction = do
       modify (\s -> s {position = position + by})
     SetColours col ->
       modify (\s -> s {colours = col})
-    DrawHorizontalLine to glyph ->
-      let (V2 fromX fromY) = position
-          cells = [V2 x y | x <- [fromX .. to], y <- [fromY]]
-       in traverse_ (printCharAt renderer console brush [] front back glyph) cells
     OverlayAt at colour ->
       overlayRect renderer console brush at (V2 1 1) colour
+    DrawGlyphAts ats glyphId ->
+      traverse_ (printCharAt renderer console brush [] front back glyphId) ats

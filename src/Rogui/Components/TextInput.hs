@@ -15,6 +15,7 @@ import Rogui.Components.Core (Component (..), DrawingContext (..), contextCellWi
 import Rogui.Graphics
 import SDL (TextInputEventData (textInputEventText))
 import qualified SDL
+import SDL.Vect (V2 (..))
 
 -- | A single line text input component. It assumes you are using a CCSID 437
 -- charset, with a light shade and full block glyph id. If you don't, you'll
@@ -37,7 +38,7 @@ textInput n txt colours focused =
         setColours colours
         width <- contextCellWidth
         steps' <- gets steps
-        drawHorizontalLine (width - 1) lightShade
+        drawHorizontalLine (V2 0 0) (width - 1) lightShade
         str TLeft txt
         when (focused && steps' `mod` 10 < 7) $
           glyph fullBlock []

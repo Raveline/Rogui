@@ -4,6 +4,8 @@ module Rogui.Graphics.DSL.Instructions
   ( Instruction (..),
     Instructions,
     drawHorizontalLine,
+    drawVerticalLine,
+    drawGlyphAts,
     glyph,
     glyphAt,
     movePencilBy,
@@ -28,19 +30,33 @@ import Rogui.Graphics.Primitives (RGB, RGBA, Transformation)
 import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (V2 (..))
 
+-- | The set of stateful, graphical instructions that can be
+-- interpreted.
 data Instruction
-  = DrawBorder
-  | DrawString TextAlign String
-  | NewLine
-  | OnConsole Console
-  | WithBrush Brush
-  | DrawGlyph Int [Transformation]
-  | MoveTo (V2 Cell)
-  | MoveBy (V2 Cell)
-  | SetColours Colours
-  | SetConsoleBackground RGB
-  | DrawHorizontalLine Cell Int
-  | OverlayAt (V2 Cell) RGBA
+  = -- | Draw a border at the edge of the current console
+    DrawBorder
+  | -- | Write a string with the provided alignment. NB: alignment will only guide where characters are added, caller is responsible for putting the cursor at the prope place.
+    DrawString TextAlign String
+  | -- | Move the cursor one line below and reset column to 0
+    NewLine
+  | -- | Use the given console
+    OnConsole Console
+  | -- | Use the given brush
+    WithBrush Brush
+  | -- | Draw a given glyph id at current pencil position, with the transformation provided
+    DrawGlyph Int [Transformation]
+  | -- | Mowe the drawing pencil at these exact coordinates
+    MoveTo (V2 Cell)
+  | -- | Move the drawing pencil by a vector
+    MoveBy (V2 Cell)
+  | -- | Set background and foreground colours
+    SetColours Colours
+  | -- | Fully colour the current console
+    SetConsoleBackground RGB
+  | -- | Draw the given glyph at the positions given
+    DrawGlyphAts [V2 Cell] Int
+  | -- | Apply an alpha overlay on the given cell
+    OverlayAt (V2 Cell) RGBA
 
 type Instructions = DList Instruction
 
@@ -93,12 +109,24 @@ setColours :: (MonadWriter Instructions m) => Colours -> m ()
 setColours colours =
   tell (singleton $ SetColours colours)
 
--- | This is mostly meant to be used for horizontal highlighting.
--- Draw a line from pencil until the specified cell (included).
--- The line is drawn with the provided character.
-drawHorizontalLine :: (MonadWriter Instructions m) => Cell -> Int -> m ()
-drawHorizontalLine to glyphId =
-  tell (singleton $ DrawHorizontalLine to glyphId)
+-- | Draw a horizontal line from a point, to a given length,
+-- using the provided character
+drawHorizontalLine :: (MonadWriter Instructions m) => V2 Cell -> Cell -> Int -> m ()
+drawHorizontalLine (V2 fromX fromY) to =
+  let cells = [V2 x y | x <- [fromX .. fromX + to], y <- [fromY]]
+   in drawGlyphAts cells
+
+-- | Draw a vertical line from a point, to a given length,
+-- using the provided character
+drawVerticalLine :: (MonadWriter Instructions m) => V2 Cell -> Cell -> Int -> m ()
+drawVerticalLine (V2 fromX fromY) to =
+  let cells = [V2 x y | x <- [fromX], y <- [fromY .. fromY + to]]
+   in drawGlyphAts cells
+
+-- | Draw the provided glyph id in all the cells given as
+-- parameter
+drawGlyphAts :: (MonadWriter Instructions m) => [V2 Cell] -> Int -> m ()
+drawGlyphAts cells glyphId = tell (singleton $ DrawGlyphAts cells glyphId)
 
 setConsoleBackground :: (MonadWriter Instructions m) => RGB -> m ()
 setConsoleBackground r = tell (singleton $ SetConsoleBackground r)

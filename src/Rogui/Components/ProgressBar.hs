@@ -8,7 +8,7 @@ module Rogui.Components.ProgressBar
 where
 
 import Rogui.Components.Core (Component (..), contextCellWidth, emptyComponent)
-import Rogui.Graphics (Cell (..), Colours, drawHorizontalLine, movePencilBy, setColours)
+import Rogui.Graphics (Cell (..), Colours, drawHorizontalLine, setColours)
 import SDL (V2 (..))
 
 -- | A way to package the numerous properties required to
@@ -54,8 +54,7 @@ progressBar ProgressBarDefinition {..} =
             progressed = round @Double @Cell (fromIntegral widthInTile * pct)
             remaining = widthInTile - progressed
         setColours coloursFilled
-        drawHorizontalLine progressed glyphFilled
-        movePencilBy (V2 progressed 0)
+        drawHorizontalLine (V2 0 0) progressed glyphFilled
         setColours coloursUnfilled
-        drawHorizontalLine (progressed + remaining) glyphUnfilled
+        drawHorizontalLine (V2 progressed 0) (progressed + remaining) glyphUnfilled
    in emptyComponent {draw = draw}
