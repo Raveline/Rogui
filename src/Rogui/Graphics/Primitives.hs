@@ -2,7 +2,9 @@ module Rogui.Graphics.Primitives
   ( printCharAt,
     fillConsoleWith,
     clipToConsole,
+    overlayRect,
     RGB,
+    RGBA,
     Transformation (..),
     Rotation (..),
   )
@@ -14,11 +16,13 @@ import Data.Maybe (mapMaybe)
 import Data.Word
 import Foreign.C
 import Rogui.Graphics.Types
-import SDL (Rectangle (..), Renderer, Texture, V2 (..), V3 (..))
+import SDL (Rectangle (..), Renderer, Texture, V2 (..), V3 (..), V4 (..))
 import qualified SDL
 import SDL.Vect (Point (..))
 
 type RGB = V3 Word8
+
+type RGBA = V4 Word8
 
 setFrontColour :: (MonadIO m) => Texture -> RGB -> m ()
 setFrontColour texture rgb = do
@@ -72,6 +76,12 @@ toDegree (Rotate R270) = Just 270
 toDegree (Rotate (RArbitrary d)) = Just (realToFrac d)
 toDegree _ = Nothing
 
+getScreenRectAt :: Console -> Brush -> V2 Pixel -> V2 Cell -> Rectangle CInt
+getScreenRectAt Console {..} Brush {..} (V2 rectWidth rectHeight) at =
+  let cInt x = fromIntegral <$> x
+      getScreenPos (V2 x y) = V2 (tileWidth .*=. x) (tileHeight .*=. y)
+   in Rectangle (P $ cInt (position + getScreenPos at)) (cInt $ V2 rectWidth rectHeight)
+
 -- | Display a glyph on the renderer, with a given brush, on a given console, with a background
 -- and a foreground colour, at a given position on a given console, applying optional
 -- transformation over the glyph.
@@ -94,10 +104,8 @@ printCharAt ::
   -- | Logical position in the console (in brush size cells)
   V2 Cell ->
   m ()
-printCharAt renderer Console {..} b@Brush {..} trans frontColour backColour n at = do
-  let cInt x = fromIntegral <$> x
-      getScreenPos (V2 x y) = V2 (tileWidth .*=. x) (tileHeight .*=. y)
-      realRectangle = Rectangle (P $ cInt (position + getScreenPos at)) (cInt $ V2 tileWidth tileHeight)
+printCharAt renderer console b@Brush {..} trans frontColour backColour n at = do
+  let realRectangle = getScreenRectAt console b (V2 tileWidth tileHeight) at
       flip' = V2 (FlipX `elem` trans) (FlipY `elem` trans)
       rotate = sum $ mapMaybe toDegree trans
   traverse_ (setBackColour renderer realRectangle) backColour
@@ -110,6 +118,25 @@ printCharAt renderer Console {..} b@Brush {..} trans frontColour backColour n at
     rotate
     Nothing
     flip'
+
+-- | Draw a rectangle with transparency over an area
+overlayRect ::
+  (MonadIO m) =>
+  SDL.Renderer ->
+  Console ->
+  Brush ->
+  -- | Top-left position in cells
+  V2 Cell ->
+  -- | Size in cells
+  V2 Cell ->
+  -- | Color with alpha (RGBA)
+  RGBA ->
+  m ()
+overlayRect renderer console b@Brush {..} pos (V2 w h) rgba = do
+  SDL.rendererDrawBlendMode renderer SDL.$= SDL.BlendAlphaBlend
+  SDL.rendererDrawColor renderer SDL.$= rgba
+  let pixelRect = getScreenRectAt console b (V2 (tileWidth .*=. w) (tileHeight .*=. h)) pos
+  SDL.fillRect renderer (Just pixelRect)
 
 getConsoleRect :: Console -> Rectangle CInt
 getConsoleRect Console {..} =

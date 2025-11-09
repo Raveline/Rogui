@@ -14,15 +14,11 @@ import qualified Data.Map.Strict as M
 import Rogui.Application
 import Rogui.Components (Component (..), Size (..), emptyComponent, layered)
 import Rogui.Components.Core (DrawingContext (..), Extent (..), TileSize, hSize, vSize)
-import Rogui.Components.Game.Utils (GlyphInfo (..), MapViewport, computeMapViewport)
+import Rogui.Components.Game.Utils (GlyphInfo (..), MapViewport, cellsInMapViewport, computeMapViewport)
 import Rogui.Graphics (Pixel, v2PixelInTiles)
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Types (Brush (Brush, tileHeight, tileWidth), Cell, Console (..), (./.=))
 import SDL (V2 (..))
-
-cellsInMapViewport :: (V2 Cell, V2 Cell) -> [V2 Cell]
-cellsInMapViewport (V2 fromX fromY, V2 toX toY) =
-  [V2 x y | x <- [fromX .. toX], y <- [fromY .. toY]]
 
 -- | A classic grid of tiles, typically used to display the
 -- environment of a roguelike. All tiles in the viewport

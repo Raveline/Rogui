@@ -11,7 +11,7 @@ import Data.Foldable
 import Rogui.Graphics.Colours (Colours (..))
 import Rogui.Graphics.Console (drawBorder, printStrAt)
 import Rogui.Graphics.DSL.Instructions (Instruction (..), Instructions)
-import Rogui.Graphics.Primitives (clipToConsole, fillConsoleWith, printCharAt)
+import Rogui.Graphics.Primitives (clipToConsole, fillConsoleWith, overlayRect, printCharAt)
 import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (Renderer, V2 (..))
 
@@ -59,3 +59,5 @@ eval instruction = do
       let (V2 fromX fromY) = position
           cells = [V2 x y | x <- [fromX .. to], y <- [fromY]]
        in traverse_ (printCharAt renderer console brush [] front back glyph) cells
+    OverlayAt at colour ->
+      overlayRect renderer console brush at (V2 1 1) colour

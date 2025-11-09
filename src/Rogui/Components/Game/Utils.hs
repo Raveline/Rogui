@@ -3,6 +3,7 @@ module Rogui.Components.Game.Utils
     MapViewport,
     computeMapViewport,
     isInViewport,
+    cellsInMapViewport,
   )
 where
 
@@ -53,3 +54,8 @@ computeMapViewport (V2 viewportWidth viewportHeight) (V2 mapWidth mapHeight) (V2
 isInViewport :: MapViewport -> V2 Cell -> Bool
 isInViewport (V2 fromX fromY, V2 toX toY) (V2 x y) =
   x >= fromX && x <= toX && y >= fromY && y <= toY
+
+-- | Get all the cells inside a viewport
+cellsInMapViewport :: (V2 Cell, V2 Cell) -> [V2 Cell]
+cellsInMapViewport (V2 fromX fromY, V2 toX toY) =
+  [V2 x y | x <- [fromX .. toX], y <- [fromY .. toY]]

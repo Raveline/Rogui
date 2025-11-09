@@ -65,6 +65,7 @@ library
 
     -- Modules exported by the library.
     exposed-modules:
+        Rogui.Animation
         Rogui.Application
         Rogui.Application.Error
         Rogui.Application.Event
@@ -78,6 +79,7 @@ library
         Rogui.Components.Core
         Rogui.Components.Game
         Rogui.Components.Game.EntitiesLayer
+        Rogui.Components.Game.GridOverlay
         Rogui.Components.Game.GridTile
         Rogui.Components.Game.Utils
         Rogui.Components.Grid
@@ -124,6 +126,19 @@ library
 
     -- Base language which the package is written in.
     default-language: Haskell2010
+
+executable rogui-animation-demo
+    hs-source-dirs:   demos
+    ghc-options:      -threaded -Wall -Wcompat -O2
+    default-language: Haskell2010
+    main-is:          AnimationDemo.hs
+    build-depends:
+        , base
+        , containers
+        , linear
+        , mtl
+        , rogui
+        , vector
 
 executable rogui-colour-demo
     hs-source-dirs:   demos

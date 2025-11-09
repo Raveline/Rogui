@@ -8,6 +8,7 @@ module Rogui.Graphics.DSL.Instructions
     glyphAt,
     movePencilBy,
     newLine,
+    overlayAt,
     pencilAt,
     setColours,
     setConsoleBackground,
@@ -23,7 +24,7 @@ import Control.Monad.Writer (MonadWriter (tell))
 import Data.DList
 import Rogui.Graphics.Colours (Colours)
 import Rogui.Graphics.Console (TextAlign (..))
-import Rogui.Graphics.Primitives (RGB, Transformation)
+import Rogui.Graphics.Primitives (RGB, RGBA, Transformation)
 import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (V2 (..))
 
@@ -39,6 +40,7 @@ data Instruction
   | SetColours Colours
   | SetConsoleBackground RGB
   | DrawHorizontalLine Cell Int
+  | OverlayAt (V2 Cell) RGBA
 
 type Instructions = DList Instruction
 
@@ -100,3 +102,7 @@ drawHorizontalLine to glyphId =
 
 setConsoleBackground :: (MonadWriter Instructions m) => RGB -> m ()
 setConsoleBackground r = tell (singleton $ SetConsoleBackground r)
+
+overlayAt :: (MonadWriter Instructions m) => V2 Cell -> RGBA -> m ()
+overlayAt at colour =
+  tell (singleton $ OverlayAt at colour)
