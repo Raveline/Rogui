@@ -45,9 +45,9 @@ computeMapViewport (V2 viewportWidth viewportHeight) (V2 mapWidth mapHeight) (V2
   let idealFromX = focusX - (viewportWidth `div` 2)
       idealFromY = focusY - (viewportHeight `div` 2)
       fromX = max 0 (min idealFromX (mapWidth - viewportWidth))
-      toX = min mapWidth (fromX + viewportWidth)
+      toX = min mapWidth (fromX + viewportWidth - 1)
       fromY = max 0 (min idealFromY (mapHeight - viewportHeight))
-      toY = min mapHeight (fromY + viewportHeight)
+      toY = min mapHeight (fromY + viewportHeight - 1)
    in (V2 fromX fromY, V2 toX toY)
 
 -- | Check if a cell is in the given viewport.

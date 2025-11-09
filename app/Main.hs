@@ -78,7 +78,7 @@ arbitraryMap :: Array (V2 Cell) TileType
 arbitraryMap =
   let generator (V2 x y) =
         if (x `mod` 3 == 0) && (y `mod` 3 == 0) then Wall else Floor
-   in genArray (V2 0 0, V2 100 100) generator
+   in genArray (V2 0 0, V2 99 99) generator
 
 data Name
   = List
@@ -173,7 +173,7 @@ gameEventHandler :: EventHandler State CustomEvent Name
 gameEventHandler State {..} = \case
   (AppEvent (Move dir)) -> do
     let newPos@(V2 x y) = playerPos + dir
-    when (x >= 0 && y >= 0 && x <= 100 && y <= 100) $
+    when (x >= 0 && y >= 0 && x < 100 && y < 100) $
       modifyState $
         \s -> s {playerPos = newPos}
   (AppEvent ToggleUI) -> modifyState $ \s -> s {gameState = UI}
