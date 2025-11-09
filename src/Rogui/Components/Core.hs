@@ -29,6 +29,7 @@ module Rogui.Components.Core
     filled,
     switchBrush,
     trySwitchBrush,
+    atPosition,
 
     -- * Extent tracking
     Extent (..),
@@ -233,6 +234,37 @@ padded n child =
                 { width = width - (tileWidth .*=. (n * 2)),
                   height = height - (tileHeight .*=. (n * 2)),
                   position = position + V2 (tileWidth .*=. n) (tileHeight .*=. n)
+                }
+        changeConsole newConsole
+        draw child
+   in emptyComponent {draw = draw'}
+
+-- | Position a component at an absolute cell position within the current console.
+-- The child component will be rendered starting at the specified cell coordinates.
+-- This is useful for positioning modals or overlays at specific locations.
+--
+-- The component's size hints (Fixed or Greedy) are respected:
+-- - Fixed sizes are used to constrain the console to exact dimensions
+-- - Greedy sizes take the remaining console space
+--
+-- Note: The position is relative to the current console's top-left corner.
+atPosition :: V2 Cell -> Component n -> Component n
+atPosition (V2 cellX cellY) child =
+  let draw' = do
+        Brush {..} <- gets brush
+        console@Console {..} <- gets console
+        let offset = V2 (tileWidth .*=. cellX) (tileHeight .*=. cellY)
+            newWidth = case horizontalSize child of
+              Greedy -> width
+              Fixed w -> tileWidth .*=. w
+            newHeight = case verticalSize child of
+              Greedy -> height
+              Fixed h -> tileHeight .*=. h
+            newConsole =
+              console
+                { position = position + offset,
+                  width = newWidth,
+                  height = newHeight
                 }
         changeConsole newConsole
         draw child
