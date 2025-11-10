@@ -44,7 +44,7 @@ import Rogui.Graphics.Colours (Colours)
 import Rogui.Graphics.Console (TextAlign (..))
 import Rogui.Graphics.Primitives (RGB, RGBA, Transformation)
 import Rogui.Graphics.Types (Brush, Cell (..), Console)
-import SDL (V2 (..))
+import SDL (BlendMode, V2 (..))
 
 -- | The set of stateful, graphical instructions that can be
 -- interpreted.
@@ -72,9 +72,9 @@ data Instruction
   | -- | Draw the given glyph at the positions given
     DrawGlyphAts [V2 Cell] Int
   | -- | Apply an alpha overlay on the given cell
-    OverlayAt (V2 Cell) RGBA
+    OverlayAt (V2 Cell) RGBA (Maybe BlendMode)
   | -- | Apply an overlay over the whole console
-    FullConsoleOverlay RGBA
+    FullConsoleOverlay RGBA (Maybe BlendMode)
 
 type Instructions = DList Instruction
 
@@ -163,10 +163,10 @@ setConsoleBackground :: (MonadWriter Instructions m) => RGB -> m ()
 setConsoleBackground r = tell (singleton $ SetConsoleBackground r)
 
 -- | Add a RGBA overlay (with alpha blending) on the given cell.
-overlayAt :: (MonadWriter Instructions m) => V2 Cell -> RGBA -> m ()
-overlayAt at colour =
-  tell (singleton $ OverlayAt at colour)
+overlayAt :: (MonadWriter Instructions m) => V2 Cell -> RGBA -> Maybe BlendMode -> m ()
+overlayAt at colour mode =
+  tell (singleton $ OverlayAt at colour mode)
 
 -- | Add a RGBA overlay over a whole console
-overlayConsole :: (MonadWriter Instructions m) => RGBA -> m ()
-overlayConsole colour = tell (singleton $ FullConsoleOverlay colour)
+overlayConsole :: (MonadWriter Instructions m) => RGBA -> Maybe BlendMode -> m ()
+overlayConsole colour mode = tell (singleton $ FullConsoleOverlay colour mode)

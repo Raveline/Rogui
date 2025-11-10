@@ -12,7 +12,7 @@ where
 
 import Control.Monad.IO.Class
 import Data.Foldable (traverse_)
-import Data.Maybe (mapMaybe)
+import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Word
 import Foreign.C
 import Rogui.Graphics.Types
@@ -131,12 +131,15 @@ overlayRect ::
   V2 Cell ->
   -- | Color with alpha (RGBA)
   RGBA ->
+  -- | Blend mode. will BlendAlphaBlend by default.
+  Maybe SDL.BlendMode ->
   m ()
-overlayRect renderer console b@Brush {..} pos (V2 w h) rgba = do
-  SDL.rendererDrawBlendMode renderer SDL.$= SDL.BlendAlphaBlend
+overlayRect renderer console b@Brush {..} pos (V2 w h) rgba blendMode = do
+  SDL.rendererDrawBlendMode renderer SDL.$= fromMaybe SDL.BlendAlphaBlend blendMode
   SDL.rendererDrawColor renderer SDL.$= rgba
   let pixelRect = getScreenRectAt console b (V2 (tileWidth .*=. w) (tileHeight .*=. h)) pos
   SDL.fillRect renderer (Just pixelRect)
+  SDL.rendererDrawBlendMode renderer SDL.$= SDL.BlendNone
 
 getConsoleRect :: Console -> Rectangle CInt
 getConsoleRect Console {..} =

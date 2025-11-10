@@ -65,9 +65,9 @@ eval instruction = do
       modify (\s -> s {position = position + by})
     SetColours col ->
       modify (\s -> s {colours = col})
-    OverlayAt at colour ->
-      overlayRect renderer console brush at (V2 1 1) colour
+    OverlayAt at colour mode ->
+      overlayRect renderer console brush at (V2 1 1) colour mode
     DrawGlyphAts ats glyphId ->
       traverse_ (printCharAt renderer console brush [] front back glyphId) ats
-    FullConsoleOverlay colour ->
-      overlayRect renderer console brush (V2 0 0) (V2 (width console ./.= tileWidth brush) (height console ./.= tileHeight brush)) colour
+    FullConsoleOverlay colour mode ->
+      overlayRect renderer console brush (V2 0 0) (V2 (width console ./.= tileWidth brush) (height console ./.= tileHeight brush)) colour mode

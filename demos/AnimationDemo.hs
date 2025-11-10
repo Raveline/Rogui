@@ -197,5 +197,5 @@ renderGame =
     mapSize
     focal
     [ gridTile getTile tileToGlyphInfo,
-      gridOverlay (torchLighting focal)
+      gridOverlay (torchLighting focal) Nothing
     ]

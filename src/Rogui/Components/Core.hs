@@ -63,7 +63,7 @@ import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Colours, Pixel, RGB
 import Rogui.Graphics.DSL.Instructions (overlayConsole, setColours, withBorder, withBrush, withConsole)
 import Rogui.Graphics.Primitives (RGBA)
 import Rogui.Graphics.Types (Cell (..), Console (..), TileSize (..), fromBrush, (.*=.))
-import SDL (V2 (..), (^*))
+import SDL (BlendMode, V2 (..), (^*))
 
 changeBrush :: Brush -> DrawM n ()
 changeBrush b = do
@@ -147,10 +147,10 @@ filled rgb n =
    in emptyComponent {draw = draw'}
 
 -- | Add an overlay over the console with the given color
-overlaid :: RGBA -> Component n -> Component n
-overlaid rgba n =
+overlaid :: RGBA -> Maybe BlendMode -> Component n -> Component n
+overlaid rgba mode n =
   let draw' = do
-        overlayConsole rgba
+        overlayConsole rgba mode
         draw n
    in emptyComponent {draw = draw'}
 
