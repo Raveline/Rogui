@@ -26,6 +26,7 @@ module Rogui.Graphics.DSL.Instructions
     movePencilBy,
     newLine,
     overlayAt,
+    overlayConsole,
     pencilAt,
     setColours,
     setConsoleBackground,
@@ -72,6 +73,8 @@ data Instruction
     DrawGlyphAts [V2 Cell] Int
   | -- | Apply an alpha overlay on the given cell
     OverlayAt (V2 Cell) RGBA
+  | -- | Apply an overlay over the whole console
+    FullConsoleOverlay RGBA
 
 type Instructions = DList Instruction
 
@@ -163,3 +166,7 @@ setConsoleBackground r = tell (singleton $ SetConsoleBackground r)
 overlayAt :: (MonadWriter Instructions m) => V2 Cell -> RGBA -> m ()
 overlayAt at colour =
   tell (singleton $ OverlayAt at colour)
+
+-- | Add a RGBA overlay over a whole console
+overlayConsole :: (MonadWriter Instructions m) => RGBA -> m ()
+overlayConsole colour = tell (singleton $ FullConsoleOverlay colour)

@@ -20,7 +20,7 @@ import Rogui.Graphics.Colours (Colours (..))
 import Rogui.Graphics.Console (drawBorder, printStrAt)
 import Rogui.Graphics.DSL.Instructions (Instruction (..), Instructions)
 import Rogui.Graphics.Primitives (clipToConsole, fillConsoleWith, overlayRect, printCharAt)
-import Rogui.Graphics.Types (Brush, Cell (..), Console)
+import Rogui.Graphics.Types (Brush (tileHeight, tileWidth), Cell (..), Console (height, width), (./.=))
 import SDL (Renderer, V2 (..))
 
 data DrawingState = DrawingState
@@ -69,3 +69,5 @@ eval instruction = do
       overlayRect renderer console brush at (V2 1 1) colour
     DrawGlyphAts ats glyphId ->
       traverse_ (printCharAt renderer console brush [] front back glyphId) ats
+    FullConsoleOverlay colour ->
+      overlayRect renderer console brush (V2 0 0) (V2 (width console ./.= tileWidth brush) (height console ./.= tileHeight brush)) colour

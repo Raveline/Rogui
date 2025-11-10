@@ -27,6 +27,7 @@ module Rogui.Components.Core
     bordered,
     padded,
     filled,
+    overlaid,
     switchBrush,
     trySwitchBrush,
     atPosition,
@@ -59,7 +60,8 @@ import Data.Foldable (traverse_)
 import qualified Data.Map as M
 import Rogui.Components.Types
 import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Colours, Pixel, RGB, setConsoleBackground, (./.=))
-import Rogui.Graphics.DSL.Instructions (setColours, withBorder, withBrush, withConsole)
+import Rogui.Graphics.DSL.Instructions (overlayConsole, setColours, withBorder, withBrush, withConsole)
+import Rogui.Graphics.Primitives (RGBA)
 import Rogui.Graphics.Types (Cell (..), Console (..), TileSize (..), fromBrush, (.*=.))
 import SDL (V2 (..), (^*))
 
@@ -141,6 +143,14 @@ filled :: RGB -> Component n -> Component n
 filled rgb n =
   let draw' = do
         setConsoleBackground rgb
+        draw n
+   in emptyComponent {draw = draw'}
+
+-- | Add an overlay over the console with the given color
+overlaid :: RGBA -> Component n -> Component n
+overlaid rgba n =
+  let draw' = do
+        overlayConsole rgba
         draw n
    in emptyComponent {draw = draw'}
 
