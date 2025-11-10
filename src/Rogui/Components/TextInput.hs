@@ -51,13 +51,14 @@ textInput n txt colours focused =
 -- * SDL TextInputEvent are used to add new characters to the text;
 -- * Arrow down and up fire FocusNext / FocusPrev events.
 handleTextInputEvent ::
+  (Monad m) =>
   -- | Event to process
   Event e ->
   -- | Current text
   String ->
   -- | Function to modify the input text in your application state
   (String -> s -> s) ->
-  EventHandlerM s e n ()
+  EventHandlerM m s e n ()
 handleTextInputEvent event txt modifier = case event of
   KeyDown KeyDownDetails {key} ->
     case keycode key of

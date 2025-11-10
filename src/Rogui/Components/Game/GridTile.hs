@@ -70,7 +70,7 @@ multiLayeredGrid mapDimension focus layers =
 -- for instance to display information on the tile under the cursor,
 -- or to support picking a target entity with the mouse.
 mouseEventToWorldPos ::
-  (Ord n) =>
+  (Ord n, Monad m) =>
   -- \| The extent name for the grid
   n ->
   -- | The tilesize used for rendering the grid
@@ -81,7 +81,7 @@ mouseEventToWorldPos ::
   V2 Cell ->
   -- | A mouse position in pixel
   V2 Pixel ->
-  EventHandlerM s e n (Maybe (V2 Cell))
+  EventHandlerM m s e n (Maybe (V2 Cell))
 mouseEventToWorldPos n tilesize mapDimension focus mousePos = do
   result <- liftEH $ gets (M.lookup n . knownExtents)
   let withExtent Extent {..} =

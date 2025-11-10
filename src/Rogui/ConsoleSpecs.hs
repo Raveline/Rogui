@@ -45,18 +45,18 @@ data PositionSpec rc
   | -- | Right of another console (side-by-side)
     RightOf rc
 
-findConsole :: (Ord rc, MonadError (RoguiError rc rb) m) => rc -> Rogui rc rb n s e -> m Console
+findConsole :: (Ord rc, MonadError (RoguiError rc rb) m) => rc -> Rogui rc rb n s e m' -> m Console
 findConsole consoleRef Rogui {..} =
   case consoleRef `M.lookup` consoles of
     Nothing -> throwError (NoSuchConsole consoleRef)
     Just c -> pure c
 
-consoleBelow :: (Ord rc, MonadError (RoguiError rc rb) m) => rc -> Rogui rc rb n s e -> m (V2 Pixel)
+consoleBelow :: (Ord rc, MonadError (RoguiError rc rb) m) => rc -> Rogui rc rb n s e m' -> m (V2 Pixel)
 consoleBelow rc rogui = do
   Console {..} <- findConsole rc rogui
   pure $ position + V2 0 height
 
-consoleRight :: (Ord rc, MonadError (RoguiError rc rb) m) => rc -> Rogui rc rb n s e -> m (V2 Pixel)
+consoleRight :: (Ord rc, MonadError (RoguiError rc rb) m) => rc -> Rogui rc rb n s e m' -> m (V2 Pixel)
 consoleRight rc rogui = do
   Console {..} <- findConsole rc rogui
   pure $ position + V2 width 0

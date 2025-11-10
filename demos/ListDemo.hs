@@ -64,12 +64,12 @@ allItems = [Rogue .. maxBound]
 listDefinition :: ListDefinition Names Item
 listDefinition = ListDefinition {name = DemoList, items = allItems, renderItem = manyLineDescription, itemHeight = 3, wrapAround = True}
 
-handleEvent :: EventHandler DemoState () Names
+handleEvent :: (Monad m) => EventHandler m DemoState () Names
 handleEvent ds@DemoState {..} = \case
   (MouseEvent (MouseClick mcd)) -> handleClickEvent ds mcd
   e -> handleListEvent listDefinition e listState (\ls s' -> s' {listState = ls})
 
-handleClickEvent :: ClickHandler DemoState () Names ()
+handleClickEvent :: (Monad m) => ClickHandler m DemoState () Names ()
 handleClickEvent DemoState {..} mc = do
   clicked <- foundClickedExtents mc
   when (DemoList `elem` clicked) $ handleClickOnList listDefinition Nothing listState (\ls s' -> s' {listState = ls}) mc

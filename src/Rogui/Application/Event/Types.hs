@@ -16,11 +16,13 @@ module Rogui.Application.Event.Types
     ClickHandler,
     (<||>),
     liftEH,
+    liftApp,
   )
 where
 
 import Control.Applicative (Alternative (..))
-import Control.Monad.State.Strict (State)
+import Control.Monad.IO.Class
+import Control.Monad.State.Strict (MonadTrans (lift), StateT)
 import Data.Sequence (Seq)
 import qualified Data.Set as S
 import Rogui.Components.Types (ExtentMap)
@@ -109,12 +111,12 @@ data EventHandlingResult a = Handled a | Unhandled
 -- | A simple utility mostly there to guarantee we can change
 -- the monadic stack if we ever need to without having to
 -- rewrite all the signatures. You should not be using this type.
-type EventHandlingM s e n a = State (EventHandlingState s e n) a
+type EventHandlingM m s e n a = StateT (EventHandlingState s e n) m a
 
 -- | Type used to know if a handler processed the event or not.
 -- This is mostly to get an alternative instance, which lets
 -- users chain handlers through `<|>`.
-newtype EventHandlerM s e n a = EventHandlerM {runEventHandler :: EventHandlingM s e n (EventHandlingResult a)}
+newtype EventHandlerM m s e n a = EventHandlerM {runEventHandler :: EventHandlingM m s e n (EventHandlingResult a)}
 
 -- | The main type used when handling events. State is provided first, events as
 -- a second parameter, mostly to ease use of lambda-case.
@@ -127,22 +129,22 @@ newtype EventHandlerM s e n a = EventHandlerM {runEventHandler :: EventHandlingM
 --
 -- Return 'unhandled' (or 'empty') to indicate a handler didn't process an event,
 -- allowing the next handler in the chain to try.
-type EventHandler state e n = state -> Event e -> EventHandlerM state e n ()
+type EventHandler m state e n = state -> Event e -> EventHandlerM m state e n ()
 
 -- | A specialisation of EventHandlingM for mouse clicks
 --
 -- Mouse management typically require a dedicated portion of the event handler,
 -- as they escape focus.
-type ClickHandler state e n a = state -> MouseClickDetails -> EventHandlerM state e n a
+type ClickHandler m state e n a = state -> MouseClickDetails -> EventHandlerM m state e n a
 
-instance Functor (EventHandlerM s e n) where
+instance (Monad m) => Functor (EventHandlerM m s e n) where
   fmap f (EventHandlerM m) = EventHandlerM $ do
     unwrapped <- m
     pure $ case unwrapped of
       (Handled a) -> Handled (f a)
       Unhandled -> Unhandled
 
-instance Applicative (EventHandlerM s e n) where
+instance (Monad m) => Applicative (EventHandlerM m s e n) where
   pure a = EventHandlerM (pure $ Handled a)
   liftA2 f (EventHandlerM a) (EventHandlerM b) = EventHandlerM $ do
     a' <- a
@@ -151,7 +153,7 @@ instance Applicative (EventHandlerM s e n) where
       (Handled a'', Handled b'') -> pure . Handled $ f a'' b''
       (_, _) -> pure Unhandled
 
-instance Alternative (EventHandlerM s e n) where
+instance (Monad m) => Alternative (EventHandlerM m s e n) where
   empty = EventHandlerM (pure Unhandled)
   (EventHandlerM a) <|> (EventHandlerM b) = EventHandlerM $ do
     resA <- a
@@ -159,15 +161,12 @@ instance Alternative (EventHandlerM s e n) where
       Unhandled -> b
       (Handled h) -> pure (Handled h)
 
-instance Monad (EventHandlerM s e n) where
+instance (Monad m) => Monad (EventHandlerM m s e n) where
   (EventHandlerM a) >>= f = EventHandlerM $ do
     resA <- a
     case resA of
       Unhandled -> pure Unhandled
       Handled h -> runEventHandler (f h)
-
-liftEH :: EventHandlingM s e n a -> EventHandlerM s e n a
-liftEH a = EventHandlerM (Handled <$> a)
 
 instance Semigroup EventResult where
   _ <> Halt = Halt
@@ -179,6 +178,9 @@ instance Semigroup EventResult where
 
 instance Monoid EventResult where
   mempty = ContinueNoRedraw
+
+instance (MonadIO m) => MonadIO (EventHandlerM m s e n) where
+  liftIO = liftApp . liftIO
 
 -- | State available while processing events.
 data EventHandlingState s e n = EventHandlingState
@@ -207,5 +209,24 @@ data EventHandlingState s e n = EventHandlingState
 -- terseHandler :: EventHandler s e n
 -- terseHandler = baseEventHandler <||> otherEventHandler
 -- @
-(<||>) :: EventHandler s e n -> EventHandler s e n -> EventHandler s e n
+(<||>) :: (Monad m) => EventHandler m s e n -> EventHandler m s e n -> EventHandler m s e n
 eh <||> eh' = \s e -> eh s e <|> eh' s e
+
+-- \| Lift an action using the EventHandlingM monad in EventHandlerM newtype.
+-- You should typically not use this, as `EventHandlingM` is an internal
+-- utility.
+liftEH :: (Monad m) => EventHandlingM m s e n a -> EventHandlerM m s e n a
+liftEH a = EventHandlerM (Handled <$> a)
+
+-- | Lift an action from your arbitrary monadic stack into EventHandlerM.
+-- E.g.:
+--
+-- @
+-- handleSpawnEvent :: (MonadRandom m) => EventHandler m State Events Names
+-- handleSpawn _ = \case
+--  (AppEvent SpawnEnemy) -> do
+--    enemyType <- liftApp $ uniform [Goblin, Orc]
+--  _ -> unhandled
+-- @
+liftApp :: (Monad m) => m a -> EventHandlerM m s e n a
+liftApp ma = EventHandlerM $ lift $ Handled <$> ma

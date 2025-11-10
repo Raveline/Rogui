@@ -132,8 +132,8 @@ fakeLogs =
 
 guiMaker ::
   (MonadIO m, MonadError (RoguiError Consoles Brushes) m, MonadLogger m) =>
-  Rogui Consoles Brushes Name State CustomEvent ->
-  m (Rogui Consoles Brushes Name State CustomEvent)
+  Rogui Consoles Brushes Name State CustomEvent m' ->
+  m (Rogui Consoles Brushes Name State CustomEvent m')
 guiMaker baseGui = do
   let ts10x16 = TileSize 10 16
       ts16x16 = TileSize 16 16
@@ -144,14 +144,14 @@ guiMaker baseGui = do
     >>= addConsoleWithSpec ModalMenu ts10x16 (TilesSize 40 25) Center
     >>= addConsoleWithSpec Logging ts10x16 FullWindow TopLeft
 
-uiKeysHandler :: M.Map (SDL.Keycode, S.Set Modifier) (EventHandler State CustomEvent Name)
+uiKeysHandler :: (Monad m) => M.Map (SDL.Keycode, S.Set Modifier) (EventHandler m State CustomEvent Name)
 uiKeysHandler =
   M.fromList
     [ ((SDL.KeycodeTab, []), \_ _ -> fireEvent FocusNext),
       ((SDL.KeycodeEscape, []), \_ _ -> fireAppEvent ToggleUI)
     ]
 
-gameKeysHandler :: M.Map (SDL.Keycode, S.Set Modifier) (EventHandler State CustomEvent Name)
+gameKeysHandler :: (Monad m) => M.Map (SDL.Keycode, S.Set Modifier) (EventHandler m State CustomEvent Name)
 gameKeysHandler =
   M.fromList
     [ ((SDL.KeycodeUp, []), \_ _ -> fireAppEvent . Move $ V2 0 (-1)),
@@ -162,14 +162,14 @@ gameKeysHandler =
       ((SDL.KeycodeF2, []), \_ _ -> fireAppEvent ToggleLogs)
     ]
 
-eventHandler :: EventHandler State CustomEvent Name
+eventHandler :: (Monad m) => EventHandler m State CustomEvent Name
 eventHandler state@State {..} e =
   case gameState of
     PlayingGame -> (keyPressHandler gameKeysHandler <||> gameEventHandler <||> gridMouseHandler) state e
     UI -> (keyPressHandler uiKeysHandler <||> uiEventHandler) state e
     LogView -> logEventHandler state e
 
-gameEventHandler :: EventHandler State CustomEvent Name
+gameEventHandler :: (Monad m) => EventHandler m State CustomEvent Name
 gameEventHandler State {..} = \case
   (AppEvent (Move dir)) -> do
     let newPos@(V2 x y) = playerPos + dir
@@ -180,14 +180,14 @@ gameEventHandler State {..} = \case
   (AppEvent ToggleLogs) -> modifyState $ \s -> s {gameState = LogView}
   _ -> unhandled
 
-gridMouseHandler :: EventHandler State CustomEvent Name
+gridMouseHandler :: (Monad m) => EventHandler m State CustomEvent Name
 gridMouseHandler State {..} = \case
   (MouseEvent (MouseClick MouseClickDetails {..})) -> do
     worldPos <- mouseEventToWorldPos GameGrid (TileSize 16 16) fullMapSize playerPos absoluteMousePosition
     redraw $ modifyState (\s -> s {worldPosition = worldPos})
   _ -> unhandled
 
-logEventHandler :: EventHandler State CustomEvent Name
+logEventHandler :: (Monad m) => EventHandler m State CustomEvent Name
 logEventHandler =
   let keyHandler = M.fromList [((SDL.KeycodeEscape, []), \_ _ -> fireAppEvent ToggleUI)]
       eventHandler' s = \case
@@ -195,7 +195,7 @@ logEventHandler =
         e -> handleViewportEvent MessageLogs e (logViewport s) $ \newViewport s' -> s' {logViewport = newViewport}
    in (keyPressHandler keyHandler <||> eventHandler')
 
-uiEventHandler :: EventHandler State CustomEvent Name
+uiEventHandler :: (Monad m) => EventHandler m State CustomEvent Name
 uiEventHandler state@State {..} = \case
   -- Click events take priority and override focus
   MouseEvent (MouseClick c) -> handleClickEvent state c
@@ -210,13 +210,13 @@ uiEventHandler state@State {..} = \case
     (Just TextInput) -> handleTextInputEvent e someText (\newString s -> s {someText = newString})
     _ -> unhandled
 
-handleClickEvent :: ClickHandler State CustomEvent Name ()
+handleClickEvent :: (Monad m) => ClickHandler m State CustomEvent Name ()
 handleClickEvent State {..} mc = do
   clicked <- foundClickedExtents mc
   when (QuitButton `elem` clicked) $ fireEvent Quit
   when (List `elem` clicked) $ L.handleClickOnLabelList List listOfText listState (\newLs s -> s {listState = newLs}) mc
 
-handleFocusChange :: FocusOrigin -> State -> EventHandlerM State CustomEvent Name ()
+handleFocusChange :: (Monad m) => FocusOrigin -> State -> EventHandlerM m State CustomEvent Name ()
 handleFocusChange focusOrigin s = do
   let newRing = (if focusOrigin == FromNext then focusNext else focusPrev) (ring s)
   -- When focus moves to List, update its state appropriately

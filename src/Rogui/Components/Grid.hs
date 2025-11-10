@@ -147,7 +147,7 @@ getItemAt items nbCols (col, row) =
 --
 -- Getting out of the grid limits will trigger a `FocusNext` or `FocusPrev` event.
 handleGridEvent ::
-  (Ord n) =>
+  (Monad m, Ord n) =>
   -- | The grid definition used at rendering
   GridDefinition a n ->
   -- | The event we are processing
@@ -157,8 +157,8 @@ handleGridEvent ::
   -- | A function to modify the grid state in the application state
   (GridState -> s -> s) ->
   -- | An action to perform on pressing enter on the current selection (if any)
-  (Maybe a -> EventHandlerM s e n ()) ->
-  EventHandlerM s e n ()
+  (Maybe a -> EventHandlerM m s e n ()) ->
+  EventHandlerM m s e n ()
 handleGridEvent GridDefinition {..} event state@GridState {..} modifier onEnter = do
   V2 _ visibleHeight <- getExtentSize gridName
   let cols = NE.length cellWidths
@@ -209,7 +209,7 @@ handleGridEvent GridDefinition {..} event state@GridState {..} modifier onEnter 
 -- select the clicked item, if any, and trigger an action
 -- depending on the component clicked.
 handleClickOnGrid ::
-  (Ord n) =>
+  (Monad m, Ord n) =>
   -- | The grid definition used at rendering
   GridDefinition a n ->
   -- | The event we are processing
@@ -219,8 +219,8 @@ handleClickOnGrid ::
   -- | A function to modify the grid state in the application state
   (GridState -> s -> s) ->
   -- | An action to perform on clicking
-  (Maybe a -> EventHandlerM s e n ()) ->
-  EventHandlerM s e n ()
+  (Maybe a -> EventHandlerM m s e n ()) ->
+  EventHandlerM m s e n ()
 handleClickOnGrid gd@GridDefinition {..} (MouseClickDetails _ mousePos SDL.ButtonLeft) state modifier onCellClick = do
   gridPos <- getExtentPosition gridName
   V2 _ gridHeight <- getExtentSize gridName

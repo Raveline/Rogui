@@ -85,7 +85,7 @@ data GridContent
   = Label String
   | ProgressBar Int
 
-eventHandler :: EventHandler DemoState () Names
+eventHandler :: (Monad m) => EventHandler m DemoState () Names
 eventHandler DemoState {..} e =
   let alterGrid gs s' = s' {gridState = gs}
       pickComponent a = redraw $ modifyState $ \s' -> s' {picked = a}

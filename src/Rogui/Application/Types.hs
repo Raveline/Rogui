@@ -12,7 +12,7 @@ import SDL (V2)
 -- | A simple configuration type provided to the `boot` function.
 -- To see how this can be used in practice, read `Application.System` documentation.
 -- To understand drawingFunction and eventFunction, read `Rogui.Types` documentation.
-data RoguiConfig rc rb name state event = RoguiConfig
+data RoguiConfig rc rb name state event m = RoguiConfig
   { -- | A default brush tilesize.
     brushTilesize :: TileSize,
     -- | Name of the application (to be used as window title)
@@ -32,5 +32,5 @@ data RoguiConfig rc rb name state event = RoguiConfig
     -- | Main drawing function
     drawingFunction :: ConsoleDrawers rc rb name state,
     -- | Main event handling function
-    eventFunction :: EventHandler state event name
+    eventFunction :: EventHandler m state event name
   }

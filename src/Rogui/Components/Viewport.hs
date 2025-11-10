@@ -74,14 +74,14 @@ data ScrollTo = OneDown | OneUp | OneLeft | OneRight | PageDown | PageUp
 -- | A helper to update the viewport state depending on the
 -- scroll requested. It needs to access the recorded extent.
 scroll ::
-  (Ord n) =>
+  (Monad m, Ord n) =>
   -- | Component name
   n ->
   -- | Scrolling instruction
   ScrollTo ->
   -- | Current viewport state to modify
   ViewportState ->
-  EventHandlerM s e n ViewportState
+  EventHandlerM m s e n ViewportState
 scroll name scrollTo state@ViewportState {scrollOffset, contentSize = (V2 contentX contentY)} = do
   (V2 visibleW visibleH) <- getExtentSize name
   let clampScroll (V2 x y) =
@@ -102,7 +102,7 @@ scroll name scrollTo state@ViewportState {scrollOffset, contentSize = (V2 conten
 -- * Arrow keys to scroll by one in all directions;
 -- * Page down and page up to scroll by one full page.
 handleViewportEvent ::
-  (Ord n) =>
+  (Monad m, Ord n) =>
   -- | Name of the component, needed to retrieve its extent.
   n ->
   -- | Event to process
@@ -111,7 +111,7 @@ handleViewportEvent ::
   ViewportState ->
   -- | How to update the viewport state in your application state
   (ViewportState -> s -> s) ->
-  EventHandlerM s e n ()
+  EventHandlerM m s e n ()
 handleViewportEvent name event state modifier = do
   case event of
     KeyDown KeyDownDetails {key} -> case keycode key of

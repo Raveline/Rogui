@@ -25,9 +25,7 @@ import qualified SDL
 -- Other events are to be manually implemented.  Feed your own event handler to
 -- this so you get an easy way to leave your applications through common
 -- shortcuts.
-baseEventHandler ::
-  -- | Sink for events that have not been processed.
-  EventHandler state e n
+baseEventHandler :: (Monad m) => EventHandler m state e n
 baseEventHandler _ event =
   let ctrlC (KeyDetails SDL.KeycodeC [LeftCtrl]) = True
       ctrlC _ = False
@@ -41,9 +39,10 @@ baseEventHandler _ event =
 
 -- | A utility to react to key presses listed in a Map
 keyPressHandler ::
+  (Monad m) =>
   -- | A map of expected key codes and the actions to perform if this key was pressed
-  M.Map (SDL.Keycode, S.Set Modifier) (EventHandler state e n) ->
-  EventHandler state e n
+  M.Map (SDL.Keycode, S.Set Modifier) (EventHandler m state e n) ->
+  EventHandler m state e n
 keyPressHandler keyMap state event =
   case event of
     KeyDown KeyDownDetails {key} ->

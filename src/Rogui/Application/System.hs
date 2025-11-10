@@ -201,8 +201,8 @@ addBrush ::
   -- | Expected Tilesize for the brush
   TileSize ->
   -- | Rogui object where the brush will be loaded
-  Rogui rc rb n s e ->
-  m (Rogui rc rb n s e)
+  Rogui rc rb n s e m' ->
+  m (Rogui rc rb n s e m')
 addBrush ref path tileSize rogui@Rogui {..} = do
   brush <- loadBrush renderer path tileSize
   pure $ rogui {brushes = M.insert ref brush brushes}
@@ -210,7 +210,7 @@ addBrush ref path tileSize rogui@Rogui {..} = do
 -- | Store a console to be reused later on. Each console are registered with a
 -- given `rc` type (for References Console). You should typically prefer
 -- `addConsoleWithSpecs` (see `ConsoleSpecs` module).
-addConsole :: (Ord rc) => rc -> Console -> Rogui rc rb n s e -> Rogui rc rb n s e
+addConsole :: (Ord rc) => rc -> Console -> Rogui rc rb n s e m -> Rogui rc rb n s e m
 addConsole ref console rogui@Rogui {..} =
   rogui {consoles = M.insert ref console consoles}
 
@@ -242,8 +242,8 @@ addConsoleWithSpec ::
   -- | Where should this console be positioned ?
   PositionSpec rc ->
   -- | The rogui datatype that will store this Console
-  Rogui rc rb n s e ->
-  m (Rogui rc rb n s e)
+  Rogui rc rb n s e m' ->
+  m (Rogui rc rb n s e m')
 addConsoleWithSpec ref consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
   let Console {..} = rootConsole
       (w, h) = case sizeSpec of
@@ -271,14 +271,14 @@ addConsoleWithSpec ref consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
 -- or for prototyping, later to be ditched for a call to `boot` with more
 -- custom behaviour designed.
 bootAndPrintError ::
-  (Show rc, Show rb, Ord rb, Ord rc, Ord n) =>
+  (Show rc, Show rb, Ord rb, Ord rc, Ord n, MonadIO m) =>
   -- | A Configuration that will be used to make a Rogui datatype
-  RoguiConfig rc rb n s e ->
+  RoguiConfig rc rb n s e (ExceptT (RoguiError rc rb) (LoggingT m)) ->
   -- | Function to load consoles and brushes
-  (Rogui rc rb n s e -> ExceptT (RoguiError rc rb) (LoggingT IO) (Rogui rc rb n s e)) ->
+  (Rogui rc rb n s e (ExceptT (RoguiError rc rb) (LoggingT m)) -> ExceptT (RoguiError rc rb) (LoggingT m) (Rogui rc rb n s e (ExceptT (RoguiError rc rb) (LoggingT m)))) ->
   -- | Initial state
   s ->
-  IO ()
+  m ()
 bootAndPrintError c b i = runStdoutLoggingT $ do
   result <- runExceptT (boot c b i)
   either (liftIO . print) pure result
@@ -290,9 +290,9 @@ bootAndPrintError c b i = runStdoutLoggingT $ do
 boot ::
   (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) =>
   -- | A Configuration that will be used to make a Rogui datatype
-  RoguiConfig rc rb n s e ->
+  RoguiConfig rc rb n s e m ->
   -- | Function to load consoles and brushes
-  (Rogui rc rb n s e -> m (Rogui rc rb n s e)) ->
+  (Rogui rc rb n s e m -> m (Rogui rc rb n s e m)) ->
   -- | Initial state
   s ->
   m ()
@@ -345,14 +345,14 @@ calculateFPS frameTimes minSamples
           avgFrameTime = fromIntegral totalTime / fromIntegral (Seq.length frameTimes) :: Double
        in Just (1000.0 / avgFrameTime)
 
-appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) => Rogui rc rb n s e -> s -> m ()
+appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) => Rogui rc rb n s e m -> s -> m ()
 appLoop roGUI@Rogui {..} state = do
   sdlEvents <- getSDLEvents defaultBrush
   frameStart <- SDL.ticks
   let reachedStep = frameStart - lastStep > timerStep
       baseEvents = if reachedStep then Step : sdlEvents else sdlEvents
       baseEventState = EventHandlingState {events = Seq.fromList baseEvents, currentState = state, result = ContinueNoRedraw, knownExtents = extentsMap}
-      EventHandlingState {result, currentState} = execState (processWithLimit 30 roGUI) baseEventState
+  EventHandlingState {result, currentState} <- execStateT (processWithLimit 30 roGUI) baseEventState
   newExtents <-
     if result == Continue
       then do
@@ -410,7 +410,7 @@ appLoop roGUI@Rogui {..} state = do
             }
     appLoop newRogui currentState
 
-processWithLimit :: Int -> Rogui rc rb n s e -> EventHandlingM s e n ()
+processWithLimit :: (Monad m) => Int -> Rogui rc rb n s e m -> EventHandlingM m s e n ()
 processWithLimit 0 _ = pure ()
 processWithLimit n roGUI = do
   evs <- gets events
@@ -418,7 +418,7 @@ processWithLimit n roGUI = do
     then pure ()
     else traverse_ (processEvent roGUI) evs >> processWithLimit (n - 1) roGUI
 
-popEvent :: EventHandlingM state e n (Maybe (Event e))
+popEvent :: (Monad m) => EventHandlingM m state e n (Maybe (Event e))
 popEvent = do
   currentEvents <- gets events
   case currentEvents of
@@ -427,7 +427,7 @@ popEvent = do
       modify $ \ehs -> ehs {events = rest}
       pure $ Just firstEvent
 
-processEvent :: Rogui rc rb n s e -> Event e -> EventHandlingM s e n ()
+processEvent :: (Monad m) => Rogui rc rb n s e m -> Event e -> EventHandlingM m s e n ()
 processEvent Rogui {..} event = do
   _ <- popEvent -- This will remove the event from the queue
   currentState <- gets currentState
@@ -469,7 +469,7 @@ keysymToKeyDetails SDL.Keysym {..} =
           ]
    in KeyDetails keysymKeycode (toModifier keysymModifier)
 
-renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError rc rb) m) => Rogui rc rb n s e -> Brush -> Console -> Component n -> m (ExtentMap n)
+renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError rc rb) m) => Rogui rc rb n s e m' -> Brush -> Console -> Component n -> m (ExtentMap n)
 renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usingBrush usingConsole@Console {tileSize = consoleTileSize} Component {..} = do
   let brushTileSize = fromBrush usingBrush
   when (brushTileSize /= consoleTileSize) $

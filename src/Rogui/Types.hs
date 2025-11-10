@@ -10,13 +10,14 @@
 --
 -- == Rogui type parameters
 --
--- `Rogui` is parametric over 5 types, which you are all expected to provide:
+-- `Rogui` is parametric over 6 types, which you are all expected to provide:
 --
 -- * The `rc` type `references consoles`: typically an enumerated tile, with an `Ord` instance.
 -- * The `rb` type `references brushes`: similar to the previous one, but for brushes.
 -- * The `n` type for `Name`: it lets you name some components, which is used for focus management and some events management.
 -- * The `s` type for `State`: your application state.
 -- * The `e` type for `Event`: your custom events types.
+-- * The `m` type: your monadic stack. If you don't need any effect, you can leave it as `m`.
 --
 -- Here are a few typical examples for these:
 --
@@ -188,10 +189,11 @@ type ToDraw rc rb n = [(Maybe rc, Maybe rb, Component n)]
 -- * Components naming enum `n`;
 -- * A `s` state;
 -- * A custom event type `e`.
+-- * Your monadic stack `m`.
 --
 -- Clients are not expected to build this manually. `boot` will handle it for
 -- the users, and will fill (and handle) all the internal fields.
-data Rogui rc rb n s e
+data Rogui rc rb n s e m
   = Rogui
   { consoles :: M.Map rc Console,
     brushes :: M.Map rb Brush,
@@ -199,7 +201,7 @@ data Rogui rc rb n s e
     defaultBrush :: Brush,
     renderer :: Renderer,
     draw :: ConsoleDrawers rc rb n s,
-    onEvent :: EventHandler s e n,
+    onEvent :: EventHandler m s e n,
     -- | Constant evaluating the amount of milliseconds since initialisation, taken from SDL.
     lastTicks :: Word32,
     -- | Step timer constant used for basic animations, expressed in milliseconds.

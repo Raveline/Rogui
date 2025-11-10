@@ -98,7 +98,7 @@ getCurrentSelection ListDefinition {..} ListState {..} = selection >>= (items !?
 -- scrolling appropriately.  This handles the common pattern of selecting the
 -- first/last item when focus enters from different directions.
 listReceiveFocus ::
-  (Ord n) =>
+  (Monad m, Ord n) =>
   -- | The definition for the list
   ListDefinition n a ->
   -- | The current list state
@@ -107,7 +107,7 @@ listReceiveFocus ::
   FocusOrigin ->
   -- | A function to update the application state, given an updated ListState.
   (ListState -> s -> s) ->
-  EventHandlerM s e n ()
+  EventHandlerM m s e n ()
 listReceiveFocus ListDefinition {name, items, itemHeight} ls origin modifier = do
   V2 _ visibleHeight <- getExtentSize name
   let listLength = length items
@@ -125,7 +125,7 @@ listReceiveFocus ListDefinition {name, items, itemHeight} ls origin modifier = d
        in modifyState $ modifier ls {selection = Just lastIdx, scrollOffset = newScroll}
 
 -- | A specialized version of labelListReceiveFocus that doesn't need a ListDefinition
-labelListReceiveFocus :: (Ord n) => n -> [a] -> ListState -> FocusOrigin -> (ListState -> s -> s) -> EventHandlerM s e n ()
+labelListReceiveFocus :: (Monad m, Ord n) => n -> [a] -> ListState -> FocusOrigin -> (ListState -> s -> s) -> EventHandlerM m s e n ()
 labelListReceiveFocus name items =
   listReceiveFocus
     (ListDefinition {name = name, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround = False})
@@ -178,7 +178,7 @@ list ListDefinition {..} ListState {..} =
 -- | Utility to detect selection of an item in the list when the mouse
 -- is clicked.
 handleClickOnLabelList ::
-  (Ord n) =>
+  (Monad m, Ord n) =>
   -- | The name of the component, needed to retrieve its Extent.
   n ->
   -- | The list of items
@@ -189,7 +189,7 @@ handleClickOnLabelList ::
   (ListState -> s -> s) ->
   -- | The details of the click event
   MouseClickDetails ->
-  EventHandlerM s e n ()
+  EventHandlerM m s e n ()
 handleClickOnLabelList n items =
   handleClickOnList ListDefinition {name = n, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround = False} Nothing
 
@@ -197,18 +197,18 @@ handleClickOnLabelList n items =
 -- is clicked. You can also require a specific behaviour if the user
 -- clicked on an item that was already selected.
 handleClickOnList ::
-  (Ord n) =>
+  (Monad m, Ord n) =>
   -- | The list definition
   ListDefinition n a ->
   -- | Action to perform when an item was already selected and is clicked
-  Maybe (V2 Cell -> a -> EventHandlerM s e n ()) ->
+  Maybe (V2 Cell -> a -> EventHandlerM m s e n ()) ->
   -- | The current list state
   ListState ->
   -- A function to modify the application state with the updated `ListState`.
   (ListState -> s -> s) ->
   -- The details of the click event
   MouseClickDetails ->
-  EventHandlerM s e n ()
+  EventHandlerM m s e n ()
 handleClickOnList ListDefinition {name, items, itemHeight} onSelectedClick ls@ListState {..} modifier (MouseClickDetails _ (SDL.V2 mcx mcy) SDL.ButtonLeft) = do
   (SDL.V2 px py) <- getExtentPosition name
   let clickedCellY = getCell $ mcy - py
@@ -228,7 +228,7 @@ handleClickOnList _ _ _ _ _ = unhandled
 
 -- | A default event handler for label list. Works like `handleListEvent`, but doesn't need a full list definition.
 handleLabelListEvent ::
-  (Ord n) =>
+  (Monad m, Ord n) =>
   -- | The name of the component, needed to retrieve its Extent.
   n ->
   -- | The underlying list of items
@@ -241,7 +241,7 @@ handleLabelListEvent ::
   ListState ->
   -- | A function to modify the application state with the updated `ListState`.
   (ListState -> s -> s) ->
-  EventHandlerM s e n ()
+  EventHandlerM m s e n ()
 handleLabelListEvent n items wrapAround =
   handleListEvent (ListDefinition {name = n, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround})
 
@@ -250,7 +250,7 @@ handleLabelListEvent n items wrapAround =
 -- unless the listDefinition sets `wrapAround` to `True`.
 -- If you want other interactions (e.g., something should happen when user
 -- press enter), you should chain this eventHandler with another, custom one.
-handleListEvent :: (Ord n) => ListDefinition n a -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlerM s e n ()
+handleListEvent :: (Monad m, Ord n) => ListDefinition n a -> Event e -> ListState -> (ListState -> s -> s) -> EventHandlerM m s e n ()
 handleListEvent ListDefinition {..} event state@ListState {selection, scrollOffset} modifier = do
   V2 _ visibleHeight <- getExtentSize name
   let listLength = length items

@@ -52,7 +52,7 @@ button n content baseAlignment normalColours focusedColours focused =
 -- | A sensible default implementation for the button component.
 -- This will fire the given event when getting enter, and
 -- focus next and prev on arrows up and down.
-handleButtonEvent :: Event e -> EventHandler state e n
+handleButtonEvent :: (Monad m) => Event e -> EventHandler m state e n
 handleButtonEvent toFire =
   let keyHandler =
         M.fromList
