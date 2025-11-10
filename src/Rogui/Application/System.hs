@@ -459,13 +459,13 @@ keysymToKeyDetails :: SDL.Keysym -> KeyDetails
 keysymToKeyDetails SDL.Keysym {..} =
   let toModifier SDL.KeyModifier {..} =
         S.fromList . catMaybes $
-          [ if keyModifierLeftShift then Just LeftShift else Nothing,
-            if keyModifierRightShift then Just RightShift else Nothing,
-            if keyModifierLeftCtrl then Just LeftCtrl else Nothing,
-            if keyModifierRightCtrl then Just RightCtrl else Nothing,
-            if keyModifierLeftAlt then Just LeftAlt else Nothing,
-            if keyModifierRightAlt then Just RightAlt else Nothing,
-            if keyModifierAltGr then Just AltGr else Nothing
+          [ if keyModifierLeftShift then Just Shift else Nothing,
+            if keyModifierRightShift then Just Shift else Nothing,
+            if keyModifierLeftCtrl then Just Ctrl else Nothing,
+            if keyModifierRightCtrl then Just Ctrl else Nothing,
+            if keyModifierLeftAlt then Just Alt else Nothing,
+            if keyModifierRightAlt then Just Alt else Nothing,
+            if keyModifierAltGr then Just Alt else Nothing
           ]
    in KeyDetails keysymKeycode (toModifier keysymModifier)
 

@@ -10,7 +10,7 @@ where
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Rogui.Application.Event.Monad (halt, redraw, unhandled)
-import Rogui.Application.Event.Types (Event (..), EventHandler, KeyDetails (..), KeyDownDetails (..), Modifier (LeftCtrl))
+import Rogui.Application.Event.Types (Event (..), EventHandler, KeyDetails (..), KeyDownDetails (..), Modifier (..))
 import qualified SDL
 
 -- | A default event handler that will:
@@ -27,7 +27,7 @@ import qualified SDL
 -- shortcuts.
 baseEventHandler :: (Monad m) => EventHandler m state e n
 baseEventHandler _ event =
-  let ctrlC (KeyDetails SDL.KeycodeC [LeftCtrl]) = True
+  let ctrlC (KeyDetails SDL.KeycodeC [Ctrl]) = True
       ctrlC _ = False
    in case event of
         KeyDown KeyDownDetails {key} -> if ctrlC key then halt (pure ()) else unhandled
@@ -37,7 +37,7 @@ baseEventHandler _ event =
         Step -> redraw (pure ()) >> unhandled
         _ -> unhandled
 
--- | A utility to react to key presses listed in a Map
+-- | A utility to react to key presses listed in a Map.
 keyPressHandler ::
   (Monad m) =>
   -- | A map of expected key codes and the actions to perform if this key was pressed

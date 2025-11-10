@@ -56,13 +56,9 @@ data KeyDetails = KeyDetails
   }
 
 data Modifier
-  = LeftShift
-  | RightShift
-  | LeftCtrl
-  | RightCtrl
-  | LeftAlt
-  | RightAlt
-  | AltGr
+  = Shift
+  | Ctrl
+  | Alt
   deriving (Eq, Ord)
 
 data KeyDownDetails = KeyDownDetails
