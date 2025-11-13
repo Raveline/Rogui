@@ -1,8 +1,11 @@
 High priority:
 
-[ ] Add a more involved executable with a very basic game
 [ ] Support alpha for glyph (big change)
-[ ] Add customisable default handlers for components to override keys
+[ ] Support fullscreen, plus different strategies when it comes to this.
+[ ] Add event helper for focus ring
+[ ] Debug issue with clicks
+[ ] Debug issue with smoothness
+[ ] Add customisable default handlers for components to override keys. This has become even more urgent: see ButtonDemo.hs, it makes no sense to have to use up / down arrow keys here.
 
 Medium priority:
 
@@ -18,3 +21,4 @@ Low priority:
 [ ] Add a more comprehensive test suite
 [ ] Add FPS overlay
 [ ] Have some benchmarking suite to be able to experiment with performance improvement (grouping draw calls with similar colour, e.g. - or even simply avoiding some SDL calls that are redundant)
+[ ] Add an intermediary demo illustrating component composition

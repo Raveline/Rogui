@@ -140,11 +140,46 @@ executable rogui-animation-demo
         , rogui
         , vector
 
+executable rogui-button-demo
+    hs-source-dirs:   demos
+    ghc-options:      -threaded -Wall -Wcompat -O2
+    default-language: Haskell2010
+    main-is:          ButtonDemo.hs
+    build-depends:
+        , base
+        , linear
+        , rogui
+
 executable rogui-colour-demo
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
     main-is:          ColourDemo.hs
+    build-depends:
+        , base
+        , linear
+        , rogui
+
+executable rogui-gamegrid-demo
+    hs-source-dirs:   demos
+    ghc-options:      -threaded -Wall -Wcompat -O2
+    default-language: Haskell2010
+    main-is:          GameGridDemo.hs
+    build-depends:
+        , array
+        , base
+        , containers
+        , linear
+        , monad-logger
+        , mtl
+        , rogui
+        , sdl2
+
+executable rogui-grid-demo
+    hs-source-dirs:   demos
+    ghc-options:      -threaded -Wall -Wcompat -O2
+    default-language: Haskell2010
+    main-is:          GridDemo.hs
     build-depends:
         , base
         , linear
@@ -160,21 +195,42 @@ executable rogui-list-demo
         , linear
         , rogui
 
-executable rogui-grid-demo
+executable rogui-messagelogs-demo
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
-    main-is:          GridDemo.hs
+    main-is:          MessageLogsDemo.hs
     build-depends:
         , base
         , linear
         , rogui
+
+executable rogui-progressbar-demo
+    hs-source-dirs:   demos
+    ghc-options:      -threaded -Wall -Wcompat -O2
+    default-language: Haskell2010
+    main-is:          ProgressBarDemo.hs
+    build-depends:
+        , base
+        , linear
+        , rogui
+        , sdl2
 
 executable rogui-rotation-demo
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
     main-is:          RotationDemo.hs
+    build-depends:
+        , base
+        , linear
+        , rogui
+
+executable rogui-textinput-demo
+    hs-source-dirs:   demos
+    ghc-options:      -threaded -Wall -Wcompat -O2
+    default-language: Haskell2010
+    main-is:          TextInputDemo.hs
     build-depends:
         , base
         , linear
@@ -217,35 +273,6 @@ executable RogueHarvest
         , mtl
         , rogui
         , sdl2
-
-executable rogui
-    -- Import common warning flags.
-    import:           warnings
-
-    -- .hs or .lhs file containing the Main module.
-    main-is:          Main.hs
-
-    -- Modules included in this executable, other than Main.
-    -- other-modules:
-
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
-
-    -- Other library packages from which modules are imported.
-    build-depends:
-        , array
-        , base
-        , containers
-        , monad-logger
-        , mtl
-        , rogui
-        , sdl2
-
-    -- Directories containing source files.
-    hs-source-dirs:   app
-
-    -- Base language which the package is written in.
-    default-language: Haskell2010
 
 test-suite rogui-test
     -- Import common warning flags.
