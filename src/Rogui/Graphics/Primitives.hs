@@ -3,7 +3,6 @@ module Rogui.Graphics.Primitives
     fillConsoleWith,
     clipToConsole,
     overlayRect,
-    RGB,
     RGBA,
     Transformation (..),
     Rotation (..),
@@ -20,18 +19,16 @@ import SDL (Rectangle (..), Renderer, Texture, V2 (..), V3 (..), V4 (..))
 import qualified SDL
 import SDL.Vect (Point (..))
 
-type RGB = V3 Word8
-
 type RGBA = V4 Word8
 
-setFrontColour :: (MonadIO m) => Texture -> RGB -> m ()
-setFrontColour texture rgb = do
+setFrontColour :: (MonadIO m) => Texture -> RGBA -> m ()
+setFrontColour texture (V4 r g b _) = do
   SDL.textureBlendMode texture SDL.$= SDL.BlendMod
-  SDL.textureColorMod texture SDL.$= rgb
+  SDL.textureColorMod texture SDL.$= V3 r g b
   SDL.textureBlendMode texture SDL.$= SDL.BlendAlphaBlend
 
-setBackColour :: (MonadIO m) => Renderer -> Rectangle CInt -> RGB -> m ()
-setBackColour renderer dest (V3 r g b) = do
+setBackColour :: (MonadIO m) => Renderer -> Rectangle CInt -> RGBA -> m ()
+setBackColour renderer dest (V4 r g b _) = do
   SDL.rendererDrawColor renderer SDL.$= SDL.V4 r g b 255
   SDL.fillRect renderer (pure dest)
   SDL.rendererDrawColor renderer SDL.$= SDL.V4 0 0 0 255
@@ -95,9 +92,9 @@ printCharAt ::
   -- | Series of transformation to perform on the glyph
   [Transformation] ->
   -- | Frontcolour of the sprite.
-  Maybe RGB ->
+  Maybe RGBA ->
   -- | Backcolour of the sprite.
-  Maybe RGB ->
+  Maybe RGBA ->
   -- | Sprite to paint. Should in theory be limited to Char, but we
   -- want to be able to support more ambitious brushes.
   Int ->
@@ -145,10 +142,10 @@ getConsoleRect :: Console -> Rectangle CInt
 getConsoleRect Console {..} =
   Rectangle (P $ fromIntegral <$> position) (fromIntegral <$> V2 width height)
 
-fillConsoleWith :: (MonadIO m) => Renderer -> Console -> RGB -> m ()
-fillConsoleWith renderer console (V3 r g b) = do
+fillConsoleWith :: (MonadIO m) => Renderer -> Console -> RGBA -> m ()
+fillConsoleWith renderer console (V4 r g b a) = do
   let dest = getConsoleRect console
-  SDL.rendererDrawColor renderer SDL.$= SDL.V4 r g b 255
+  SDL.rendererDrawColor renderer SDL.$= SDL.V4 r g b a
   SDL.fillRect renderer (pure dest)
   SDL.rendererDrawColor renderer SDL.$= SDL.V4 0 0 0 255
 

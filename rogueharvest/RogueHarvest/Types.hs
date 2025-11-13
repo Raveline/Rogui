@@ -28,7 +28,7 @@ import qualified Data.Map as M
 import Data.Sequence (Seq)
 import Lens.Micro.Pro.TH
 import Lens.Micro.TH
-import Linear (V3 (..))
+import Linear (V4 (..))
 import Linear.V2 (V2 (..))
 import RogueHarvest.Components.ConfirmDialog (ConfirmDialogState)
 import RogueHarvest.Types.Entity
@@ -219,9 +219,9 @@ tileToGlyphInfo pos = \case
     let variant = hashPosition pos `mod` length meadowChars
         char = meadowChars !! variant
         -- Use a lighter, more yellowish green for better contrast
-        meadowForeground = V3 180 255 100
+        meadowForeground = V4 180 255 100 255
      in GlyphInfo (ord char) (Colours (Just meadowForeground) (Just darkGreen)) []
-  (Field _) -> GlyphInfo (ord ' ') (Colours Nothing (Just $ V3 90 80 60)) []
+  (Field _) -> GlyphInfo (ord ' ') (Colours Nothing (Just $ V4 90 80 60 255)) []
   (House NW) -> GlyphInfo arrowheadTop (Colours (Just red) (Just darkGreen)) []
   (House N) -> GlyphInfo arrowheadTop (Colours (Just red) (Just darkGreen)) []
   (House NE) -> GlyphInfo arrowheadTop (Colours (Just red) (Just darkGreen)) []

@@ -120,32 +120,32 @@ computeDarkness distance' maxRadius maxAlpha
   | otherwise =
       let ratio = distance' / maxRadius
           gradSteps = 20
-          (V3 r g b, alpha)
+          (V4 r g b _, alpha)
             | ratio < 0.15 =
                 -- Very close to torch center: bright warm glow
                 let centerGlow = gradient flame orange gradSteps
                     index = min (gradSteps - 1) $ floor (ratio / 0.15 * fromIntegral gradSteps)
-                    V3 r' g' b' = centerGlow !! index
+                    V4 r' g' b' _ = centerGlow !! index
                     -- Very low alpha = subtle tint
                     alpha' = round (30 + 50 * ratio / 0.15)
-                 in (V3 r' g' b', alpha')
+                 in (V4 r' g' b' 255, alpha')
             | ratio < 0.4 =
                 -- Warm glow zone: flame (red-orange) -> amber -> yellow
                 let warmGrad = gradient flame yellow gradSteps
                     index = min (gradSteps - 1) $ floor (ratio / 0.4 * fromIntegral gradSteps)
-                    V3 r' g' b' = warmGrad !! index
+                    V4 r' g' b' _ = warmGrad !! index
                     -- Low alpha near torch (brighter)
                     alpha' = round (80 * ratio / 0.4)
-                 in (V3 r' g' b', alpha')
+                 in (V4 r' g' b' 255, alpha')
             | otherwise =
                 -- Darkness zone: yellow fades to black
                 let darkGrad = gradient yellow black gradSteps
                     localRatio = (ratio - 0.4) / 0.6
                     index = min (gradSteps - 1) $ floor (localRatio * fromIntegral gradSteps)
-                    V3 r' g' b' = darkGrad !! index
+                    V4 r' g' b' _ = darkGrad !! index
                     -- High alpha far from torch (darker)
                     alpha' = round (80 + localRatio * fromIntegral (maxAlpha - 80))
-                 in (V3 r' g' b', alpha')
+                 in (V4 r' g' b' 255, alpha')
        in Just (V4 r g b alpha)
 
 -- The main overlay function to pass to gridOverlay

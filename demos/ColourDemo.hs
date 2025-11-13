@@ -48,7 +48,7 @@ renderApp _ _ =
           ]
    in [(Nothing, Nothing, colours)]
 
-gradientDisplay :: [RGB] -> Component n
+gradientDisplay :: [RGBA] -> Component n
 gradientDisplay colours =
   let renderItem col = do
         setColours (Colours (Just col) (Just col))

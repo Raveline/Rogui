@@ -2,7 +2,7 @@ module Rogui.Graphics.Colours
   ( Colours (..),
     invert,
     gradient,
-    toRGBA,
+    setAlpha,
   )
 where
 
@@ -10,21 +10,25 @@ import Data.Fixed (mod')
 import Data.Word (Word8)
 import SDL (V3 (..), V4 (..))
 
-data Colours = Colours {front :: Maybe RGB, back :: Maybe RGB}
+-- | Linear interpolation for scalar values
+lerpScalar :: (Num a) => a -> a -> a -> a
+lerpScalar t a b = a * (1 - t) + b * t
+
+type RGBA = V4 Word8
+
+data Colours = Colours {front :: Maybe RGBA, back :: Maybe RGBA}
   deriving (Eq, Show)
 
 invert :: Colours -> Colours
 invert (Colours f b) = Colours b f
 
-toRGBA :: RGB -> Word8 -> V4 Word8
-toRGBA (V3 r g b) = V4 r g b
-
-type RGB = V3 Word8
+setAlpha :: RGBA -> Word8 -> RGBA
+setAlpha (V4 r g b _) = V4 r g b
 
 type HSV = V3 Double
 
-rgbToHsv :: RGB -> HSV
-rgbToHsv (V3 r g b) =
+rgbToHsv :: RGBA -> HSV
+rgbToHsv (V4 r g b _) =
   let r' = fromIntegral r / 255.0
       g' = fromIntegral g / 255.0
       b' = fromIntegral b / 255.0
@@ -42,8 +46,8 @@ rgbToHsv (V3 r g b) =
       v = cmax
    in V3 h s v
 
-hsvToRgb :: HSV -> RGB
-hsvToRgb (V3 h s v) =
+hsvToRgb :: HSV -> Word8 -> RGBA
+hsvToRgb (V3 h s v) a =
   let c = v * s
       h' = h / 60.0
       x = c * (1 - abs ((h' `mod'` 2) - 1))
@@ -58,24 +62,27 @@ hsvToRgb (V3 h s v) =
         | otherwise = (c, 0, x)
 
       toWord8 val = round ((val + m) * 255)
-   in V3 (toWord8 r') (toWord8 g') (toWord8 b')
+   in V4 (toWord8 r') (toWord8 g') (toWord8 b') a
 
 -- | Generate a color gradient using HSV interpolation with N steps (inclusive of endpoints)
--- Interpolates hue along the shortest path around the color wheel
-gradient :: RGB -> RGB -> Int -> [RGB]
+-- Interpolates hue along the shortest path around the color wheel, and alpha linearly
+gradient :: RGBA -> RGBA -> Int -> [RGBA]
 gradient from to steps
   | steps < 2 = [from, to] -- Degenerate case
   | otherwise = interpolate <$> [0 .. steps - 1]
   where
     (V3 h1 s1 v1) = rgbToHsv from
     (V3 h2 s2 v2) = rgbToHsv to
+    (V4 _ _ _ a1) = from
+    (V4 _ _ _ a2) = to
     interpolate i =
       let t = fromIntegral i / fromIntegral (steps - 1)
-          lerp a b = a * (1 - t) + b * t
+          lerpWord8 w1 w2 = round (lerpScalar t (fromIntegral w1) (fromIntegral w2))
           h = lerpHueShortPath h1 h2 t
-          s = lerp s1 s2
-          v = lerp v1 v2
-       in hsvToRgb (V3 h s v)
+          s = lerpScalar t s1 s2
+          v = lerpScalar t v1 v2
+          a = lerpWord8 a1 a2
+       in hsvToRgb (V3 h s v) a
     lerpHueShortPath hue1 hue2 t =
       let diff = hue2 - hue1
           shortestDiff

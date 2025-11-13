@@ -3,577 +3,577 @@
 module Rogui.Graphics.Constants where
 
 import Rogui.Graphics.Primitives
-import SDL (V3 (..))
+import SDL (V4 (..))
 
-white :: RGB
-white = V3 255 255 255
+white :: RGBA
+white = V4 255 255 255 255
 
-black :: RGB
-black = V3 0 0 0
+black :: RGBA
+black = V4 0 0 0 255
 
-red :: RGB
-red = V3 255 0 0
+red :: RGBA
+red = V4 255 0 0 255
 
-green :: RGB
-green = V3 0 255 0
+green :: RGBA
+green = V4 0 255 0 255
 
-blue :: RGB
-blue = V3 0 0 255
+blue :: RGBA
+blue = V4 0 0 255 255
 
-grey :: RGB
-grey = V3 128 128 128
+grey :: RGBA
+grey = V4 128 128 128 255
 
-flame :: RGB
-flame = V3 255 63 0
+flame :: RGBA
+flame = V4 255 63 0 255
 
-orange :: RGB
-orange = V3 255 127 0
+orange :: RGBA
+orange = V4 255 127 0 255
 
-amber :: RGB
-amber = V3 255 191 0
+amber :: RGBA
+amber = V4 255 191 0 255
 
-yellow :: RGB
-yellow = V3 255 255 0
+yellow :: RGBA
+yellow = V4 255 255 0 255
 
-lime :: RGB
-lime = V3 191 255 0
+lime :: RGBA
+lime = V4 191 255 0 255
 
-chartreuse :: RGB
-chartreuse = V3 127 255 0
+chartreuse :: RGBA
+chartreuse = V4 127 255 0 255
 
-sea :: RGB
-sea = V3 0 255 127
+sea :: RGBA
+sea = V4 0 255 127 255
 
-turquoise :: RGB
-turquoise = V3 0 255 191
+turquoise :: RGBA
+turquoise = V4 0 255 191 255
 
-cyan :: RGB
-cyan = V3 0 255 255
+cyan :: RGBA
+cyan = V4 0 255 255 255
 
-sky :: RGB
-sky = V3 0 191 255
+sky :: RGBA
+sky = V4 0 191 255 255
 
-azure :: RGB
-azure = V3 0 127 255
+azure :: RGBA
+azure = V4 0 127 255 255
 
-han :: RGB
-han = V3 63 0 255
+han :: RGBA
+han = V4 63 0 255 255
 
-violet :: RGB
-violet = V3 127 0 255
+violet :: RGBA
+violet = V4 127 0 255 255
 
-purple :: RGB
-purple = V3 191 0 255
+purple :: RGBA
+purple = V4 191 0 255 255
 
-fuchsia :: RGB
-fuchsia = V3 255 0 255
+fuchsia :: RGBA
+fuchsia = V4 255 0 255 255
 
-magenta :: RGB
-magenta = V3 255 0 191
+magenta :: RGBA
+magenta = V4 255 0 191 255
 
-pink :: RGB
-pink = V3 255 0 127
+pink :: RGBA
+pink = V4 255 0 127 255
 
-crimson :: RGB
-crimson = V3 255 0 63
+crimson :: RGBA
+crimson = V4 255 0 63 255
 
-brass :: RGB
-brass = V3 191 151 96
+brass :: RGBA
+brass = V4 191 151 96 255
 
-copper :: RGB
-copper = V3 196 136 124
+copper :: RGBA
+copper = V4 196 136 124 255
 
-gold :: RGB
-gold = V3 229 191 0
+gold :: RGBA
+gold = V4 229 191 0 255
 
-silver :: RGB
-silver = V3 203 203 203
+silver :: RGBA
+silver = V4 203 203 203 255
 
-celadon :: RGB
-celadon = V3 172 255 175
+celadon :: RGBA
+celadon = V4 172 255 175 255
 
-peach :: RGB
-peach = V3 255 159 127
+peach :: RGBA
+peach = V4 255 159 127 255
 
-sepia :: RGB
-sepia = V3 127 101 63
+sepia :: RGBA
+sepia = V4 127 101 63 255
 
-darkestGrey :: RGB
-darkestGrey = V3 31 31 31
+darkestGrey :: RGBA
+darkestGrey = V4 31 31 31 255
 
-darkerGrey :: RGB
-darkerGrey = V3 63 63 63
+darkerGrey :: RGBA
+darkerGrey = V4 63 63 63 255
 
-darkGrey :: RGB
-darkGrey = V3 95 95 95
+darkGrey :: RGBA
+darkGrey = V4 95 95 95 255
 
-lightGrey :: RGB
-lightGrey = V3 159 159 159
+lightGrey :: RGBA
+lightGrey = V4 159 159 159 255
 
-lighterGrey :: RGB
-lighterGrey = V3 191 191 191
+lighterGrey :: RGBA
+lighterGrey = V4 191 191 191 255
 
-lightestGrey :: RGB
-lightestGrey = V3 223 223 223
+lightestGrey :: RGBA
+lightestGrey = V4 223 223 223 255
 
-darkestSepia :: RGB
-darkestSepia = V3 31 24 15
+darkestSepia :: RGBA
+darkestSepia = V4 31 24 15 255
 
-darkerSepia :: RGB
-darkerSepia = V3 63 50 31
+darkerSepia :: RGBA
+darkerSepia = V4 63 50 31 255
 
-darkSepia :: RGB
-darkSepia = V3 94 75 47
+darkSepia :: RGBA
+darkSepia = V4 94 75 47 255
 
-lightSepia :: RGB
-lightSepia = V3 158 134 100
+lightSepia :: RGBA
+lightSepia = V4 158 134 100 255
 
-lighterSepia :: RGB
-lighterSepia = V3 191 171 143
+lighterSepia :: RGBA
+lighterSepia = V4 191 171 143 255
 
-lightestSepia :: RGB
-lightestSepia = V3 222 211 195
+lightestSepia :: RGBA
+lightestSepia = V4 222 211 195 255
 
-darkRed :: RGB
-darkRed = V3 191 0 0
+darkRed :: RGBA
+darkRed = V4 191 0 0 255
 
-darkFlame :: RGB
-darkFlame = V3 191 47 0
+darkFlame :: RGBA
+darkFlame = V4 191 47 0 255
 
-darkOrange :: RGB
-darkOrange = V3 191 95 0
+darkOrange :: RGBA
+darkOrange = V4 191 95 0 255
 
-darkAmber :: RGB
-darkAmber = V3 191 143 0
+darkAmber :: RGBA
+darkAmber = V4 191 143 0 255
 
-darkYellow :: RGB
-darkYellow = V3 191 191 0
+darkYellow :: RGBA
+darkYellow = V4 191 191 0 255
 
-darkLime :: RGB
-darkLime = V3 143 191 0
+darkLime :: RGBA
+darkLime = V4 143 191 0 255
 
-darkChartreuse :: RGB
-darkChartreuse = V3 95 191 0
+darkChartreuse :: RGBA
+darkChartreuse = V4 95 191 0 255
 
-darkGreen :: RGB
-darkGreen = V3 0 191 0
+darkGreen :: RGBA
+darkGreen = V4 0 191 0 255
 
-darkSea :: RGB
-darkSea = V3 0 191 95
+darkSea :: RGBA
+darkSea = V4 0 191 95 255
 
-darkTurquoise :: RGB
-darkTurquoise = V3 0 191 143
+darkTurquoise :: RGBA
+darkTurquoise = V4 0 191 143 255
 
-darkCyan :: RGB
-darkCyan = V3 0 191 191
+darkCyan :: RGBA
+darkCyan = V4 0 191 191 255
 
-darkSky :: RGB
-darkSky = V3 0 143 191
+darkSky :: RGBA
+darkSky = V4 0 143 191 255
 
-darkAzure :: RGB
-darkAzure = V3 0 95 191
+darkAzure :: RGBA
+darkAzure = V4 0 95 191 255
 
-darkBlue :: RGB
-darkBlue = V3 0 0 191
+darkBlue :: RGBA
+darkBlue = V4 0 0 191 255
 
-darkHan :: RGB
-darkHan = V3 47 0 191
+darkHan :: RGBA
+darkHan = V4 47 0 191 255
 
-darkViolet :: RGB
-darkViolet = V3 95 0 191
+darkViolet :: RGBA
+darkViolet = V4 95 0 191 255
 
-darkPurple :: RGB
-darkPurple = V3 143 0 191
+darkPurple :: RGBA
+darkPurple = V4 143 0 191 255
 
-darkFuchsia :: RGB
-darkFuchsia = V3 191 0 191
+darkFuchsia :: RGBA
+darkFuchsia = V4 191 0 191 255
 
-darkMagenta :: RGB
-darkMagenta = V3 191 0 143
+darkMagenta :: RGBA
+darkMagenta = V4 191 0 143 255
 
-darkPink :: RGB
-darkPink = V3 191 0 95
+darkPink :: RGBA
+darkPink = V4 191 0 95 255
 
-darkCrimson :: RGB
-darkCrimson = V3 191 0 47
+darkCrimson :: RGBA
+darkCrimson = V4 191 0 47 255
 
-darkerRed :: RGB
-darkerRed = V3 127 0 0
+darkerRed :: RGBA
+darkerRed = V4 127 0 0 255
 
-darkerFlame :: RGB
-darkerFlame = V3 127 31 0
+darkerFlame :: RGBA
+darkerFlame = V4 127 31 0 255
 
-darkerOrange :: RGB
-darkerOrange = V3 127 63 0
+darkerOrange :: RGBA
+darkerOrange = V4 127 63 0 255
 
-darkerAmber :: RGB
-darkerAmber = V3 127 95 0
+darkerAmber :: RGBA
+darkerAmber = V4 127 95 0 255
 
-darkerYellow :: RGB
-darkerYellow = V3 127 127 0
+darkerYellow :: RGBA
+darkerYellow = V4 127 127 0 255
 
-darkerLime :: RGB
-darkerLime = V3 95 127 0
+darkerLime :: RGBA
+darkerLime = V4 95 127 0 255
 
-darkerChartreuse :: RGB
-darkerChartreuse = V3 63 127 0
+darkerChartreuse :: RGBA
+darkerChartreuse = V4 63 127 0 255
 
-darkerGreen :: RGB
-darkerGreen = V3 0 127 0
+darkerGreen :: RGBA
+darkerGreen = V4 0 127 0 255
 
-darkerSea :: RGB
-darkerSea = V3 0 127 63
+darkerSea :: RGBA
+darkerSea = V4 0 127 63 255
 
-darkerTurquoise :: RGB
-darkerTurquoise = V3 0 127 95
+darkerTurquoise :: RGBA
+darkerTurquoise = V4 0 127 95 255
 
-darkerCyan :: RGB
-darkerCyan = V3 0 127 127
+darkerCyan :: RGBA
+darkerCyan = V4 0 127 127 255
 
-darkerSky :: RGB
-darkerSky = V3 0 95 127
+darkerSky :: RGBA
+darkerSky = V4 0 95 127 255
 
-darkerAzure :: RGB
-darkerAzure = V3 0 63 127
+darkerAzure :: RGBA
+darkerAzure = V4 0 63 127 255
 
-darkerBlue :: RGB
-darkerBlue = V3 0 0 127
+darkerBlue :: RGBA
+darkerBlue = V4 0 0 127 255
 
-darkerHan :: RGB
-darkerHan = V3 31 0 127
+darkerHan :: RGBA
+darkerHan = V4 31 0 127 255
 
-darkerViolet :: RGB
-darkerViolet = V3 63 0 127
+darkerViolet :: RGBA
+darkerViolet = V4 63 0 127 255
 
-darkerPurple :: RGB
-darkerPurple = V3 95 0 127
+darkerPurple :: RGBA
+darkerPurple = V4 95 0 127 255
 
-darkerFuchsia :: RGB
-darkerFuchsia = V3 127 0 127
+darkerFuchsia :: RGBA
+darkerFuchsia = V4 127 0 127 255
 
-darkerMagenta :: RGB
-darkerMagenta = V3 127 0 95
+darkerMagenta :: RGBA
+darkerMagenta = V4 127 0 95 255
 
-darkerPink :: RGB
-darkerPink = V3 127 0 63
+darkerPink :: RGBA
+darkerPink = V4 127 0 63 255
 
-darkerCrimson :: RGB
-darkerCrimson = V3 127 0 31
+darkerCrimson :: RGBA
+darkerCrimson = V4 127 0 31 255
 
-darkestRed :: RGB
-darkestRed = V3 63 0 0
+darkestRed :: RGBA
+darkestRed = V4 63 0 0 255
 
-darkestFlame :: RGB
-darkestFlame = V3 63 15 0
+darkestFlame :: RGBA
+darkestFlame = V4 63 15 0 255
 
-darkestOrange :: RGB
-darkestOrange = V3 63 31 0
+darkestOrange :: RGBA
+darkestOrange = V4 63 31 0 255
 
-darkestAmber :: RGB
-darkestAmber = V3 63 47 0
+darkestAmber :: RGBA
+darkestAmber = V4 63 47 0 255
 
-darkestYellow :: RGB
-darkestYellow = V3 63 63 0
+darkestYellow :: RGBA
+darkestYellow = V4 63 63 0 255
 
-darkestLime :: RGB
-darkestLime = V3 47 63 0
+darkestLime :: RGBA
+darkestLime = V4 47 63 0 255
 
-darkestChartreuse :: RGB
-darkestChartreuse = V3 31 63 0
+darkestChartreuse :: RGBA
+darkestChartreuse = V4 31 63 0 255
 
-darkestGreen :: RGB
-darkestGreen = V3 0 63 0
+darkestGreen :: RGBA
+darkestGreen = V4 0 63 0 255
 
-darkestSea :: RGB
-darkestSea = V3 0 63 31
+darkestSea :: RGBA
+darkestSea = V4 0 63 31 255
 
-darkestTurquoise :: RGB
-darkestTurquoise = V3 0 63 47
+darkestTurquoise :: RGBA
+darkestTurquoise = V4 0 63 47 255
 
-darkestCyan :: RGB
-darkestCyan = V3 0 63 63
+darkestCyan :: RGBA
+darkestCyan = V4 0 63 63 255
 
-darkestSky :: RGB
-darkestSky = V3 0 47 63
+darkestSky :: RGBA
+darkestSky = V4 0 47 63 255
 
-darkestAzure :: RGB
-darkestAzure = V3 0 31 63
+darkestAzure :: RGBA
+darkestAzure = V4 0 31 63 255
 
-darkestBlue :: RGB
-darkestBlue = V3 0 0 63
+darkestBlue :: RGBA
+darkestBlue = V4 0 0 63 255
 
-darkestHan :: RGB
-darkestHan = V3 15 0 63
+darkestHan :: RGBA
+darkestHan = V4 15 0 63 255
 
-darkestViolet :: RGB
-darkestViolet = V3 31 0 63
+darkestViolet :: RGBA
+darkestViolet = V4 31 0 63 255
 
-darkestPurple :: RGB
-darkestPurple = V3 47 0 63
+darkestPurple :: RGBA
+darkestPurple = V4 47 0 63 255
 
-darkestFuchsia :: RGB
-darkestFuchsia = V3 63 0 63
+darkestFuchsia :: RGBA
+darkestFuchsia = V4 63 0 63 255
 
-darkestMagenta :: RGB
-darkestMagenta = V3 63 0 47
+darkestMagenta :: RGBA
+darkestMagenta = V4 63 0 47 255
 
-darkestPink :: RGB
-darkestPink = V3 63 0 31
+darkestPink :: RGBA
+darkestPink = V4 63 0 31 255
 
-darkestCrimson :: RGB
-darkestCrimson = V3 63 0 15
+darkestCrimson :: RGBA
+darkestCrimson = V4 63 0 15 255
 
-lightRed :: RGB
-lightRed = V3 255 63 63
+lightRed :: RGBA
+lightRed = V4 255 63 63 255
 
-lightFlame :: RGB
-lightFlame = V3 255 111 63
+lightFlame :: RGBA
+lightFlame = V4 255 111 63 255
 
-lightOrange :: RGB
-lightOrange = V3 255 159 63
+lightOrange :: RGBA
+lightOrange = V4 255 159 63 255
 
-lightAmber :: RGB
-lightAmber = V3 255 207 63
+lightAmber :: RGBA
+lightAmber = V4 255 207 63 255
 
-lightYellow :: RGB
-lightYellow = V3 255 255 63
+lightYellow :: RGBA
+lightYellow = V4 255 255 63 255
 
-lightLime :: RGB
-lightLime = V3 207 255 63
+lightLime :: RGBA
+lightLime = V4 207 255 63 255
 
-lightChartreuse :: RGB
-lightChartreuse = V3 159 255 63
+lightChartreuse :: RGBA
+lightChartreuse = V4 159 255 63 255
 
-lightGreen :: RGB
-lightGreen = V3 63 255 63
+lightGreen :: RGBA
+lightGreen = V4 63 255 63 255
 
-lightSea :: RGB
-lightSea = V3 63 255 159
+lightSea :: RGBA
+lightSea = V4 63 255 159 255
 
-lightTurquoise :: RGB
-lightTurquoise = V3 63 255 207
+lightTurquoise :: RGBA
+lightTurquoise = V4 63 255 207 255
 
-lightCyan :: RGB
-lightCyan = V3 63 255 255
+lightCyan :: RGBA
+lightCyan = V4 63 255 255 255
 
-lightSky :: RGB
-lightSky = V3 63 207 255
+lightSky :: RGBA
+lightSky = V4 63 207 255 255
 
-lightAzure :: RGB
-lightAzure = V3 63 159 255
+lightAzure :: RGBA
+lightAzure = V4 63 159 255 255
 
-lightBlue :: RGB
-lightBlue = V3 63 63 255
+lightBlue :: RGBA
+lightBlue = V4 63 63 255 255
 
-lightHan :: RGB
-lightHan = V3 111 63 255
+lightHan :: RGBA
+lightHan = V4 111 63 255 255
 
-lightViolet :: RGB
-lightViolet = V3 159 63 255
+lightViolet :: RGBA
+lightViolet = V4 159 63 255 255
 
-lightPurple :: RGB
-lightPurple = V3 207 63 255
+lightPurple :: RGBA
+lightPurple = V4 207 63 255 255
 
-lightFuchsia :: RGB
-lightFuchsia = V3 255 63 255
+lightFuchsia :: RGBA
+lightFuchsia = V4 255 63 255 255
 
-lightMagenta :: RGB
-lightMagenta = V3 255 63 207
+lightMagenta :: RGBA
+lightMagenta = V4 255 63 207 255
 
-lightPink :: RGB
-lightPink = V3 255 63 159
+lightPink :: RGBA
+lightPink = V4 255 63 159 255
 
-lightCrimson :: RGB
-lightCrimson = V3 255 63 111
+lightCrimson :: RGBA
+lightCrimson = V4 255 63 111 255
 
-lighterRed :: RGB
-lighterRed = V3 255 127 127
+lighterRed :: RGBA
+lighterRed = V4 255 127 127 255
 
-lighterFlame :: RGB
-lighterFlame = V3 255 159 127
+lighterFlame :: RGBA
+lighterFlame = V4 255 159 127 255
 
-lighterOrange :: RGB
-lighterOrange = V3 255 191 127
+lighterOrange :: RGBA
+lighterOrange = V4 255 191 127 255
 
-lighterAmber :: RGB
-lighterAmber = V3 255 223 127
+lighterAmber :: RGBA
+lighterAmber = V4 255 223 127 255
 
-lighterYellow :: RGB
-lighterYellow = V3 255 255 127
+lighterYellow :: RGBA
+lighterYellow = V4 255 255 127 255
 
-lighterLime :: RGB
-lighterLime = V3 223 255 127
+lighterLime :: RGBA
+lighterLime = V4 223 255 127 255
 
-lighterChartreuse :: RGB
-lighterChartreuse = V3 191 255 127
+lighterChartreuse :: RGBA
+lighterChartreuse = V4 191 255 127 255
 
-lighterGreen :: RGB
-lighterGreen = V3 127 255 127
+lighterGreen :: RGBA
+lighterGreen = V4 127 255 127 255
 
-lighterSea :: RGB
-lighterSea = V3 127 255 191
+lighterSea :: RGBA
+lighterSea = V4 127 255 191 255
 
-lighterTurquoise :: RGB
-lighterTurquoise = V3 127 255 223
+lighterTurquoise :: RGBA
+lighterTurquoise = V4 127 255 223 255
 
-lighterCyan :: RGB
-lighterCyan = V3 127 255 255
+lighterCyan :: RGBA
+lighterCyan = V4 127 255 255 255
 
-lighterSky :: RGB
-lighterSky = V3 127 223 255
+lighterSky :: RGBA
+lighterSky = V4 127 223 255 255
 
-lighterAzure :: RGB
-lighterAzure = V3 127 191 255
+lighterAzure :: RGBA
+lighterAzure = V4 127 191 255 255
 
-lighterBlue :: RGB
-lighterBlue = V3 127 127 255
+lighterBlue :: RGBA
+lighterBlue = V4 127 127 255 255
 
-lighterHan :: RGB
-lighterHan = V3 159 127 255
+lighterHan :: RGBA
+lighterHan = V4 159 127 255 255
 
-lighterViolet :: RGB
-lighterViolet = V3 191 127 255
+lighterViolet :: RGBA
+lighterViolet = V4 191 127 255 255
 
-lighterPurple :: RGB
-lighterPurple = V3 223 127 255
+lighterPurple :: RGBA
+lighterPurple = V4 223 127 255 255
 
-lighterFuchsia :: RGB
-lighterFuchsia = V3 255 127 255
+lighterFuchsia :: RGBA
+lighterFuchsia = V4 255 127 255 255
 
-lighterMagenta :: RGB
-lighterMagenta = V3 255 127 223
+lighterMagenta :: RGBA
+lighterMagenta = V4 255 127 223 255
 
-lighterPink :: RGB
-lighterPink = V3 255 127 191
+lighterPink :: RGBA
+lighterPink = V4 255 127 191 255
 
-lighterCrimson :: RGB
-lighterCrimson = V3 255 127 159
+lighterCrimson :: RGBA
+lighterCrimson = V4 255 127 159 255
 
-lightestRed :: RGB
-lightestRed = V3 255 191 191
+lightestRed :: RGBA
+lightestRed = V4 255 191 191 255
 
-lightestFlame :: RGB
-lightestFlame = V3 255 207 191
+lightestFlame :: RGBA
+lightestFlame = V4 255 207 191 255
 
-lightestOrange :: RGB
-lightestOrange = V3 255 223 191
+lightestOrange :: RGBA
+lightestOrange = V4 255 223 191 255
 
-lightestAmber :: RGB
-lightestAmber = V3 255 239 191
+lightestAmber :: RGBA
+lightestAmber = V4 255 239 191 255
 
-lightestYellow :: RGB
-lightestYellow = V3 255 255 191
+lightestYellow :: RGBA
+lightestYellow = V4 255 255 191 255
 
-lightestLime :: RGB
-lightestLime = V3 239 255 191
+lightestLime :: RGBA
+lightestLime = V4 239 255 191 255
 
-lightestChartreuse :: RGB
-lightestChartreuse = V3 223 255 191
+lightestChartreuse :: RGBA
+lightestChartreuse = V4 223 255 191 255
 
-lightestGreen :: RGB
-lightestGreen = V3 191 255 191
+lightestGreen :: RGBA
+lightestGreen = V4 191 255 191 255
 
-lightestSea :: RGB
-lightestSea = V3 191 255 223
+lightestSea :: RGBA
+lightestSea = V4 191 255 223 255
 
-lightestTurquoise :: RGB
-lightestTurquoise = V3 191 255 239
+lightestTurquoise :: RGBA
+lightestTurquoise = V4 191 255 239 255
 
-lightestCyan :: RGB
-lightestCyan = V3 191 255 255
+lightestCyan :: RGBA
+lightestCyan = V4 191 255 255 255
 
-lightestSky :: RGB
-lightestSky = V3 191 239 255
+lightestSky :: RGBA
+lightestSky = V4 191 239 255 255
 
-lightestAzure :: RGB
-lightestAzure = V3 191 223 255
+lightestAzure :: RGBA
+lightestAzure = V4 191 223 255 255
 
-lightestBlue :: RGB
-lightestBlue = V3 191 191 255
+lightestBlue :: RGBA
+lightestBlue = V4 191 191 255 255
 
-lightestHan :: RGB
-lightestHan = V3 207 191 255
+lightestHan :: RGBA
+lightestHan = V4 207 191 255 255
 
-lightestViolet :: RGB
-lightestViolet = V3 223 191 255
+lightestViolet :: RGBA
+lightestViolet = V4 223 191 255 255
 
-lightestPurple :: RGB
-lightestPurple = V3 239 191 255
+lightestPurple :: RGBA
+lightestPurple = V4 239 191 255 255
 
-lightestFuchsia :: RGB
-lightestFuchsia = V3 255 191 255
+lightestFuchsia :: RGBA
+lightestFuchsia = V4 255 191 255 255
 
-lightestMagenta :: RGB
-lightestMagenta = V3 255 191 239
+lightestMagenta :: RGBA
+lightestMagenta = V4 255 191 239 255
 
-lightestPink :: RGB
-lightestPink = V3 255 191 223
+lightestPink :: RGBA
+lightestPink = V4 255 191 223 255
 
-lightestCrimson :: RGB
-lightestCrimson = V3 255 191 207
+lightestCrimson :: RGBA
+lightestCrimson = V4 255 191 207 255
 
-desaturatedRed :: RGB
-desaturatedRed = V3 127 63 63
+desaturatedRed :: RGBA
+desaturatedRed = V4 127 63 63 255
 
-desaturatedFlame :: RGB
-desaturatedFlame = V3 127 79 63
+desaturatedFlame :: RGBA
+desaturatedFlame = V4 127 79 63 255
 
-desaturatedOrange :: RGB
-desaturatedOrange = V3 127 95 63
+desaturatedOrange :: RGBA
+desaturatedOrange = V4 127 95 63 255
 
-desaturatedAmber :: RGB
-desaturatedAmber = V3 127 111 63
+desaturatedAmber :: RGBA
+desaturatedAmber = V4 127 111 63 255
 
-desaturatedYellow :: RGB
-desaturatedYellow = V3 127 127 63
+desaturatedYellow :: RGBA
+desaturatedYellow = V4 127 127 63 255
 
-desaturatedLime :: RGB
-desaturatedLime = V3 111 127 63
+desaturatedLime :: RGBA
+desaturatedLime = V4 111 127 63 255
 
-desaturatedChartreuse :: RGB
-desaturatedChartreuse = V3 95 127 63
+desaturatedChartreuse :: RGBA
+desaturatedChartreuse = V4 95 127 63 255
 
-desaturatedGreen :: RGB
-desaturatedGreen = V3 63 127 63
+desaturatedGreen :: RGBA
+desaturatedGreen = V4 63 127 63 255
 
-desaturatedSea :: RGB
-desaturatedSea = V3 63 127 95
+desaturatedSea :: RGBA
+desaturatedSea = V4 63 127 95 255
 
-desaturatedTurquoise :: RGB
-desaturatedTurquoise = V3 63 127 111
+desaturatedTurquoise :: RGBA
+desaturatedTurquoise = V4 63 127 111 255
 
-desaturatedCyan :: RGB
-desaturatedCyan = V3 63 127 127
+desaturatedCyan :: RGBA
+desaturatedCyan = V4 63 127 127 255
 
-desaturatedSky :: RGB
-desaturatedSky = V3 63 111 127
+desaturatedSky :: RGBA
+desaturatedSky = V4 63 111 127 255
 
-desaturatedAzure :: RGB
-desaturatedAzure = V3 63 95 127
+desaturatedAzure :: RGBA
+desaturatedAzure = V4 63 95 127 255
 
-desaturatedBlue :: RGB
-desaturatedBlue = V3 63 63 127
+desaturatedBlue :: RGBA
+desaturatedBlue = V4 63 63 127 255
 
-desaturatedHan :: RGB
-desaturatedHan = V3 79 63 127
+desaturatedHan :: RGBA
+desaturatedHan = V4 79 63 127 255
 
-desaturatedViolet :: RGB
-desaturatedViolet = V3 95 63 127
+desaturatedViolet :: RGBA
+desaturatedViolet = V4 95 63 127 255
 
-desaturatedPurple :: RGB
-desaturatedPurple = V3 111 63 127
+desaturatedPurple :: RGBA
+desaturatedPurple = V4 111 63 127 255
 
-desaturatedFuchsia :: RGB
-desaturatedFuchsia = V3 127 63 127
+desaturatedFuchsia :: RGBA
+desaturatedFuchsia = V4 127 63 127 255
 
-desaturatedMagenta :: RGB
-desaturatedMagenta = V3 127 63 111
+desaturatedMagenta :: RGBA
+desaturatedMagenta = V4 127 63 111 255
 
-desaturatedPink :: RGB
-desaturatedPink = V3 127 63 95
+desaturatedPink :: RGBA
+desaturatedPink = V4 127 63 95 255
 
-desaturatedCrimson :: RGB
-desaturatedCrimson = V3 127 63 79
+desaturatedCrimson :: RGBA
+desaturatedCrimson = V4 127 63 79 255
 
 -- | Characters constants for CCSID 437 tileset
 fullBlock :: Int

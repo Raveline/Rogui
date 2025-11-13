@@ -42,7 +42,7 @@ import Control.Monad.Writer (MonadWriter (tell))
 import Data.DList
 import Rogui.Graphics.Colours (Colours)
 import Rogui.Graphics.Console (TextAlign (..))
-import Rogui.Graphics.Primitives (RGB, RGBA, Transformation)
+import Rogui.Graphics.Primitives (RGBA, Transformation)
 import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (BlendMode, V2 (..))
 
@@ -68,7 +68,7 @@ data Instruction
   | -- | Set background and foreground colours
     SetColours Colours
   | -- | Fully colour the current console
-    SetConsoleBackground RGB
+    SetConsoleBackground RGBA
   | -- | Draw the given glyph at the positions given
     DrawGlyphAts [V2 Cell] Int
   | -- | Apply an alpha overlay on the given cell
@@ -159,7 +159,7 @@ drawGlyphAts :: (MonadWriter Instructions m) => [V2 Cell] -> Int -> m ()
 drawGlyphAts cells glyphId = tell (singleton $ DrawGlyphAts cells glyphId)
 
 -- | Set the current console background colour.
-setConsoleBackground :: (MonadWriter Instructions m) => RGB -> m ()
+setConsoleBackground :: (MonadWriter Instructions m) => RGBA -> m ()
 setConsoleBackground r = tell (singleton $ SetConsoleBackground r)
 
 -- | Add a RGBA overlay (with alpha blending) on the given cell.

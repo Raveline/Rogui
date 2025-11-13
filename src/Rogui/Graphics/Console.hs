@@ -9,7 +9,7 @@ import Control.Monad (void)
 import Control.Monad.IO.Class
 import Data.Char (ord)
 import Data.Foldable (traverse_)
-import Rogui.Graphics.Primitives (RGB, printCharAt)
+import Rogui.Graphics.Primitives (RGBA, printCharAt)
 import Rogui.Graphics.Types (Brush (..), Cell (..), Console (..), (./.=))
 import SDL (Renderer, V2 (..), (^*))
 
@@ -24,7 +24,7 @@ cornerBottomRight437 = 217
 -- | Draw a border around the given console with the given brush.
 -- Assumes the Brush has the standard position for border glyphs
 -- on a CCSID 437 tileset.
-drawBorder :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGB -> Maybe RGB -> m ()
+drawBorder :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGBA -> Maybe RGBA -> m ()
 drawBorder renderer console@Console {..} brush'@Brush {..} front back = do
   let (w, h) = (width ./.= tileWidth - 1, height ./.= tileHeight - 1)
       draw = printCharAt renderer console brush' [] front back
@@ -43,7 +43,7 @@ drawBorder renderer console@Console {..} brush'@Brush {..} front back = do
 
 -- | Very basic, dummy string printer. Will not check for overflow.
 -- Print from the position given with the alignment given.
-printStrAt :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGB -> Maybe RGB -> TextAlign -> String -> V2 Cell -> m ()
+printStrAt :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGBA -> Maybe RGBA -> TextAlign -> String -> V2 Cell -> m ()
 printStrAt renderer console brush front back alignment str pos =
   let draw n = printCharAt renderer console brush [] front back (ord n)
       basePos = case alignment of

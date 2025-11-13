@@ -60,9 +60,8 @@ import Control.Monad.State.Strict (get, gets, modify)
 import Data.Foldable (traverse_)
 import qualified Data.Map as M
 import Rogui.Components.Types
-import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Colours, Pixel, RGB, setConsoleBackground, (./.=))
+import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Colours, Pixel, RGBA, setConsoleBackground, (./.=))
 import Rogui.Graphics.DSL.Instructions (overlayConsole, setColours, withBorder, withBrush, withConsole)
-import Rogui.Graphics.Primitives (RGBA)
 import Rogui.Graphics.Types (Cell (..), Console (..), TileSize (..), fromBrush, (.*=.))
 import SDL (BlendMode, V2 (..), (^*))
 
@@ -153,7 +152,7 @@ isInExtent (V2 mx my) Extent {extentConsole} =
    in mx >= x && mx < x + w && my >= y && my < y + h
 
 -- | Fill all the inner component console with the given color
-filled :: RGB -> Component n -> Component n
+filled :: RGBA -> Component n -> Component n
 filled rgb n =
   let draw' = do
         setConsoleBackground rgb

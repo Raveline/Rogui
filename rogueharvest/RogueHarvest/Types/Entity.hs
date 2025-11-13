@@ -13,7 +13,7 @@ where
 import Data.Char (ord)
 import RogueHarvest.Types.Item (Crop (..))
 import Rogui.Components.Game.Utils (GlyphInfo (..))
-import Rogui.Graphics (Colours (..), RGB)
+import Rogui.Graphics (Colours (..), RGBA)
 import Rogui.Graphics.Constants
 
 data GrowthStage = Planted | Seedling | Growing | Grown
@@ -28,8 +28,8 @@ data PlantState = PlantState
   deriving (Eq, Show)
 
 -- | Helper function to create a GlyphInfo from a character and foreground color
-mkGlyphInfo :: Char -> RGB -> GlyphInfo
-mkGlyphInfo c rgb = GlyphInfo (ord c) (Colours (Just rgb) Nothing) []
+mkGlyphInfo :: Char -> RGBA -> GlyphInfo
+mkGlyphInfo c rgba = GlyphInfo (ord c) (Colours (Just rgba) Nothing) []
 
 renderCrop :: Crop -> GrowthStage -> GlyphInfo
 renderCrop Carrot Planted = mkGlyphInfo '.' orange
