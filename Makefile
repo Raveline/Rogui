@@ -35,7 +35,7 @@ test:
 
 # Run hlint on source files
 lint:
-	hlint src/ app/ demos/ rogueharvest/
+	hlint src/ demos/ rogueharvest/
 
 # Clean build artifacts
 clean:
