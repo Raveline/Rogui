@@ -47,7 +47,7 @@ renderGrid _ RogueHarvest {..} =
 -- look blue) but we opted for a more symbolic approach.
 renderWateredLayer :: EntityMap -> MapViewport -> Component Names
 renderWateredLayer entitiesMap =
-  let rendering = GlyphInfo lightShade (Colours (Just lightBlue) Nothing) []
+  let rendering = GlyphInfo lightShade (Colours (Just (setAlpha lightBlue 128)) Nothing) []
       isWatered cc = fromMaybe False $ cc ^? cellPlant . _Just . watered
       toRender = fmap fst . filter (isWatered . snd) . assocs $ entitiesMap
    in entitiesLayer toRender (const rendering) id
