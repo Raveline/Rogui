@@ -1,6 +1,5 @@
 High priority:
 
-[ ] Support alpha for glyph (big change)
 [ ] Support fullscreen, plus different strategies when it comes to this.
 [ ] Add event helper for focus ring
 [ ] Debug issue with clicks
@@ -22,3 +21,4 @@ Low priority:
 [ ] Add FPS overlay
 [ ] Have some benchmarking suite to be able to experiment with performance improvement (grouping draw calls with similar colour, e.g. - or even simply avoiding some SDL calls that are redundant)
 [ ] Add an intermediary demo illustrating component composition
+[ ] Add watering animation by alpha change in rogueharvest
