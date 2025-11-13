@@ -22,10 +22,10 @@ import SDL.Vect (Point (..))
 type RGBA = V4 Word8
 
 setFrontColour :: (MonadIO m) => Texture -> RGBA -> m ()
-setFrontColour texture (V4 r g b _) = do
-  SDL.textureBlendMode texture SDL.$= SDL.BlendMod
-  SDL.textureColorMod texture SDL.$= V3 r g b
+setFrontColour texture (V4 r g b a) = do
   SDL.textureBlendMode texture SDL.$= SDL.BlendAlphaBlend
+  SDL.textureColorMod texture SDL.$= V3 r g b
+  SDL.textureAlphaMod texture SDL.$= a
 
 setBackColour :: (MonadIO m) => Renderer -> Rectangle CInt -> RGBA -> m ()
 setBackColour renderer dest (V4 r g b _) = do
