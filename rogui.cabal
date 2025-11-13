@@ -180,6 +180,44 @@ executable rogui-rotation-demo
         , linear
         , rogui
 
+executable RogueHarvest
+    hs-source-dirs:   rogueharvest
+    ghc-options:      -threaded -Wall -Wcompat -O2
+    default-language: Haskell2010
+    main-is:          Main.hs
+    other-modules:
+        RogueHarvest.Components.ConfirmDialog
+        RogueHarvest.Constants
+        RogueHarvest.Entities
+        RogueHarvest.Game
+        RogueHarvest.GameModes.Help
+        RogueHarvest.GameModes.Inventory
+        RogueHarvest.GameModes.Menu
+        RogueHarvest.GameModes.Playing
+        RogueHarvest.GameModes.Playing.Events
+        RogueHarvest.GameModes.Playing.Rendering
+        RogueHarvest.GameModes.Shopping
+        RogueHarvest.GameModes.Shopping.Events
+        RogueHarvest.GameModes.Shopping.Rendering
+        RogueHarvest.Types
+        RogueHarvest.Types.Entity
+        RogueHarvest.Types.Item
+        RogueHarvest.Utils
+
+    build-depends:
+        , array
+        , base
+        , containers
+        , linear
+        , microlens-platform
+        , microlens-pro
+        , microlens-th
+        , monad-logger
+        , MonadRandom
+        , mtl
+        , rogui
+        , sdl2
+
 executable rogui
     -- Import common warning flags.
     import:           warnings

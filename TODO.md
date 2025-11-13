@@ -1,11 +1,12 @@
 High priority:
 
+[ ] Add a more involved executable with a very basic game
+[ ] Support alpha for glyph (big change)
 [ ] Add customisable default handlers for components to override keys
 
 Medium priority:
 
 [ ] Particle utility, whatever form it might have...
-[ ] Add a more involved executable with a very basic game
 [ ] Generate haddock documentation and see what needs documentation
 [ ] Add a basic modal helper
 [ ] Some tooltip / hovering helper ?
