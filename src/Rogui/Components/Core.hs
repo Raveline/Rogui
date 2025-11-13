@@ -28,6 +28,7 @@ module Rogui.Components.Core
     padded,
     filled,
     overlaid,
+    centered,
     switchBrush,
     trySwitchBrush,
     atPosition,
@@ -98,6 +99,19 @@ vSize size component = component {verticalSize = size}
 
 hSize :: Size -> Component n -> Component n
 hSize size component = component {horizontalSize = size}
+
+-- | Try to center the component. It will only work for fixed size,
+-- as we need to know the size in advance to properly center.
+centered :: Component n -> Component n
+centered c@(Component _ vs hs) =
+  let draw' = do
+        (availableWidth, availableHeight) <- (,) <$> contextCellWidth <*> contextCellHeight
+        let centerW (Fixed horizontalSize) = (availableWidth - horizontalSize) `div` 2
+            centerW _ = 0
+            centerH (Fixed verticalSize) = (availableHeight - verticalSize) `div` 2
+            centerH _ = 0
+        draw (atPosition (V2 (centerW hs) (centerH vs)) c)
+   in emptyComponent {draw = draw'}
 
 -- | Save the actual rendered size of this component, using its name to keep
 -- track of it. This is useful for interactive components (focusable,

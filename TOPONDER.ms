@@ -1,0 +1,2 @@
+- [ ] We are currently over-reliant on the String type. On the one hand, it's quite helpful (string-like, easy to traverse, support for non-ascii is rare~ish in roguelike);
+- [ ] We don't offer different ways to query for keys. Start with the question mark issue (it's not positioned in the same place in AZERTY and QWERTY layouts).
