@@ -1,11 +1,7 @@
 High priority:
 
-[X] Support resizing
-[ ] Bug on gamegrid demo: when maximizing, array out of bounds
 [ ] Bug on viewport for logs
 [ ] Add event helper for focus ring
-[ ] Debug issue with clicks
-[X] Debug issue with smoothness
 [ ] Add customisable default handlers for components to override keys. This has become even more urgent: see ButtonDemo.hs, it makes no sense to have to use up / down arrow keys here.
 
 Medium priority:

@@ -66,7 +66,7 @@ handleConfirmDialogEvent yesName noName state@ConfirmDialogState {..} updater on
     modifyState $ updater state {focusedChoice = No}
   KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeReturn _)) ->
     onSelect focusedChoice
-  MouseEvent (MouseClick mc) -> do
+  MouseEvent (MouseClickReleased mc) -> do
     clicked <- foundClickedExtents mc
     if yesName `elem` clicked
       then onSelect Yes

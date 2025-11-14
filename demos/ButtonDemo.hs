@@ -58,7 +58,7 @@ decreaseEvent = AppEvent $ ChangeCounter (subtract 1)
 
 mouseHandler :: (Monad m) => EventHandler m State CustomEvent Names
 mouseHandler _ = \case
-  (MouseEvent (MouseClick mc)) -> do
+  (MouseEvent (MouseClickPressed mc)) -> do
     exs <- foundClickedExtents mc
     case exs of
       [ButtonInc] -> fireEvent increaseEvent

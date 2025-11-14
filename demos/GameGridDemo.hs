@@ -128,7 +128,7 @@ gameEventHandler State {..} = \case
 
 gridMouseHandler :: (Monad m) => EventHandler m State CustomEvent Names
 gridMouseHandler State {..} = \case
-  (MouseEvent (MouseClick MouseClickDetails {..})) -> do
+  (MouseEvent (MouseClickPressed MouseClickDetails {..})) -> do
     worldPos <- mouseEventToWorldPos GameGrid (TileSize 16 16) fullMapSize playerPos absoluteMousePosition
     redraw $ modifyState (\s -> s {worldPosition = worldPos})
   _ -> unhandled

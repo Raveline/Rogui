@@ -71,7 +71,8 @@ data KeyDownDetails = KeyDownDetails
 
 data MouseEventDetails
   = MouseMove MouseMoveDetails
-  | MouseClick MouseClickDetails
+  | MouseClickPressed MouseClickDetails
+  | MouseClickReleased MouseClickDetails
 
 data MouseClickDetails = MouseClickDetails
   { -- | Mouse position in pixel on the window

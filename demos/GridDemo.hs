@@ -7,45 +7,13 @@ module Main where
 
 import qualified Data.List.NonEmpty as NE
 import Linear (V2 (..))
-import Rogui.Application.Event (Event (MouseEvent), MouseEventDetails (MouseClick), baseEventHandler, modifyState, redraw, (<||>))
-import Rogui.Application.System
-  ( RoguiConfig (..),
-    bootAndPrintError,
-  )
+import Rogui.Application
 import Rogui.Components.Core
-  ( Component,
-    Size (..),
-    TileSize (..),
-    bordered,
-    emptyComponent,
-    vBox,
-    vSize,
-  )
 import Rogui.Components.Grid
-  ( GridDefinition (..),
-    GridState,
-    grid,
-    handleClickOnGrid,
-    handleGridEvent,
-    mkGridState,
-    selectedGridItem,
-  )
 import Rogui.Components.Label (label)
 import Rogui.Components.ProgressBar
-  ( ProgressBarDefinition (..),
-    progressBar,
-  )
 import Rogui.Graphics
-  ( Colours (..),
-    TextAlign (..),
-    black,
-    fullBlock,
-    invert,
-    lightShade,
-    red,
-    white,
-  )
-import Rogui.Types (ConsoleDrawers, EventHandler)
+import Rogui.Types
 
 data Consoles = Root
   deriving (Show, Eq, Ord)
@@ -95,7 +63,7 @@ eventHandler DemoState {..} e =
         -- Click events have their own handlers, being a bit different by nature.
         -- We only have one clickable component in this demo, so we won't need
         -- to use the `foundClickExtents` utility.
-        (MouseEvent (MouseClick mcd)) ->
+        (MouseEvent (MouseClickReleased mcd)) ->
           handleClickOnGrid
             demoGrid
             mcd

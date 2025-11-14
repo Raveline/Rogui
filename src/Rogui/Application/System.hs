@@ -496,7 +496,8 @@ getSDLEvents Brush {..} =
               absoluteMousePosition@(SDL.V2 x y) = fromIntegral <$> mousePos
               defaultTileSizePosition = SDL.V2 (x ./.= tileWidth) (y ./.= tileHeight)
               buttonClicked = mouseButtonEventButton
-           in MouseEvent . MouseClick $ MouseClickDetails {..}
+              constructor = if mouseButtonEventMotion == SDL.Released then MouseClickReleased else MouseClickPressed
+           in MouseEvent . constructor $ MouseClickDetails {..}
         e -> OtherSDLEvent e
       deduplicatedPayload = nub . fmap SDL.eventPayload
    in fmap (fmap toRoguiEvent) (deduplicatedPayload <$> SDL.pollEvents)
