@@ -95,8 +95,6 @@ module Rogui.Application.System
 
     -- * Setting up utilities
     addBrush,
-    addConsole,
-    addConsoleWithSpec,
 
     -- * Log wrapper
     LogOutput (..),
@@ -131,7 +129,7 @@ import Data.Text (pack)
 import Data.Word
 import Rogui.Application.Error (RoguiError (..), TileSizeMismatch (..))
 import Rogui.Application.Event
-import Rogui.Application.Types (RoguiConfig (..))
+import Rogui.Application.Types (ConsoleSpec, RoguiConfig (..))
 import Rogui.Components.Types
 import Rogui.ConsoleSpecs
 import Rogui.Graphics
@@ -231,10 +229,8 @@ addConsole ref console rogui@Rogui {..} =
 --   addConsoleWithSpec TopBarConsole (TileSize 10 16) (SizeWindowPct 100 2) TopLeft rogui
 --   >>= addConsoleWithSpec GameGrid (TileSize 16 16) (SizeWindowPct 100 98) (Below StatusBar)
 -- @
-addConsoleWithSpec ::
+buildConsoleFromSpecs ::
   (Ord rc, MonadError (RoguiError rc rb) m) =>
-  -- | An enum type with the console reference
-  rc ->
   -- | The size of the console cells, expressed in pixels
   TileSize ->
   -- | How should the size of this console be computed ?
@@ -243,8 +239,8 @@ addConsoleWithSpec ::
   PositionSpec rc ->
   -- | The rogui datatype that will store this Console
   Rogui rc rb n s e m' ->
-  m (Rogui rc rb n s e m')
-addConsoleWithSpec ref consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
+  m Console
+buildConsoleFromSpecs consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
   let Console {..} = rootConsole
       (w, h) = case sizeSpec of
         FullWindow -> (width, height)
@@ -262,8 +258,19 @@ addConsoleWithSpec ref consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
         PixelsPos px py -> pure $ SDL.V2 px py
         Below rc -> consoleBelow rc rogui
         RightOf rc -> consoleRight rc rogui
-  console <- (Console w h <$> pos) <*> pure consoleTS
-  pure $ addConsole ref console rogui
+  (Console w h <$> pos) <*> pure consoleTS
+
+applyConsoleSpecs ::
+  (MonadError (RoguiError rc rb) m, Ord rc) =>
+  Console ->
+  [ConsoleSpec rc] ->
+  Rogui rc rb n s e m ->
+  m (Rogui rc rb n s e m)
+applyConsoleSpecs root specs rogui@Rogui {..} =
+  let foldSpecs rogui' (ref, consoleTS, sizeSpec, posSpec) = do
+        newConsole <- buildConsoleFromSpecs consoleTS sizeSpec posSpec rogui'
+        pure $ addConsole ref newConsole rogui'
+   in foldM foldSpecs (rogui {consoles = M.singleton rootConsoleRef root}) specs
 
 -- | This is a simplified version of boot, that handles error management and
 -- logging for you. It will output any error (without trying to recover) and log
@@ -310,6 +317,7 @@ boot RoguiConfig {..} guiBuilder initialState = do
         Rogui
           { consoles = M.singleton rootConsoleReference baseConsole,
             brushes = M.singleton defaultBrushReference baseBrush,
+            rootConsoleRef = rootConsoleReference,
             rootConsole = baseConsole,
             defaultBrush = baseBrush,
             renderer = renderer,
@@ -325,8 +333,9 @@ boot RoguiConfig {..} guiBuilder initialState = do
             lastFPSWarning = 0
           }
   gui <- guiBuilder baseRogui
+  withConsoles <- applyConsoleSpecs baseConsole consoleSpecs gui
 
-  appLoop gui initialState
+  appLoop withConsoles initialState
 
   SDL.destroyWindow window
 

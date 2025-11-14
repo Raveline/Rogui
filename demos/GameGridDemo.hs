@@ -56,6 +56,10 @@ main = do
             defaultBrushPath = "punyworld-dungeon-tileset.png",
             drawingFunction = renderApp,
             stepMs = 100,
+            consoleSpecs =
+              [ (StatusBar, ts10x16, TilesSize 100 1, TopLeft),
+                (GameArea, ts16x16, SizeWindowPct 100 98, Below StatusBar)
+              ],
             eventFunction = baseEventHandler <||> eventHandler
           }
       ts16x16 = TileSize 16 16
@@ -65,8 +69,6 @@ main = do
       guiMaker =
         addBrush BigCharset "terminal_16x16.png" ts16x16
           >=> addBrush SmallCharset "terminal_10x16.png" ts10x16
-          >=> addConsoleWithSpec StatusBar ts10x16 (TilesSize 100 1) TopLeft
-          >=> addConsoleWithSpec GameArea ts16x16 (SizeWindowPct 100 98) (Below StatusBar)
   bootAndPrintError
     config
     guiMaker

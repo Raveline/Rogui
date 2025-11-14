@@ -1,13 +1,18 @@
 module Rogui.Application.Types
   ( RoguiConfig (..),
+    ConsoleSpec,
   )
 where
 
 import Data.Text (Text)
 import Data.Word (Word32)
+import Rogui.ConsoleSpecs (PositionSpec, SizeSpec)
 import Rogui.Graphics (Cell, TileSize)
 import Rogui.Types (ConsoleDrawers, EventHandler)
 import SDL (V2)
+
+-- | Instructions on how to build a console
+type ConsoleSpec rc = (rc, TileSize, SizeSpec, PositionSpec rc)
 
 -- | A simple configuration type provided to the `boot` function.
 -- To see how this can be used in practice, read `Application.System` documentation.
@@ -32,5 +37,7 @@ data RoguiConfig rc rb name state event m = RoguiConfig
     -- | Main drawing function
     drawingFunction :: ConsoleDrawers rc rb name state,
     -- | Main event handling function
-    eventFunction :: EventHandler m state event name
+    eventFunction :: EventHandler m state event name,
+    -- | Console building instructions
+    consoleSpecs :: [ConsoleSpec rc]
   }

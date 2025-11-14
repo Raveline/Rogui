@@ -195,18 +195,28 @@ type ToDraw rc rb n = [(Maybe rc, Maybe rb, Component n)]
 -- the users, and will fill (and handle) all the internal fields.
 data Rogui rc rb n s e m
   = Rogui
-  { consoles :: M.Map rc Console,
+  { -- | All known consoles. This gets reconstructed when window is resized.
+    consoles :: M.Map rc Console,
+    -- |  All known brushes. This gets built at boot.
     brushes :: M.Map rb Brush,
+    -- | The root console, for fast access and to ensure there's always a fallback
     rootConsole :: Console,
+    -- | The root console reference, need when rebuilding the map of consoles
+    rootConsoleRef :: rc,
+    -- | The default brush, useful as fallback or for games where only one brush is used
     defaultBrush :: Brush,
+    -- | Inner storage for the SDL renderer
     renderer :: Renderer,
+    -- | Function to draw
     draw :: ConsoleDrawers rc rb n s,
+    -- | Main game logic is stored as reactions to events
     onEvent :: EventHandler m s e n,
     -- | Constant evaluating the amount of milliseconds since initialisation, taken from SDL.
     lastTicks :: Word32,
     -- | Step timer constant used for basic animations, expressed in milliseconds.
     -- Every time the number of milliseconds reach this, we will fire a Step event.
     timerStep :: Word32,
+    -- | Inner value to keep track of steps
     lastStep :: Word32,
     -- | Number of steps taken since the beginning of the application.
     numberOfSteps :: Int,

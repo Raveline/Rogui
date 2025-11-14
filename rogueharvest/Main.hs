@@ -16,24 +16,23 @@
 module Main (main) where
 
 import Control.Monad.Except
-import Control.Monad.IO.Class
 import Control.Monad.Logger
 import Control.Monad.Random
 import Linear (V2 (..))
 import RogueHarvest.Game
 import RogueHarvest.Types
-import Rogui.Application.Error (RoguiError)
 import Rogui.Application.Event (baseEventHandler, (<||>))
 import Rogui.Application.System
 import Rogui.Components
-import Rogui.Types
 
 main :: IO ()
 main = do
   -- First, we setup configuration
-  let config =
+  let ts10x16 = TileSize 10 16
+      ts16x16 = TileSize 16 16
+      config =
         RoguiConfig
-          { brushTilesize = TileSize 16 16,
+          { brushTilesize = ts16x16,
             appName = "Rogue Harvest",
             consoleCellSize = V2 50 37,
             targetFPS = 60,
@@ -46,8 +45,16 @@ main = do
             -- We use the baseEventHandler to handle the common quitting
             -- events, chained with our main event handler.
             -- `handleGameEvents` is the entry point to read about events
-            eventFunction = baseEventHandler <||> handleGameEvents
+            eventFunction = baseEventHandler <||> handleGameEvents,
+            consoleSpecs =
+              [ (GridConsole, ts16x16, SizeWindowPct 100 89, TopLeft),
+                (LogConsole, ts10x16, SizeWindowPct 100 8, Below GridConsole),
+                (StatusBar, ts10x16, SizeWindowPct 100 3, Below LogConsole),
+                (ModalShop, ts10x16, SizeWindowPct 90 90, Center),
+                (ModalLayer, ts10x16, FullWindow, TopLeft)
+              ]
           }
+      guiMaker = addBrush SmallCharset "rogueharvest/assets/terminal_10x16.png" ts10x16
 
   -- Then we boot. Since we're using the actual `boot`, unlike the
   -- demos, we need to satisfy some constraints: MonadError (through ExcepT)
@@ -65,17 +72,6 @@ main = do
   case result of
     Right _ -> pure ()
     Left e -> putStrLn ("Unexpected error: " <> show e)
-
-guiMaker :: (MonadIO m, MonadError (RoguiError Consoles Brushes) m, MonadLogger m) => Rogui Consoles Brushes Names RogueHarvest RHEvents m -> m (Rogui Consoles Brushes Names RogueHarvest RHEvents m)
-guiMaker baseGui =
-  let ts10x16 = TileSize 10 16
-      ts16x16 = TileSize 16 16
-   in addBrush SmallCharset "rogueharvest/assets/terminal_10x16.png" (TileSize 10 16) baseGui
-        >>= addConsoleWithSpec GridConsole ts16x16 (SizeWindowPct 100 89) TopLeft
-        >>= addConsoleWithSpec LogConsole ts10x16 (SizeWindowPct 100 8) (Below GridConsole)
-        >>= addConsoleWithSpec StatusBar ts10x16 (SizeWindowPct 100 3) (Below LogConsole)
-        >>= addConsoleWithSpec ModalShop ts10x16 (SizeWindowPct 90 90) Center
-        >>= addConsoleWithSpec ModalLayer ts10x16 FullWindow TopLeft
 
 -- | Since LoggingT doesn't know anything about MonadRandom,
 -- we are sadly going to need an orphan instance. In real life,

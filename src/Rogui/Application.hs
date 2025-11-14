@@ -80,8 +80,6 @@ module Rogui.Application
 
     -- * Setting up utilities
     addBrush,
-    addConsole,
-    addConsoleWithSpec,
 
     -- * Log wrapper
     LogOutput (..),

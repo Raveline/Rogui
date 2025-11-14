@@ -1,5 +1,23 @@
 {-# LANGUAGE FlexibleContexts #-}
 
+-- | A simple system to establish how your consoles should be built.
+--
+-- Note that `PositionSpec` lets you position console relative to another
+-- one.  But specs will be processed in order. If a spec uses 'Below' or 'RightOf',
+-- the referenced console must appear earlier in the list.
+--
+-- There is no check for this, but you'll know quickly if you made an error
+-- as console specs are processed when booting.
+--
+-- Example (correct order):
+--   [ (StatusBar, ts, TilesSize 100 1, TopLeft)
+--   , (GameArea, ts, SizeWindowPct 100 99, Below StatusBar)  -- OK: StatusBar exists
+--   ]
+--
+-- Example (incorrect order):
+--   [ (GameArea, ts, SizeWindowPct 100 99, Below StatusBar)  -- ERROR: StatusBar doesn't exist yet!
+--   , (StatusBar, ts, TilesSize 100 1, TopLeft)
+--   ]
 module Rogui.ConsoleSpecs
   ( SizeSpec (..),
     PositionSpec (..),

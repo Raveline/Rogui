@@ -11,7 +11,6 @@ import qualified Data.Sequence as Seq
 import qualified Data.Vector.Strict as V
 import Data.Word (Word8)
 import Linear (V2 (..), V4 (..), distance)
-import Linear.V3 (V3 (..))
 import Rogui.Animation (AnimationSequence, animateCycle)
 import Rogui.Application
 import Rogui.Components.Core
@@ -181,7 +180,8 @@ main = do
             defaultBrushPath = "terminal_16x16.png",
             drawingFunction = renderApp,
             stepMs = 80,
-            eventFunction = baseEventHandler
+            eventFunction = baseEventHandler,
+            consoleSpecs = []
           }
   bootAndPrintError
     config

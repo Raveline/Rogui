@@ -41,6 +41,7 @@ main = do
             defaultBrushPath = "terminal_10x16.png",
             drawingFunction = renderApp,
             stepMs = 100,
+            consoleSpecs = [],
             eventFunction = baseEventHandler <||> mouseHandler <||> focusedHandler <||> focusChangeHandler <||> customEventHandler
           }
   bootAndPrintError
