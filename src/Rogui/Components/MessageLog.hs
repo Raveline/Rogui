@@ -3,7 +3,6 @@
 module Rogui.Components.MessageLog
   ( messageLog,
     handleMessageLogEvent,
-    getTextLikeUntil,
     calculateMessageLogHeight,
     LogChunk,
     LogMessage,
@@ -101,12 +100,12 @@ countMessageLines width msg =
 
 -- | Calculate the total number of lines needed to render a list of messages
 -- with the given width, accounting for text wrapping.
-calculateMessageLogHeight :: Cell -> [LogMessage] -> Cell
+calculateMessageLogHeight :: (Functor f, Foldable f) => Cell -> f LogMessage -> Cell
 calculateMessageLogHeight width msgs =
-  let truncated = truncateWordsOverWidth (getCell width) <$> filter (not . null) msgs
+  let truncated = truncateWordsOverWidth (getCell width) <$> msgs
    in sum $ fmap (countMessageLines width) truncated
 
-drawMessageLogs :: V2 Cell -> [LogMessage] -> DrawM n ()
+drawMessageLogs :: (Functor f, Foldable f) => V2 Cell -> f LogMessage -> DrawM n ()
 drawMessageLogs (V2 _ scrollY) msgs = do
   maxWidth <- contextCellWidth
   visibleLines <- contextCellHeight
@@ -142,11 +141,11 @@ drawMessageLogs (V2 _ scrollY) msgs = do
 --   handleMessageLogEvent LogView (Just $ logViewport state) (messages state) event
 --     (\\newViewport s -> s { logViewport = newViewport })
 -- @
-messageLog :: (Ord n) => n -> Maybe ViewportState -> [LogMessage] -> Component n
+messageLog :: (Ord n, Foldable f, Functor f) => n -> Maybe ViewportState -> f LogMessage -> Component n
 messageLog name viewportState msgs =
   case viewportState of
-    Just vs -> viewport name vs $ \scrollOffset -> emptyComponent {draw = drawMessageLogs scrollOffset . filter (not . null) $ msgs}
-    Nothing -> emptyComponent {draw = drawMessageLogs (V2 0 0) . filter (not . null) $ msgs}
+    Just vs -> viewport name vs $ \scrollOffset -> emptyComponent {draw = drawMessageLogs scrollOffset msgs}
+    Nothing -> emptyComponent {draw = drawMessageLogs (V2 0 0) msgs}
 
 -- | Handle message log events for scrolling.
 --
@@ -163,11 +162,11 @@ messageLog name viewportState msgs =
 -- * Arrow keys to scroll by one in all directions
 -- * Page down and page up to scroll by one full page
 handleMessageLogEvent ::
-  (Monad m, Ord n) =>
+  (Monad m, Ord n, Foldable f, Functor f) =>
   -- | Name of the component, needed to retrieve its extent
   n ->
   -- | Current messages to calculate content height
-  [LogMessage] ->
+  f LogMessage ->
   -- | Event to process
   Event e ->
   -- | Current viewport state
