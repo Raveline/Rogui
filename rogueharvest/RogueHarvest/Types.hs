@@ -47,7 +47,7 @@ data Consoles = Root | GridConsole | LogConsole | ModalShop | ModalHelp | Status
 data Brushes = Charset | SmallCharset
   deriving (Eq, Ord, Show)
 
-data Names = InventoryList | ShoppingList | ValidateButton | SleepYesButton | SleepNoButton | HelpGrid | MenuNew | MenuQuit
+data Names = InventoryList | ShoppingList | ValidateButton | SleepYesButton | SleepNoButton | HelpGrid | MenuNew | MenuQuit | LoggingArea
   deriving (Eq, Ord, Show)
 
 -- We call the game state "modes". Modes come with their own record to keep track

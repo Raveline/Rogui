@@ -1,6 +1,5 @@
 High priority:
 
-[ ] Bug on viewport for logs
 [ ] Add event helper for focus ring
 [ ] Add customisable default handlers for components to override keys. This has become even more urgent: see ButtonDemo.hs, it makes no sense to have to use up / down arrow keys here.
 

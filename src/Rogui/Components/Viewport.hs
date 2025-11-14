@@ -118,8 +118,8 @@ handleViewportEvent ::
 handleViewportEvent name event state modifier = do
   case event of
     KeyDown KeyDownDetails {key} -> case keycode key of
-      SDL.KeycodePageDown -> scroll name OneDown state >>= modifyState . modifier
-      SDL.KeycodePageUp -> scroll name OneUp state >>= modifyState . modifier
+      SDL.KeycodePageDown -> scroll name PageDown state >>= modifyState . modifier
+      SDL.KeycodePageUp -> scroll name PageUp state >>= modifyState . modifier
       SDL.KeycodeLeft -> scroll name OneLeft state >>= modifyState . modifier
       SDL.KeycodeRight -> scroll name OneRight state >>= modifyState . modifier
       SDL.KeycodeDown -> scroll name OneDown state >>= modifyState . modifier

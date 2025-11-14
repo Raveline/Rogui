@@ -8,8 +8,8 @@ import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.System
 import Rogui.Components.Core
-import Rogui.Components.MessageLog (LogMessage, messageLog)
-import Rogui.Components.Viewport (ViewportState (..), handleViewportEvent, viewport)
+import Rogui.Components.MessageLog (LogMessage, handleMessageLogEvent, messageLog)
+import Rogui.Components.Viewport (ViewportState (..))
 import Rogui.Graphics
 import Rogui.Types
 
@@ -45,22 +45,48 @@ main = do
           }
   bootAndPrintError config pure
     . State
-    $ ViewportState (V2 0 0) (V2 0 (Cell $ length fakeLogs))
+    -- Content size is calculated dynamically, so we just initialize with zeros
+    $ ViewportState (V2 0 0) (V2 0 0)
+
+bnw, ynw, rnw :: Colours
+bnw = Colours (Just white) (Just black)
+rnw = Colours (Just red) (Just black)
+ynw = Colours (Just yellow) (Just black)
+
+bottleOfBeers :: Int -> [LogMessage]
+bottleOfBeers n =
+  let showBottle 0 = "no more"
+      showBottle 1 = "1 bottle"
+      showBottle n' = show n' <> " bottles "
+   in [ [(ynw, showBottle n), (bnw, "of beer on the wall")],
+        [(bnw, "Take one down, pass it around..."), (ynw, showBottle $ n - 1), (bnw, "of beer on the wall")]
+      ]
+
+manyBottlesOfBeers :: [LogMessage]
+manyBottlesOfBeers = bottleOfBeers =<< [100, 99 .. 1]
 
 fakeLogs :: [LogMessage]
 fakeLogs =
-  let basicLogs =
-        [ [(Colours (Just white) (Just black), "This is a log message")],
-          [(Colours (Just white) (Just black), "This is another log message")],
-          [(Colours (Just white) (Just black), "And another one")]
-        ]
-   in mconcat $ replicate 200 basicLogs
+  [ [(bnw, "Welcome, adventurer, to the dungeon of demo !")],
+    [(bnw, "You are tasked with retrieving the amulet of Yendor.")],
+    [(bnw, "And detect bugs.")],
+    [(rnw, "Numerous bugs !")],
+    [(bnw, "Speaking of bugs, it would be a good idea to try and")],
+    [(rnw, "generate")],
+    [(bnw, "some right now.")],
+    [(bnw, "Like by changing colours"), (ynw, "mid sentence"), (bnw, "you know ?")],
+    [(bnw, "Or with suuuuper long messages, that could work too. So one goblin, one troll and one elf enter a tavern...")],
+    [(bnw, "Oh I know, what about doing both at the exact"), (rnw, "same"), (bnw, "time ?"), (ynw, "In polychromy, I mean !")],
+    [(bnw, "Now this is fun and all but writing these messages take some time to think")],
+    [(bnw, "So let's do something a bit more simple. 100 bottles of beer on the wall...")]
+  ]
+    <> manyBottlesOfBeers
 
 logEventHandler :: (Monad m) => EventHandler m State () Names
 logEventHandler (State logViewport') e =
-  handleViewportEvent LogView e logViewport' $ \newViewport s' -> s' {logViewport = newViewport}
+  handleMessageLogEvent LogView fakeLogs e logViewport' $ \newViewport s' -> s' {logViewport = newViewport}
 
 renderApp :: ConsoleDrawers Consoles Brushes Names State
 renderApp _ (State logViewport') =
-  let logging = filled black $ bordered (Colours (Just white) (Just black)) $ vBox [viewport LogView logViewport' $ messageLog fakeLogs]
+  let logging = filled black $ bordered (Colours (Just white) (Just black)) $ vBox [messageLog LogView (Just logViewport') fakeLogs]
    in [(Nothing, Nothing, logging)]

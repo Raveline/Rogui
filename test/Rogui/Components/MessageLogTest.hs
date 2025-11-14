@@ -13,6 +13,7 @@ import Data.Maybe (mapMaybe)
 import Linear (V2 (..), V4 (..))
 import Rogui.Components.Core (Component (..), DrawingContext (..))
 import Rogui.Components.MessageLog (messageLog)
+import Rogui.Components.Viewport (ViewportState (..))
 import Rogui.Graphics (Colours (..))
 import Rogui.Graphics.DSL.Instructions (Instruction (..))
 import Rogui.Graphics.Primitives (RGBA)
@@ -50,7 +51,8 @@ renderMessageLog messages widthInCells heightInCells =
       brush' = Brush {tileWidth = 16, tileHeight = 16, textureWidth = 256, textureHeight = 256, brush = undefined}
       dc :: DrawingContext Int
       dc = DrawingContext {brush = brush', console = console, steps = 0, currentExtents = mempty}
-      component = messageLog messages
+      viewportState = ViewportState (V2 0 0) (V2 0 0) -- Content size calculated dynamically
+      component = messageLog (0 :: Int) (Just viewportState) messages
       instructions = execWriter . runStateT (draw component) $ dc
    in D.toList instructions
 

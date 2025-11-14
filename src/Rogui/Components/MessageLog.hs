@@ -2,7 +2,9 @@
 
 module Rogui.Components.MessageLog
   ( messageLog,
+    handleMessageLogEvent,
     getTextLikeUntil,
+    calculateMessageLogHeight,
     LogChunk,
     LogMessage,
   )
@@ -12,7 +14,9 @@ import Control.Monad (void)
 import Data.Foldable
 import Data.List (intersperse)
 import qualified Data.Sequence as Seq
+import Rogui.Application.Event (Event (..), EventHandlerM, getExtentSize)
 import Rogui.Components.Core (Component (..), DrawM, contextCellHeight, contextCellWidth, emptyComponent)
+import Rogui.Components.Viewport (ViewportState (..), handleViewportEvent, viewport)
 import Rogui.Graphics (Cell (..), Colours, setColours, str)
 import Rogui.Graphics.Console (TextAlign (TLeft))
 import Rogui.Graphics.DSL.Instructions (newLine)
@@ -83,6 +87,25 @@ truncateWordsOverWidth beyond msg =
       over = fmap (unwords . fmap (truncateWordBy beyond) . words)
    in fmap over msg
 
+-- | Count how many lines a single message will take up when rendered with the given width.
+-- Accounts for text wrapping.
+countMessageLines :: Cell -> LogMessage -> Cell
+countMessageLines _ [] = 0
+countMessageLines width msg =
+  let msgLength = Cell $ sum $ fmap (length . snd) msg
+   in if msgLength > width
+        then
+          let (_, nextLines) = getTextLikeUntil (getCell width) (length . snd) splitChunk msg
+           in 1 + countMessageLines width nextLines
+        else 1
+
+-- | Calculate the total number of lines needed to render a list of messages
+-- with the given width, accounting for text wrapping.
+calculateMessageLogHeight :: Cell -> [LogMessage] -> Cell
+calculateMessageLogHeight width msgs =
+  let truncated = truncateWordsOverWidth (getCell width) <$> filter (not . null) msgs
+   in sum $ fmap (countMessageLines width) truncated
+
 drawMessageLogs :: V2 Cell -> [LogMessage] -> DrawM n ()
 drawMessageLogs (V2 _ scrollY) msgs = do
   maxWidth <- contextCellWidth
@@ -91,26 +114,69 @@ drawMessageLogs (V2 _ scrollY) msgs = do
   -- to account for the portion that will be clipped by viewport's negative positioning
   let totalLinesToRender = scrollY + visibleLines
       truncated = fmap (truncateWordsOverWidth $ getCell maxWidth) msgs
-   in void $ foldrM (drawMessageLog maxWidth) totalLinesToRender truncated
+  void $ foldrM (drawMessageLog maxWidth) totalLinesToRender truncated
 
--- | A message log that tries to display as many messages as possible, depending
--- on the drawing context. In a game, the actual log list might be quite long;
--- you should not pass the whole list to this component, but only what would
--- typically fit.  E.g.: on a messageLog of Fixed 10 in height, just pass the 10
--- last item of your logs.
+-- | A message log component with built-in scrolling support.
 --
--- When used with 'viewport', the scroll offset will be passed automatically by viewport.
--- When not using viewport, pass 'V2 0 0' for the scroll offset parameter.
+-- This component can internally use a viewport for scrolling. The viewport state
+-- is managed by the application and should be updated via 'handleMessageLogEvent'.
+-- The content size in the ViewportState is ignored - it's calculated dynamically
+-- based on text wrapping.
 --
 -- Logs are displayed in the _reverse_ order. In a typical roguelike, the log
 -- would probably be a Sequence or a Vector or any type where getting the last
 -- elements should not have a high complexity.
 --
--- There is no guarantee everything can be displayed: long lines will be
--- wrapped, words that exceed the width will be truncated. Pay attention that
--- this implementation cuts on whitespaces when trying to wrap, so any
--- intentional double whitespace will get removed.  Finally, note that words
--- that are longer than the width will be truncated.
-messageLog :: [LogMessage] -> V2 Cell -> Component n
-messageLog msgs scrollOffset =
-  emptyComponent {draw = drawMessageLogs scrollOffset . filter (not . null) $ msgs}
+-- Long lines will be wrapped, words that exceed the width will be truncated.
+-- This implementation cuts on whitespaces when wrapping, so any intentional
+-- double whitespace will get removed.
+--
+-- Usage:
+-- @
+-- data Names = LogView
+-- data State = State { logViewport :: ViewportState, messages :: [LogMessage] }
+--
+-- render state = messageLog LogView (logViewport state) (messages state)
+--
+-- eventHandler state event =
+--   handleMessageLogEvent LogView (Just $ logViewport state) (messages state) event
+--     (\\newViewport s -> s { logViewport = newViewport })
+-- @
+messageLog :: (Ord n) => n -> Maybe ViewportState -> [LogMessage] -> Component n
+messageLog name viewportState msgs =
+  case viewportState of
+    Just vs -> viewport name vs $ \scrollOffset -> emptyComponent {draw = drawMessageLogs scrollOffset . filter (not . null) $ msgs}
+    Nothing -> emptyComponent {draw = drawMessageLogs (V2 0 0) . filter (not . null) $ msgs}
+
+-- | Handle message log events for scrolling.
+--
+-- This calculates the content size dynamically based on the messages and visible width,
+-- then delegates to the viewport's event handler for actual scrolling logic.
+--
+-- NB: computing the actual size of the full logs might end up being a bit slow.
+-- If this becomes a problem, you'll need to come up with your own solution here.
+-- (One of them being to cache computations and only recompute when a new log
+-- gets added; or if you know you'll always have enough size to display logs
+-- it becomes as simple as computing the length).
+--
+-- Default supported events are:
+-- * Arrow keys to scroll by one in all directions
+-- * Page down and page up to scroll by one full page
+handleMessageLogEvent ::
+  (Monad m, Ord n) =>
+  -- | Name of the component, needed to retrieve its extent
+  n ->
+  -- | Current messages to calculate content height
+  [LogMessage] ->
+  -- | Event to process
+  Event e ->
+  -- | Current viewport state
+  ViewportState ->
+  -- | How to update the viewport state in your application state
+  (ViewportState -> s -> s) ->
+  EventHandlerM m s e n ()
+handleMessageLogEvent name msgs event state modifier = do
+  (V2 visibleW _) <- getExtentSize name
+  let contentHeight = calculateMessageLogHeight visibleW msgs
+      updatedState = state {contentSize = V2 0 contentHeight}
+  handleViewportEvent name event updatedState modifier
