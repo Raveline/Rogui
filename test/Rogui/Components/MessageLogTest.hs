@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Rogui.Components.MessageLogTest
   ( messageLogTests,
@@ -7,25 +6,25 @@ module Rogui.Components.MessageLogTest
 where
 
 import Control.Monad.State.Strict (StateT (runStateT))
-import Control.Monad.Writer (execWriter)
+import Control.Monad.Writer.Strict (execWriter)
 import qualified Data.DList as D
 import Data.List
 import Data.Maybe (mapMaybe)
-import Linear (V2 (..), V3 (..))
-import Rogui.Components.MessageLog (messageLog)
+import Linear (V2 (..), V4 (..))
 import Rogui.Components.Core (Component (..), DrawingContext (..))
+import Rogui.Components.MessageLog (messageLog)
 import Rogui.Graphics (Colours (..))
 import Rogui.Graphics.DSL.Instructions (Instruction (..))
-import Rogui.Graphics.Primitives (RGB)
+import Rogui.Graphics.Primitives (RGBA)
 import Rogui.Graphics.Types
 import Test.Tasty
 import Test.Tasty.HUnit
 
-testRGB :: RGB
-testRGB = V3 255 255 255
+testRGBA :: RGBA
+testRGBA = V4 255 255 255 255
 
 testColours :: Colours
-testColours = Colours (Just testRGB) Nothing
+testColours = Colours (Just testRGBA) Nothing
 
 extractStrings :: [Instruction] -> [String]
 extractStrings = mapMaybe extractString
@@ -106,8 +105,8 @@ testMultipleMessages =
 
 testMultiColorChunks :: IO ()
 testMultiColorChunks =
-  let red = V3 255 0 0
-      blue = V3 0 0 255
+  let red = V4 255 0 0 255
+      blue = V4 0 0 255 255
       redColours = Colours (Just red) Nothing
       blueColours = Colours (Just blue) Nothing
       messages = [[(redColours, "Red text"), (blueColours, "blue text")]]
