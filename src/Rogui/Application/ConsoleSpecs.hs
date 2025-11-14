@@ -18,10 +18,8 @@
 --   [ (GameArea, ts, SizeWindowPct 100 99, Below StatusBar)  -- ERROR: StatusBar doesn't exist yet!
 --   , (StatusBar, ts, TilesSize 100 1, TopLeft)
 --   ]
-module Rogui.ConsoleSpecs
-  ( SizeSpec (..),
-    PositionSpec (..),
-    findConsole,
+module Rogui.Application.ConsoleSpecs
+  ( findConsole,
     consoleRight,
     consoleBelow,
   )
@@ -30,38 +28,9 @@ where
 import Control.Monad.Except
 import qualified Data.Map as M
 import Rogui.Application.Error (RoguiError (NoSuchConsole))
-import Rogui.Graphics (Cell, Console (..), Pixel (..))
+import Rogui.Graphics (Console (..), Pixel (..))
 import Rogui.Types (Rogui (..))
 import SDL (V2 (..))
-
--- | How to size a console.
-data SizeSpec
-  = -- | Same size as the root console, takes all window
-    FullWindow
-  | -- | Percentage of width and height of the root window
-    SizeWindowPct Int Int
-  | -- | Direct definition in width and height in cells
-    TilesSize Cell Cell
-  | -- | Exact pixels
-    PixelsSize Pixel Pixel
-
--- | Where to put a console.
-data PositionSpec rc
-  = TopLeft
-  | TopRight
-  | BottomLeft
-  | BottomRight
-  | Center
-  | -- | Percentages (x and y) from top-left
-    PosWindowPct Int Int
-  | -- | Position in tiles
-    TilesPos Cell Cell
-  | -- | Exact pixels
-    PixelsPos Pixel Pixel
-  | -- | Below another console (stacking)
-    Below rc
-  | -- | Right of another console (side-by-side)
-    RightOf rc
 
 findConsole :: (Ord rc, MonadError (RoguiError rc rb) m) => rc -> Rogui rc rb n s e m' -> m Console
 findConsole consoleRef Rogui {..} =

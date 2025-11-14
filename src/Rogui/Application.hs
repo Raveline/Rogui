@@ -93,12 +93,12 @@ module Rogui.Application
     module Rogui.Application.Types,
     module Rogui.Application.Event,
     module Rogui.Application.Error,
-    module Rogui.ConsoleSpecs,
+    module Rogui.Application.ConsoleSpecs,
   )
 where
 
+import Rogui.Application.ConsoleSpecs
 import Rogui.Application.Error
 import Rogui.Application.Event
 import Rogui.Application.System
 import Rogui.Application.Types
-import Rogui.ConsoleSpecs

@@ -45,7 +45,8 @@ main = do
             drawingFunction = renderApp,
             stepMs = 100,
             eventFunction = baseEventHandler <||> handleFocused <||> handleFocusChange,
-            consoleSpecs = []
+            consoleSpecs = [],
+            allowResize = True
           }
   bootAndPrintError
     config

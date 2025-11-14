@@ -60,7 +60,8 @@ main = do
               [ (StatusBar, ts10x16, TilesSize 100 1, TopLeft),
                 (GameArea, ts16x16, SizeWindowPct 100 98, Below StatusBar)
               ],
-            eventFunction = baseEventHandler <||> eventHandler
+            eventFunction = baseEventHandler <||> eventHandler,
+            allowResize = True
           }
       ts16x16 = TileSize 16 16
       ts10x16 = TileSize 10 16

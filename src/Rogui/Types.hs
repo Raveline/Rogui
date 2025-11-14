@@ -151,7 +151,14 @@ module Rogui.Types
 
     -- * Event handling
     EventHandler,
+
+    -- * Drawing
     ConsoleDrawers,
+
+    -- * Console specification
+    ConsoleSpec,
+    PositionSpec (..),
+    SizeSpec (..),
 
     -- * Drawing
     ToDraw,
@@ -165,6 +172,9 @@ import Rogui.Application.Event (EventHandler)
 import Rogui.Components.Core (Component, ExtentMap)
 import Rogui.Graphics.Types
 import SDL (Renderer)
+
+-- | Instructions on how to build a console
+type ConsoleSpec rc = (rc, TileSize, SizeSpec, PositionSpec rc)
 
 -- | Drawing function type. Drawing functions have access to all registered
 -- brushes (but if you need to switch brush on a given console,
@@ -227,5 +237,36 @@ data Rogui rc rb n s e m
     -- | Rolling window of recent frame durations (in milliseconds) for FPS tracking
     recentFrameTimes :: Seq Word32,
     -- | Timestamp of last FPS warning (for rate limiting)
-    lastFPSWarning :: Word32
+    lastFPSWarning :: Word32,
+    -- | Console specs, kept around when resizing needs them
+    roguiConsoleSpecs :: [ConsoleSpec rc]
   }
+
+-- | How to size a console.
+data SizeSpec
+  = -- | Same size as the root console, takes all window
+    FullWindow
+  | -- | Percentage of width and height of the root window
+    SizeWindowPct Int Int
+  | -- | Direct definition in width and height in cells
+    TilesSize Cell Cell
+  | -- | Exact pixels
+    PixelsSize Pixel Pixel
+
+-- | Where to put a console.
+data PositionSpec rc
+  = TopLeft
+  | TopRight
+  | BottomLeft
+  | BottomRight
+  | Center
+  | -- | Percentages (x and y) from top-left
+    PosWindowPct Int Int
+  | -- | Position in tiles
+    TilesPos Cell Cell
+  | -- | Exact pixels
+    PixelsPos Pixel Pixel
+  | -- | Below another console (stacking)
+    Below rc
+  | -- | Right of another console (side-by-side)
+    RightOf rc

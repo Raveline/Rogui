@@ -40,7 +40,8 @@ main = do
             drawingFunction = renderApp,
             stepMs = 100,
             eventFunction = baseEventHandler <||> logEventHandler,
-            consoleSpecs = []
+            consoleSpecs = [],
+            allowResize = True
           }
   bootAndPrintError config pure
     . State

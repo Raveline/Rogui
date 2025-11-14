@@ -24,6 +24,7 @@ import RogueHarvest.Types
 import Rogui.Application.Event (baseEventHandler, (<||>))
 import Rogui.Application.System
 import Rogui.Components
+import Rogui.Types
 
 main :: IO ()
 main = do
@@ -38,6 +39,7 @@ main = do
             targetFPS = 60,
             rootConsoleReference = Root,
             defaultBrushReference = Charset,
+            allowResize = True,
             defaultBrushPath = "rogueharvest/assets/terminal_16x16.png",
             -- `renderGame` is the entry point to read about rendering
             drawingFunction = renderGame,

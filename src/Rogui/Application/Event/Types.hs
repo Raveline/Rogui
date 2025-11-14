@@ -47,6 +47,8 @@ data Event e
     Quit
   | -- | Fired everytime `timerStep` amount of millisecond is reached
     Step
+  | -- | Fired when the window was resized. Provides the new dimension (in cells)
+    WindowResized (V2 Cell)
   | -- | Any custom event defined by the roguelike
     AppEvent e
 

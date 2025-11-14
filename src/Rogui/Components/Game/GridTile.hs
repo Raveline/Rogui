@@ -51,12 +51,12 @@ multiLayeredGrid ::
   -- | Layers to display with the given viewport
   [MapViewport -> Component n] ->
   Component n
-multiLayeredGrid mapDimension focus layers =
+multiLayeredGrid mapDimension@(V2 mapWidth mapHeight) focus layers =
   let draw' = do
         Console {width, height} <- gets console
         Brush {tileWidth, tileHeight} <- gets brush
-        let viewportHeight = height ./.= tileHeight
-            viewportWidth = width ./.= tileWidth
+        let viewportHeight = min (height ./.= tileHeight) mapHeight
+            viewportWidth = min (width ./.= tileWidth) mapWidth
             viewport = computeMapViewport (V2 viewportWidth viewportHeight) mapDimension focus
         draw . vSize (Fixed viewportHeight) . hSize (Fixed viewportWidth) . layered . fmap (\c -> c viewport) $ layers
    in emptyComponent {draw = draw'}

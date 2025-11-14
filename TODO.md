@@ -1,6 +1,8 @@
 High priority:
 
-[ ] Support fullscreen, plus different strategies when it comes to this.
+[X] Support resizing
+[ ] Bug on gamegrid demo: when maximizing, array out of bounds
+[ ] Bug on viewport for logs
 [ ] Add event helper for focus ring
 [ ] Debug issue with clicks
 [ ] Debug issue with smoothness
@@ -15,6 +17,7 @@ Medium priority:
 
 Low priority:
 
+[ ] Support fullscreen
 [ ] Add multiline text component
 [ ] Ensure LogConsole doesn't display excessive content (beyond visible height)
 [ ] Add a more comprehensive test suite

@@ -42,6 +42,7 @@ main = do
             drawingFunction = renderApp,
             stepMs = 100,
             consoleSpecs = [],
+            allowResize = True,
             eventFunction = baseEventHandler <||> mouseHandler <||> focusedHandler <||> focusChangeHandler <||> customEventHandler
           }
   bootAndPrintError

@@ -67,6 +67,7 @@ library
     exposed-modules:
         Rogui.Animation
         Rogui.Application
+        Rogui.Application.ConsoleSpecs
         Rogui.Application.Error
         Rogui.Application.Event
         Rogui.Application.Event.Handlers
@@ -90,7 +91,6 @@ library
         Rogui.Components.TextInput
         Rogui.Components.Types
         Rogui.Components.Viewport
-        Rogui.ConsoleSpecs
         Rogui.FocusRing
         Rogui.Graphics
         Rogui.Graphics.Colours

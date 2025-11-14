@@ -75,7 +75,8 @@ main = do
             drawingFunction = renderApp,
             stepMs = 100,
             eventFunction = baseEventHandler <||> eventHandler,
-            consoleSpecs = []
+            consoleSpecs = [],
+            allowResize = False
           }
   bootAndPrintError
     config

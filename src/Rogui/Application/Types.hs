@@ -6,13 +6,9 @@ where
 
 import Data.Text (Text)
 import Data.Word (Word32)
-import Rogui.ConsoleSpecs (PositionSpec, SizeSpec)
 import Rogui.Graphics (Cell, TileSize)
-import Rogui.Types (ConsoleDrawers, EventHandler)
+import Rogui.Types (ConsoleDrawers, ConsoleSpec, EventHandler)
 import SDL (V2)
-
--- | Instructions on how to build a console
-type ConsoleSpec rc = (rc, TileSize, SizeSpec, PositionSpec rc)
 
 -- | A simple configuration type provided to the `boot` function.
 -- To see how this can be used in practice, read `Application.System` documentation.
@@ -22,8 +18,9 @@ data RoguiConfig rc rb name state event m = RoguiConfig
     brushTilesize :: TileSize,
     -- | Name of the application (to be used as window title)
     appName :: Text,
-    -- | Desired cell size of the main window.
+    -- | Minimum cell size of the main window.
     consoleCellSize :: V2 Cell,
+    allowResize :: Bool,
     -- | Desired FPS.
     targetFPS :: Int,
     -- | Desired milliseconds before firing a "Step" event.

@@ -106,7 +106,7 @@ module Rogui.Application.System
 
     -- * Reexport for convenience
     module Rogui.Application.Types,
-    module Rogui.ConsoleSpecs,
+    module Rogui.Application.ConsoleSpecs,
   )
 where
 
@@ -127,13 +127,13 @@ import Data.Set qualified as S
 import Data.String
 import Data.Text (pack)
 import Data.Word
+import Rogui.Application.ConsoleSpecs
 import Rogui.Application.Error (RoguiError (..), TileSizeMismatch (..))
 import Rogui.Application.Event
 import Rogui.Application.Types (ConsoleSpec, RoguiConfig (..))
 import Rogui.Components.Types
-import Rogui.ConsoleSpecs
 import Rogui.Graphics
-import Rogui.Types (Rogui (..))
+import Rogui.Types (PositionSpec (..), Rogui (..), SizeSpec (..))
 import SDL (MouseMotionEventData (MouseMotionEventData))
 import SDL qualified
 import SDL.Event (MouseButtonEventData (..))
@@ -308,7 +308,16 @@ boot RoguiConfig {..} guiBuilder initialState = do
   let TileSize {..} = brushTilesize
       (SDL.V2 widthInTiles heightInTiles) = consoleCellSize
   let windowSize@(SDL.V2 w h) = SDL.V2 (pixelWidth .*=. widthInTiles) (pixelHeight .*=. heightInTiles)
-  window <- SDL.createWindow appName SDL.defaultWindow {SDL.windowInitialSize = fromIntegral <$> windowSize}
+  window <-
+    SDL.createWindow
+      appName
+      SDL.defaultWindow
+        { SDL.windowInitialSize = fromIntegral <$> windowSize,
+          SDL.windowResizable = allowResize
+        }
+  when allowResize
+    . void
+    $ SDL.windowMinimumSize window SDL.$= (fromIntegral <$> windowSize)
   renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
   baseBrush <- loadBrush renderer defaultBrushPath brushTilesize
   let baseConsole = Console {width = w, height = h, position = SDL.V2 0 0, tileSize = brushTilesize}
@@ -330,7 +339,8 @@ boot RoguiConfig {..} guiBuilder initialState = do
             targetFrameTime = frameTime,
             extentsMap = mempty,
             recentFrameTimes = mempty,
-            lastFPSWarning = 0
+            lastFPSWarning = 0,
+            roguiConsoleSpecs = consoleSpecs
           }
   gui <- guiBuilder baseRogui
   withConsoles <- applyConsoleSpecs baseConsole consoleSpecs gui
@@ -354,10 +364,30 @@ calculateFPS frameTimes minSamples
           avgFrameTime = fromIntegral totalTime / fromIntegral (Seq.length frameTimes) :: Double
        in Just (1000.0 / avgFrameTime)
 
+applyResize :: (Ord rc, MonadError (RoguiError rc rb) m) => SDL.V2 Cell -> Rogui rc rb n s e m -> m (Rogui rc rb n s e m)
+applyResize (SDL.V2 newW newH) r@Rogui {..} =
+  let Console {..} = rootConsole
+      newRoot =
+        rootConsole
+          { width = pixelWidth tileSize .*=. newW,
+            height = pixelHeight tileSize .*=. newH
+          }
+   in applyConsoleSpecs newRoot roguiConsoleSpecs $ r {rootConsole = newRoot}
+
+-- Get the SDL events; we will eventually extract the resizing events from these,
+-- so we can rebuild a Rogui datatype properly to react to this particular event.
+preEventLoop :: (Ord rc, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) => Rogui rc rb n s e m -> m (Rogui rc rb n s e m, [Event e])
+preEventLoop initialRogui@Rogui {..} = do
+  sdlEventsWithResize <- getSDLEvents defaultBrush
+  let eventFolder (r, evs) ev@(WindowResized newSize) = (,) <$> applyResize newSize r <*> pure (ev : evs)
+      eventFolder (r, evs) other = pure (r, other : evs)
+  (finalRogui, processedEvents) <- foldM eventFolder (initialRogui, []) sdlEventsWithResize
+  pure (finalRogui, reverse processedEvents)
+
 appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) => Rogui rc rb n s e m -> s -> m ()
-appLoop roGUI@Rogui {..} state = do
-  sdlEvents <- getSDLEvents defaultBrush
+appLoop initialGui state = do
   frameStart <- SDL.ticks
+  (roGUI@Rogui {..}, sdlEvents) <- preEventLoop initialGui
   let reachedStep = frameStart - lastStep > timerStep
       baseEvents = if reachedStep then Step : sdlEvents else sdlEvents
       baseEventState = EventHandlingState {events = Seq.fromList baseEvents, currentState = state, result = ContinueNoRedraw, knownExtents = extentsMap}
@@ -449,6 +479,8 @@ getSDLEvents Brush {..} =
         SDL.KeyboardEvent ke -> case SDL.keyboardEventKeyMotion ke of
           SDL.Pressed -> KeyDown $ KeyDownDetails (SDL.keyboardEventRepeat ke) (keysymToKeyDetails $ SDL.keyboardEventKeysym ke)
           SDL.Released -> KeyUp . keysymToKeyDetails $ SDL.keyboardEventKeysym ke
+        SDL.WindowSizeChangedEvent (SDL.WindowSizeChangedEventData _ (SDL.V2 w h)) ->
+          WindowResized (SDL.V2 (fromIntegral w ./.= tileWidth) (fromIntegral h ./.= tileHeight))
         SDL.MouseMotionEvent MouseMotionEventData {..} ->
           let (SDL.P mousePos) = mouseMotionEventPos
               absoluteMousePosition@(SDL.V2 x y) = fromIntegral <$> mousePos
