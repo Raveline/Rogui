@@ -16,6 +16,7 @@ import Rogui.Components.Core (Component (..), DrawM, contextCellHeight, contextC
 import Rogui.Graphics (Cell (..), Colours, setColours, str)
 import Rogui.Graphics.Console (TextAlign (TLeft))
 import Rogui.Graphics.DSL.Instructions (newLine)
+import SDL (V2 (..))
 
 type LogChunk = (Colours, String)
 
@@ -82,18 +83,24 @@ truncateWordsOverWidth beyond msg =
       over = fmap (unwords . fmap (truncateWordBy beyond) . words)
    in fmap over msg
 
-drawMessageLogs :: [LogMessage] -> DrawM n ()
-drawMessageLogs msgs = do
+drawMessageLogs :: V2 Cell -> [LogMessage] -> DrawM n ()
+drawMessageLogs (V2 _ scrollY) msgs = do
   maxWidth <- contextCellWidth
-  availableLines <- contextCellHeight
-  let truncated = fmap (truncateWordsOverWidth $ getCell maxWidth) msgs
-   in void $ foldrM (drawMessageLog maxWidth) availableLines truncated
+  visibleLines <- contextCellHeight
+  -- When used with viewport, we need to render scrollY + visibleLines
+  -- to account for the portion that will be clipped by viewport's negative positioning
+  let totalLinesToRender = scrollY + visibleLines
+      truncated = fmap (truncateWordsOverWidth $ getCell maxWidth) msgs
+   in void $ foldrM (drawMessageLog maxWidth) totalLinesToRender truncated
 
 -- | A message log that tries to display as many messages as possible, depending
 -- on the drawing context. In a game, the actual log list might be quite long;
 -- you should not pass the whole list to this component, but only what would
 -- typically fit.  E.g.: on a messageLog of Fixed 10 in height, just pass the 10
 -- last item of your logs.
+--
+-- When used with 'viewport', the scroll offset will be passed automatically by viewport.
+-- When not using viewport, pass 'V2 0 0' for the scroll offset parameter.
 --
 -- Logs are displayed in the _reverse_ order. In a typical roguelike, the log
 -- would probably be a Sequence or a Vector or any type where getting the last
@@ -104,6 +111,6 @@ drawMessageLogs msgs = do
 -- this implementation cuts on whitespaces when trying to wrap, so any
 -- intentional double whitespace will get removed.  Finally, note that words
 -- that are longer than the width will be truncated.
-messageLog :: [LogMessage] -> Component n
-messageLog msgs =
-  emptyComponent {draw = drawMessageLogs . filter (not . null) $ msgs}
+messageLog :: [LogMessage] -> V2 Cell -> Component n
+messageLog msgs scrollOffset =
+  emptyComponent {draw = drawMessageLogs scrollOffset . filter (not . null) $ msgs}

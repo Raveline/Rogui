@@ -104,7 +104,7 @@ renderGame brushes state = case _currentMode state of
 -- We use rogui's `messageLog`.
 renderLogs :: RogueHarvest -> Component Names
 renderLogs RogueHarvest {_logs} =
-  vBox [messageLog (toList $ Seq.drop (Seq.length _logs - 10) _logs)]
+  vBox [messageLog (toList $ Seq.drop (Seq.length _logs - 10) _logs) (V2 0 0)]
 
 -- We distribute events depending on the current game mode.
 -- Some events are mutualised: switching game mode, for instance,

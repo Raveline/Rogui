@@ -44,20 +44,23 @@ import qualified SDL
 -- for huge components, unless they are smart enough to limit their own display.
 -- As they need to know their extent to operate, viewport state need to be
 -- named.
+--
+-- The child component receives the current scroll offset as a parameter, allowing
+-- it to efficiently render only the visible portion plus the scrolled area.
 viewport ::
   (Ord n) =>
   -- | Name for the viewport
   n ->
   -- | Current viewport state
   ViewportState ->
-  -- | Component to scroll
-  Component n ->
+  -- | Function that takes scroll offset and returns component to scroll
+  (V2 Cell -> Component n) ->
   Component n
-viewport name (ViewportState (V2 scrollX scrollY) _) child =
+viewport name (ViewportState scrollOffset@(V2 scrollX scrollY) _) childFn =
   let draw' = do
         recordExtent name
         pencilAt (V2 (negate scrollX) (negate scrollY))
-        draw child
+        draw (childFn scrollOffset)
    in emptyComponent {draw = draw'}
 
 -- | A viewport state to handle
