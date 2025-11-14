@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedLists #-}
 
@@ -120,6 +121,7 @@ import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Writer.Strict
 import Data.Bifunctor
 import Data.Foldable (traverse_)
+import Data.List (nub)
 import Data.Map qualified as M
 import Data.Maybe (catMaybes)
 import Data.Sequence qualified as Seq
@@ -374,8 +376,10 @@ applyResize (SDL.V2 newW newH) r@Rogui {..} =
           }
    in applyConsoleSpecs newRoot roguiConsoleSpecs $ r {rootConsole = newRoot}
 
--- Get the SDL events; we will eventually extract the resizing events from these,
+-- Get the SDL events; we will process the resizing events in there,
 -- so we can rebuild a Rogui datatype properly to react to this particular event.
+-- This also removes duplicated input events, so they don't build up faster
+-- than rendering.
 preEventLoop :: (Ord rc, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) => Rogui rc rb n s e m -> m (Rogui rc rb n s e m, [Event e])
 preEventLoop initialRogui@Rogui {..} = do
   sdlEventsWithResize <- getSDLEvents defaultBrush
@@ -475,7 +479,7 @@ processEvent Rogui {..} event = do
 
 getSDLEvents :: (MonadIO m) => Brush -> m [Event e]
 getSDLEvents Brush {..} =
-  let toRoguiEvent (SDL.Event _timestamp payload) = case payload of
+  let toRoguiEvent = \case
         SDL.KeyboardEvent ke -> case SDL.keyboardEventKeyMotion ke of
           SDL.Pressed -> KeyDown $ KeyDownDetails (SDL.keyboardEventRepeat ke) (keysymToKeyDetails $ SDL.keyboardEventKeysym ke)
           SDL.Released -> KeyUp . keysymToKeyDetails $ SDL.keyboardEventKeysym ke
@@ -494,7 +498,8 @@ getSDLEvents Brush {..} =
               buttonClicked = mouseButtonEventButton
            in MouseEvent . MouseClick $ MouseClickDetails {..}
         e -> OtherSDLEvent e
-   in fmap (fmap toRoguiEvent) SDL.pollEvents
+      deduplicatedPayload = nub . fmap SDL.eventPayload
+   in fmap (fmap toRoguiEvent) (deduplicatedPayload <$> SDL.pollEvents)
 
 keysymToKeyDetails :: SDL.Keysym -> KeyDetails
 keysymToKeyDetails SDL.Keysym {..} =
