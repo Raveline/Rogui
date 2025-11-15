@@ -7,6 +7,7 @@ module Rogui.Application.Event.Types
     EventHandlingM,
     EventHandlerM (..),
     EventHandlingState (..),
+    FocusDestination (..),
     KeyDetails (..),
     Modifier (..),
     KeyDownDetails (..),
@@ -39,10 +40,8 @@ data Event e
     MouseEvent MouseEventDetails
   | -- | Store every other SDL events
     OtherSDLEvent EventPayload
-  | -- | Request focus on the previous element
-    FocusPrev
-  | -- | Request focus on the next element
-    FocusNext
+  | -- | Focus request
+    Focus FocusDestination
   | -- | Quit signal (equivalent to SDL.Quit event)
     Quit
   | -- | Fired everytime `timerStep` amount of millisecond is reached
@@ -51,6 +50,12 @@ data Event e
     WindowResized (V2 Cell)
   | -- | Any custom event defined by the roguelike
     AppEvent e
+
+data FocusDestination
+  = -- | Request focus on the previous element
+    FocusPrev
+  | -- | Request focus on the next element
+    FocusNext
 
 data KeyDetails = KeyDetails
   { keycode :: Keycode,

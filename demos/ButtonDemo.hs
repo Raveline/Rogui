@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -7,6 +8,7 @@ module Main where
 
 import Linear (V2 (..))
 import Rogui.Application
+import Rogui.Application.Event.Handlers (focusRingHandler)
 import Rogui.Components
 import Rogui.FocusRing
 import Rogui.Graphics
@@ -43,7 +45,7 @@ main = do
             stepMs = 100,
             consoleSpecs = [],
             allowResize = True,
-            eventFunction = baseEventHandler <||> mouseHandler <||> focusedHandler <||> focusChangeHandler <||> customEventHandler
+            eventFunction = baseEventHandler <||> mouseHandler <||> focusHandler <||> customEventHandler
           }
   bootAndPrintError
     config
@@ -71,17 +73,13 @@ customEventHandler _ = \case
   (AppEvent (ChangeCounter f)) -> modifyState $ \s -> s {counter = f (counter s)}
   _ -> unhandled
 
-focusedHandler :: (Monad m) => EventHandler m State CustomEvent Names
-focusedHandler s@State {..} e = case focusGetCurrent ring of
-  (Just ButtonInc) -> handleButtonEvent increaseEvent s e
-  (Just ButtonDec) -> handleButtonEvent decreaseEvent s e
-  _ -> unhandled
-
-focusChangeHandler :: (Monad m) => EventHandler m State CustomEvent Names
-focusChangeHandler _ = \case
-  FocusNext -> modifyState $ \s -> s {ring = focusNext $ ring s}
-  FocusPrev -> modifyState $ \s -> s {ring = focusPrev $ ring s}
-  _ -> unhandled
+focusHandler :: (Monad m) => EventHandler m State CustomEvent Names
+focusHandler =
+  let focused =
+        [ (ButtonInc, handleButtonEvent increaseEvent),
+          (ButtonDec, handleButtonEvent decreaseEvent)
+        ]
+   in focusRingHandler focused mempty ring (\r s -> s {ring = r})
 
 renderApp :: ConsoleDrawers Consoles Brushes Names State
 renderApp _ State {..} =

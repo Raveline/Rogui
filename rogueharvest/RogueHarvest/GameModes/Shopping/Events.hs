@@ -11,7 +11,6 @@ module RogueHarvest.GameModes.Shopping.Events
   )
 where
 
-import Control.Applicative
 import Control.Monad (when)
 import Data.Foldable (traverse_)
 import qualified Data.Map.Strict as M
@@ -20,21 +19,21 @@ import Lens.Micro.Platform
 import RogueHarvest.GameModes.Shopping.Rendering (purchaseListDefinition, sellingListDefinition)
 import RogueHarvest.Types
 import Rogui.Application
+import Rogui.Application.Event.Handlers (focusRingHandler)
 import Rogui.Components (handleButtonEvent)
 import Rogui.Components.List
-import Rogui.FocusRing
 import qualified SDL
 
 handleTradingEvents :: (Monad m) => TradingMode -> EventHandler m RogueHarvest RHEvents Names
-handleTradingEvents tm@TradingMode {..} =
-  let handleTradingEvents' listDef finalizer tradeChangeHandler s e =
-        let handleFocusedEvent = case focusGetCurrent _tradingRing of
-              (Just ShoppingList) ->
-                handleListEvent listDef e _tradingListState updateListState
-                  <|> handleBillChange (tradeChangeHandler _tradingListState) s e
-              (Just ValidateButton) -> handleButtonEvent (AppEvent (finalizer _bill)) s e
-              _ -> unhandled
-         in handleFocusedEvent <|> handleFocusChange tm listDef s e
+handleTradingEvents TradingMode {..} =
+  let handleTradingEvents' listDef finalizer tradeChangeHandler =
+        let focusMap =
+              [ (ShoppingList, (\_ e -> handleListEvent listDef e _tradingListState updateListState) <||> handleBillChange (tradeChangeHandler _tradingListState)),
+                (ValidateButton, handleButtonEvent (AppEvent (finalizer _bill)))
+              ]
+            focusChange =
+              [(ShoppingList, listReceiveFocus listDef _tradingListState updateListState)]
+         in focusRingHandler focusMap focusChange (const _tradingRing) (\r s -> s & currentMode . _Trading . tradingRing .~ r)
    in case _submode of
         Purchasing pm -> handleTradingEvents' (purchaseListDefinition pm) (FinalisePurchase pm) (attemptPurchaseBillChange pm)
         Selling (Just st) -> handleTradingEvents' (sellingListDefinition st) (FinaliseSale st) (attemptSaleBillChange st)
@@ -57,7 +56,7 @@ handleBillChange changeBill =
           ((SDL.KeycodeRight, []), changeBill (+ 1)),
           ((SDL.KeycodeKP6, []), changeBill (+ 1)),
           -- Move cursor to the purchase button if user press enter
-          ((SDL.KeycodeReturn, []), \_ _ -> fireEvent FocusNext)
+          ((SDL.KeycodeReturn, []), \_ _ -> fireEvent $ Focus FocusNext)
         ]
    in keyPressHandler keyMaps
 
@@ -100,19 +99,3 @@ attemptPurchaseBillChange sst@PurchasingMode {..} ls f RogueHarvest {..} _ =
           modifyState (currentMode . _Trading . bill .~ newBill)
     )
     $ getCurrentSelection (purchaseListDefinition sst) ls
-
-handleFocusChange ::
-  (Monad m) =>
-  TradingMode ->
-  ListDefinition Names b ->
-  EventHandler m RogueHarvest RHEvents Names
-handleFocusChange TradingMode {..} listDef _ event =
-  let handleFocus focusChanger focusDir = do
-        let newFocus = focusChanger _tradingRing
-        modifyState (currentMode . _Trading . tradingRing .~ newFocus)
-        when (focusGetCurrent newFocus == Just ShoppingList) $ do
-          listReceiveFocus listDef _tradingListState focusDir updateListState
-   in case event of
-        FocusNext -> handleFocus focusNext FromNext
-        FocusPrev -> handleFocus focusPrev FromPrev
-        _ -> unhandled

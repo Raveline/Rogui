@@ -83,6 +83,7 @@ module Rogui.Application.Event
   ( -- * Event type definitions
     Event (..),
     EventResult (..),
+    FocusDestination (..),
     MouseEventDetails (..),
     MouseMoveDetails (..),
     MouseClickDetails (..),

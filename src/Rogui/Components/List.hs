@@ -28,7 +28,6 @@ module Rogui.Components.List
     list,
     ListState (..),
     ListDefinition (..),
-    FocusOrigin (..),
     mkListState,
     listReceiveFocus,
     labelListReceiveFocus,
@@ -41,10 +40,9 @@ module Rogui.Components.List
 where
 
 import Data.List ((!?))
-import Rogui.Application.Event (Event (..), EventHandlerM, KeyDownDetails (..), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, keycode, modifyState, redraw, unhandled)
-import Rogui.Components.Core (contextCellHeight, recordExtent, vBox, vSize)
-import Rogui.Components.Label (label)
-import Rogui.Components.Types (Component (..), Size (..), emptyComponent)
+import Rogui.Application.Event
+import Rogui.Components.Core
+import Rogui.Components.Label
 import Rogui.Graphics (Colours, TextAlign)
 import Rogui.Graphics.Types (Cell (..))
 import SDL (V2 (..))
@@ -56,10 +54,6 @@ data ListState = ListState
   { selection :: Maybe Int,
     scrollOffset :: Int -- For later when you add scrolling
   }
-
--- | Indicates from which direction focus is entering the list
-data FocusOrigin = FromNext | FromPrev
-  deriving (Eq)
 
 -- | A configuration object for creating lists.
 -- This is mostly here to avoid having a long and obscure series
@@ -103,29 +97,29 @@ listReceiveFocus ::
   ListDefinition n a ->
   -- | The current list state
   ListState ->
-  -- | Was the focus a FocusNext or a FocusPrev event
-  FocusOrigin ->
   -- | A function to update the application state, given an updated ListState.
   (ListState -> s -> s) ->
+  -- | Was the focus a FocusNext or a FocusPrev event
+  FocusDestination ->
   EventHandlerM m s e n ()
-listReceiveFocus ListDefinition {name, items, itemHeight} ls origin modifier = do
+listReceiveFocus ListDefinition {name, items, itemHeight} ls modifier destination = do
   V2 _ visibleHeight <- getExtentSize name
   let listLength = length items
       visibleItems = getCell (visibleHeight `div` itemHeight)
-  case (selection ls, origin) of
+  case (selection ls, destination) of
     -- Already has a selection, keep it
     (Just _, _) -> pure ()
     -- No selection, entering from next -> select first item
-    (Nothing, FromNext) -> modifyState $ modifier ls {selection = Just 0, scrollOffset = 0}
+    (Nothing, FocusNext) -> modifyState $ modifier ls {selection = Just 0, scrollOffset = 0}
     -- No selection, entering from prev -> select last item and scroll to show it
-    (Nothing, FromPrev) ->
+    (Nothing, FocusPrev) ->
       let lastIdx = listLength - 1
           -- Scroll so the last item is visible (at the bottom of the viewport)
           newScroll = max 0 (lastIdx - visibleItems + 1)
        in modifyState $ modifier ls {selection = Just lastIdx, scrollOffset = newScroll}
 
 -- | A specialized version of labelListReceiveFocus that doesn't need a ListDefinition
-labelListReceiveFocus :: (Monad m, Ord n) => n -> [a] -> ListState -> FocusOrigin -> (ListState -> s -> s) -> EventHandlerM m s e n ()
+labelListReceiveFocus :: (Monad m, Ord n) => n -> [a] -> ListState -> (ListState -> s -> s) -> FocusDestination -> EventHandlerM m s e n ()
 labelListReceiveFocus name items =
   listReceiveFocus
     (ListDefinition {name = name, items = items, renderItem = \_ _ -> emptyComponent, itemHeight = 1, wrapAround = False})
@@ -269,7 +263,7 @@ handleListEvent ListDefinition {..} event state@ListState {selection, scrollOffs
               then
                 if wrapAround
                   then redraw . modifyState . modifier $ state {selection = Just 0, scrollOffset = autoScroll 0}
-                  else (modifyState . modifier $ state {selection = Nothing}) >> fireEvent FocusNext
+                  else (modifyState . modifier $ state {selection = Nothing}) >> fireEvent (Focus FocusNext)
               else
                 redraw . modifyState . modifier $ state {selection = Just newIndex, scrollOffset = autoScroll newIndex}
       SDL.KeycodeUp ->
@@ -281,6 +275,6 @@ handleListEvent ListDefinition {..} event state@ListState {selection, scrollOffs
               else
                 if wrapAround
                   then redraw . modifyState . modifier $ state {selection = Just (listLength - 1), scrollOffset = autoScroll (listLength - 1)}
-                  else (modifyState . modifier $ state {selection = Nothing}) >> fireEvent FocusPrev
+                  else (modifyState . modifier $ state {selection = Nothing}) >> fireEvent (Focus FocusPrev)
       _ -> unhandled
     _ -> unhandled

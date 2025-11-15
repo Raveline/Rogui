@@ -5,11 +5,10 @@ module Rogui.Components.Button
 where
 
 import qualified Data.Map as M
-import Rogui.Application.Event (Event (..), fireEvent, keyPressHandler)
+import Rogui.Application.Event
 import Rogui.Components.Core (Component (..), recordExtent)
 import Rogui.Components.Label (label)
 import Rogui.Graphics (Colours, TextAlign)
-import Rogui.Types (EventHandler)
 import qualified SDL
 
 -- | A simple button with some text, and some options when focused.
@@ -57,7 +56,7 @@ handleButtonEvent toFire =
   let keyHandler =
         M.fromList
           [ ((SDL.KeycodeReturn, mempty), \_ _ -> fireEvent toFire),
-            ((SDL.KeycodeUp, mempty), \_ _ -> fireEvent FocusPrev),
-            ((SDL.KeycodeDown, mempty), \_ _ -> fireEvent FocusNext)
+            ((SDL.KeycodeUp, mempty), \_ _ -> fireEvent $ Focus FocusPrev),
+            ((SDL.KeycodeDown, mempty), \_ _ -> fireEvent $ Focus FocusNext)
           ]
    in keyPressHandler keyHandler

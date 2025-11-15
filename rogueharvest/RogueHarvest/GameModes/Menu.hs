@@ -9,10 +9,12 @@ module RogueHarvest.GameModes.Menu
 where
 
 import Control.Monad (zipWithM_)
+import Lens.Micro.Platform
 import RogueHarvest.Constants
-import RogueHarvest.Types (GameMode (..), Names (..), PlayingMode (..), RHEvents (..), RogueHarvest (..))
+import RogueHarvest.Types (GameMode (..), Names (..), PlayingMode (..), RHEvents (..), RogueHarvest (..), currentMode)
 import RogueHarvest.Utils (setCurrentMode)
 import Rogui.Application
+import Rogui.Application.Event.Handlers (focusRingHandler)
 import Rogui.Components
 import Rogui.FocusRing
 import Rogui.Graphics (Colours (..), TextAlign (..), setColours)
@@ -48,28 +50,25 @@ renderOptions ring =
       ]
 
 handleMenuEvents :: (Monad m) => FocusRing Names -> EventHandler m RogueHarvest RHEvents Names
-handleMenuEvents ring = handleKeyEvents ring <||> handleAppEvents ring
+handleMenuEvents ring = handleKeyEvents ring <||> handleAppEvents
 
-handleAppEvents :: (Monad m) => FocusRing Names -> EventHandler m RogueHarvest RHEvents Names
-handleAppEvents ring _ = \case
-  FocusNext -> setCurrentMode $ Menu (focusNext ring)
-  FocusPrev -> setCurrentMode $ Menu (focusPrev ring)
+handleMenuFocus :: (Monad m) => FocusRing Names -> EventHandler m RogueHarvest RHEvents Names
+handleMenuFocus ring =
+  let options =
+        [ (MenuNew, handleButtonEvent (AppEvent NewGame)),
+          (MenuQuit, handleButtonEvent Quit)
+        ]
+   in focusRingHandler options mempty (const ring) (\r -> currentMode .~ Menu r)
+
+handleAppEvents :: (Monad m) => EventHandler m RogueHarvest RHEvents Names
+handleAppEvents _ = \case
   (AppEvent NewGame) -> setCurrentMode $ Playing Walking
-  _ -> unhandled
-
-fireCurrentSelected :: (Monad m) => FocusRing Names -> EventHandler m RogueHarvest RHEvents Names
-fireCurrentSelected ring _ _ = case focusGetCurrent ring of
-  (Just MenuNew) -> fireAppEvent NewGame
-  (Just MenuQuit) -> fireEvent Quit
   _ -> unhandled
 
 handleKeyEvents :: (Monad m) => FocusRing Names -> EventHandler m RogueHarvest RHEvents Names
 handleKeyEvents ring =
   let keyMap =
-        [ ((SDL.KeycodeDown, []), \_ _ -> fireEvent FocusNext),
-          ((SDL.KeycodeUp, []), \_ _ -> fireEvent FocusPrev),
-          ((SDL.KeycodeReturn, []), fireCurrentSelected ring),
-          ((SDL.KeycodeQ, []), \_ _ -> fireEvent Quit),
+        [ ((SDL.KeycodeQ, []), \_ _ -> fireEvent Quit),
           ((SDL.KeycodeN, []), \_ _ -> fireAppEvent NewGame)
         ]
-   in keyPressHandler keyMap
+   in keyPressHandler keyMap <||> handleMenuFocus ring

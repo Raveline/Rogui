@@ -1,13 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Main where
 
 import Linear (V2 (..))
 import Rogui.Application.Event
+import Rogui.Application.Event.Handlers (focusRingHandler)
 import Rogui.Application.System (RoguiConfig (..), bootAndPrintError)
 import Rogui.Components (label)
 import Rogui.Components.Core
@@ -44,7 +43,7 @@ main = do
             defaultBrushPath = "terminal_10x16.png",
             drawingFunction = renderApp,
             stepMs = 100,
-            eventFunction = baseEventHandler <||> handleFocused <||> handleFocusChange,
+            eventFunction = baseEventHandler <||> handleFocus,
             consoleSpecs = [],
             allowResize = True
           }
@@ -54,33 +53,29 @@ main = do
     . DemoState "" ""
     $ focusRing [FirstName, LastName]
 
-handleFocused :: (Monad m) => EventHandler m DemoState () Names
-handleFocused DemoState {..} e = case focusGetCurrent ring of
-  (Just FirstName) -> handleTextInputEvent e firstName (\t s -> s {firstName = t})
-  (Just LastName) -> handleTextInputEvent e lastName (\t s -> s {lastName = t})
-  Nothing -> unhandled
-
-handleFocusChange :: (Monad m) => EventHandler m DemoState () Names
-handleFocusChange _ = \case
-  FocusNext -> modifyState $ \s -> s {ring = focusNext (ring s)}
-  FocusPrev -> modifyState $ \s -> s {ring = focusPrev (ring s)}
-  _ -> unhandled
+handleFocus :: (Monad m) => EventHandler m DemoState () Names
+handleFocus =
+  let focus =
+        [ (FirstName, \s e -> handleTextInputEvent e (firstName s) (\t s' -> s' {firstName = t})),
+          (LastName, \s e -> handleTextInputEvent e (lastName s) (\t s' -> s' {lastName = t}))
+        ]
+   in focusRingHandler focus mempty ring (\r s -> s {ring = r})
 
 renderApp :: ConsoleDrawers Consoles Brushes Names DemoState
-renderApp _brushes (DemoState firstName lastName ring) =
+renderApp _brushes (DemoState firstName' lastName' ring') =
   let bnw = Colours (Just white) (Just black)
-      textInputAndLabel n key content' focused =
+      textInputAndLabel n key' content' focused =
         vSize (Fixed 3) $
           hBox
-            [ hSize (Fixed 12) $ label key TLeft bnw,
+            [ hSize (Fixed 12) $ label key' TLeft bnw,
               hSize (Fixed 30) $ textInput n content' bnw focused
             ]
-      fullNameLabel = label ("Your name is " <> firstName <> " " <> lastName) TLeft bnw
+      fullNameLabel = label ("Your name is " <> firstName' <> " " <> lastName') TLeft bnw
       content =
         bordered (Colours (Just white) (Just black))
           . vBox
-          $ [ textInputAndLabel FirstName "First name" firstName (focusGetCurrent ring == Just FirstName),
-              textInputAndLabel LastName "Last name" lastName (focusGetCurrent ring == Just LastName),
+          $ [ textInputAndLabel FirstName "First name" firstName' (focusGetCurrent ring' == Just FirstName),
+              textInputAndLabel LastName "Last name" lastName' (focusGetCurrent ring' == Just LastName),
               fullNameLabel
             ]
    in [(Nothing, Nothing, content)]

@@ -10,7 +10,7 @@ where
 import Control.Monad (unless, when)
 import Control.Monad.State.Strict
 import qualified Data.Text as T
-import Rogui.Application.Event (Event (..), EventHandlerM, KeyDetails (..), KeyDownDetails (..), fireEvent, modifyState, redraw, unhandled)
+import Rogui.Application.Event
 import Rogui.Components.Core (Component (..), DrawingContext (..), contextCellWidth, emptyComponent, recordExtent)
 import Rogui.Graphics
 import SDL (TextInputEventData (textInputEventText))
@@ -64,8 +64,8 @@ handleTextInputEvent event txt modifier = case event of
     case keycode key of
       SDL.KeycodeBackspace ->
         unless (null txt) . redraw . modifyState . modifier $ init txt
-      SDL.KeycodeUp -> fireEvent FocusPrev
-      SDL.KeycodeDown -> fireEvent FocusNext
+      SDL.KeycodeUp -> fireEvent $ Focus FocusPrev
+      SDL.KeycodeDown -> fireEvent $ Focus FocusNext
       _ -> unhandled
   OtherSDLEvent (SDL.TextInputEvent SDL.TextInputEventData {textInputEventText}) ->
     redraw $ modifyState (modifier $ txt <> T.unpack textInputEventText)

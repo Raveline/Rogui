@@ -21,7 +21,7 @@ import Control.Monad (forM_, when)
 import Control.Monad.State.Strict hiding (state)
 import Data.Foldable (traverse_)
 import qualified Data.List.NonEmpty as NE
-import Rogui.Application.Event (Event (..), EventHandlerM, KeyDetails (..), KeyDownDetails (KeyDownDetails, key), MouseClickDetails (..), fireEvent, getExtentPosition, getExtentSize, modifyState, redraw, unhandled)
+import Rogui.Application.Event hiding (repeat)
 import Rogui.Components.Core
 import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Cell (..), Colours (..))
 import Rogui.Graphics.DSL.Instructions
@@ -183,23 +183,23 @@ handleGridEvent GridDefinition {..} event state@GridState {..} modifier onEnter 
         Just (col, row)
           | col + 1 < cols -> updateSelection (col + 1, row)
           | row + 1 < rows -> updateSelection (0, row + 1)
-          | otherwise -> fireAndDeselect FocusNext
+          | otherwise -> fireAndDeselect $ Focus FocusNext
       SDL.KeycodeLeft -> case selection of
         Nothing -> redraw $ modifyState (modifier $ state {selection = Just (cols - 1, rows - 1)})
         Just (col, row)
           | col > 0 -> updateSelection (col - 1, row)
           | row > 0 -> updateSelection (cols - 1, row - 1)
-          | otherwise -> fireAndDeselect FocusPrev
+          | otherwise -> fireAndDeselect $ Focus FocusPrev
       SDL.KeycodeDown -> case selection of
         Nothing -> redraw $ modifyState (modifier $ state {selection = Just (0, 0)})
         Just (col, row)
           | row + 1 < rows -> updateSelection (col, row + 1)
-          | otherwise -> fireAndDeselect FocusNext
+          | otherwise -> fireAndDeselect $ Focus FocusNext
       SDL.KeycodeUp -> case selection of
         Nothing -> redraw $ modifyState (modifier $ state {selection = Just (cols - 1, rows - 1)})
         Just (col, row)
           | row > 0 -> updateSelection (col, row - 1)
-          | otherwise -> fireAndDeselect FocusPrev
+          | otherwise -> fireAndDeselect $ Focus FocusPrev
       SDL.KeycodeReturn ->
         onEnter (selection >>= getItemAt gridContent cols)
       _ -> pure ()
