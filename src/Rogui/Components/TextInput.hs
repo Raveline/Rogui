@@ -1,14 +1,20 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Rogui.Components.TextInput
   ( textInput,
     handleTextInputEvent,
+    handleFilteredTextInputEvent,
+    defaultTextInputKeys,
+    handleTextInputEvent',
   )
 where
 
 import Control.Monad (unless, when)
 import Control.Monad.State.Strict
+import Data.Bifunctor
+import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import Rogui.Application.Event
 import Rogui.Components.Core (Component (..), DrawingContext (..), contextCellWidth, emptyComponent, recordExtent)
@@ -44,29 +50,81 @@ textInput n txt colours focused =
           glyph fullBlock []
    in emptyComponent {draw = draw'}
 
+data TextInputAction
+  = TextInputEraseLast
+  | TextInputFocusNext
+  | TextInputFocusPrev
+  | TextInputValidate
+
+defaultTextInputKeys :: [(KeyDetailsMatch, TextInputAction)]
+defaultTextInputKeys =
+  [ (isSC' SDL.ScancodeBackspace, TextInputEraseLast),
+    (isSC' SDL.ScancodeUp, TextInputFocusPrev),
+    (isSC' SDL.ScancodeDown, TextInputFocusNext),
+    (isSC' SDL.ScancodeReturn, TextInputFocusNext)
+  ]
+
 -- | Default implementation for text input events, with support
 -- for these events:
 --
 -- * Backspace removes the last character;
 -- * SDL TextInputEvent are used to add new characters to the text;
 -- * Arrow down and up fire FocusNext / FocusPrev events.
+-- * Pressing return sends next focus
 handleTextInputEvent ::
   (Monad m) =>
-  -- | Event to process
-  Event e ->
   -- | Current text
   String ->
   -- | Function to modify the input text in your application state
   (String -> s -> s) ->
-  EventHandlerM m s e n ()
-handleTextInputEvent event txt modifier = case event of
-  KeyDown KeyDownDetails {key} ->
-    case keycode key of
-      SDL.KeycodeBackspace ->
-        unless (null txt) . redraw . modifyState . modifier $ init txt
-      SDL.KeycodeUp -> fireEvent $ Focus FocusPrev
-      SDL.KeycodeDown -> fireEvent $ Focus FocusNext
-      _ -> unhandled
-  OtherSDLEvent (SDL.TextInputEvent SDL.TextInputEventData {textInputEventText}) ->
-    redraw $ modifyState (modifier $ txt <> T.unpack textInputEventText)
-  _ -> unhandled
+  EventHandler m s e n
+handleTextInputEvent =
+  handleTextInputEvent' defaultTextInputKeys Nothing
+
+handleFilteredTextInputEvent ::
+  (Monad m) =>
+  -- Key input validator: only input passing this filter will be retained
+  (Char -> Bool) ->
+  -- | Current text
+  String ->
+  -- | Function to modify the input text in your application state
+  (String -> s -> s) ->
+  EventHandler m s e n
+handleFilteredTextInputEvent validator =
+  handleTextInputEvent' defaultTextInputKeys (Just validator)
+
+handleTextInputEvent' ::
+  (Monad m) =>
+  -- | Mapping between keys and actions
+  [(KeyDetailsMatch, TextInputAction)] ->
+  -- Key input validator: only input passing this filter will be retained
+  Maybe (Char -> Bool) ->
+  -- | Current text
+  String ->
+  -- | Function to modify the input text in your application state
+  (String -> s -> s) ->
+  EventHandler m s e n
+handleTextInputEvent' keyMap validator txt modifier =
+  let onEraseLast = unless (null txt) . redraw . modifyState . modifier $ init txt
+      toEvents = \case
+        TextInputEraseLast -> \_ _ -> onEraseLast
+        TextInputFocusNext -> \_ _ -> fireEvent $ Focus FocusNext
+        TextInputFocusPrev -> \_ _ -> fireEvent $ Focus FocusPrev
+        TextInputValidate -> \_ _ -> fireEvent $ Focus FocusNext
+   in keyPressHandler (second toEvents <$> keyMap) <||> textInputEventHandler validator txt modifier
+
+textInputEventHandler ::
+  (Monad m) =>
+  -- | Potential validator for text addition
+  Maybe (Char -> Bool) ->
+  -- | Current text
+  String ->
+  -- | Function to modify the input text in your application state
+  (String -> s -> s) ->
+  EventHandler m s e n
+textInputEventHandler validator txt modifier _ =
+  let validChar = fromMaybe (const True) validator
+   in \case
+        OtherSDLEvent (SDL.TextInputEvent SDL.TextInputEventData {textInputEventText}) ->
+          redraw $ modifyState (modifier $ txt <> filter validChar (T.unpack textInputEventText))
+        _ -> unhandled

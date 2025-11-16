@@ -4,6 +4,7 @@
 
 module Main where
 
+import Data.Char
 import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.Event.Handlers (focusRingHandler)
@@ -56,8 +57,8 @@ main = do
 handleFocus :: (Monad m) => EventHandler m DemoState () Names
 handleFocus =
   let focus =
-        [ (FirstName, \s e -> handleTextInputEvent e (firstName s) (\t s' -> s' {firstName = t})),
-          (LastName, \s e -> handleTextInputEvent e (lastName s) (\t s' -> s' {lastName = t}))
+        [ (FirstName, \s -> handleFilteredTextInputEvent isAscii (firstName s) (\t s' -> s' {firstName = t}) s),
+          (LastName, \s -> handleFilteredTextInputEvent isAscii (lastName s) (\t s' -> s' {lastName = t}) s)
         ]
    in focusRingHandler focus mempty ring (\r s -> s {ring = r})
 
