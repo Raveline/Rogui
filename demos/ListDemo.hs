@@ -69,7 +69,7 @@ listDefinition = ListDefinition {name = DemoList, items = allItems, renderItem =
 handleEvent :: (Monad m) => EventHandler m DemoState () Names
 handleEvent ds@DemoState {..} = \case
   (MouseEvent (MouseClickReleased mcd)) -> handleClickEvent ds mcd
-  e -> handleListEvent listDefinition e listState (\ls s' -> s' {listState = ls})
+  e -> handleListEvent listDefinition listState (\ls s' -> s' {listState = ls}) ds e
 
 handleClickEvent :: (Monad m) => ClickHandler m DemoState () Names ()
 handleClickEvent DemoState {..} mc = do

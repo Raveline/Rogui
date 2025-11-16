@@ -64,7 +64,7 @@ renderInventoryLine (item, qty) selected =
 -- player when enter or return keys are pressed.
 handleInventoryEvents :: (Monad m) => ListState -> EventHandler m RogueHarvest RHEvents Names
 handleInventoryEvents ls rh e =
-  handleListEvent (inventoryDefinition rh) e ls (\ls' s -> s {_currentMode = Inventory ls'}) <|> wieldOnEnter ls rh e
+  handleListEvent (inventoryDefinition rh) ls (\ls' s -> s {_currentMode = Inventory ls'}) rh e <|> wieldOnEnter ls rh e
 
 wieldOnEnter :: (Monad m) => ListState -> EventHandler m RogueHarvest RHEvents Names
 wieldOnEnter ls rh e =

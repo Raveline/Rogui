@@ -28,7 +28,7 @@ handleTradingEvents TradingMode {..} =
   let handleTradingEvents' listDef finalizer tradeChangeHandler =
         let focusMap =
               M.fromList
-                [ (ShoppingList, (\_ e -> handleListEvent listDef e _tradingListState updateListState) <||> handleBillChange (tradeChangeHandler _tradingListState)),
+                [ (ShoppingList, handleListEvent listDef _tradingListState updateListState <||> handleBillChange (tradeChangeHandler _tradingListState)),
                   (ValidateButton, handleButtonEvent (AppEvent (finalizer _bill)))
                 ]
             focusChange =
