@@ -11,11 +11,10 @@ module Rogui.Application.Event.Handlers
   )
 where
 
-import Data.Foldable (traverse_)
+import Data.Foldable (find, traverse_)
 import qualified Data.Map as M
-import qualified Data.Set as S
 import Rogui.Application.Event.Monad (halt, modifyState, redraw, unhandled)
-import Rogui.Application.Event.Types (Event (..), EventHandler, EventHandlerM, FocusDestination (..), KeyDetails (..), KeyDownDetails (..), Modifier (..))
+import Rogui.Application.Event.Types (Event (..), EventHandler, EventHandlerM, FocusDestination (..), KeyDetailsMatch (Is), KeyDownDetails (..), KeyMatch (..), Modifier (..), matchKeyDetails)
 import Rogui.FocusRing
 import qualified SDL
 
@@ -33,8 +32,7 @@ import qualified SDL
 -- shortcuts.
 baseEventHandler :: (Monad m) => EventHandler m state e n
 baseEventHandler _ event =
-  let ctrlC (KeyDetails SDL.KeycodeC [Ctrl]) = True
-      ctrlC _ = False
+  let ctrlC = matchKeyDetails (Is (KC SDL.KeycodeC) [Ctrl])
    in case event of
         KeyDown KeyDownDetails {key} -> if ctrlC key then halt (pure ()) else unhandled
         OtherSDLEvent SDL.QuitEvent -> halt . pure $ ()
@@ -43,16 +41,21 @@ baseEventHandler _ event =
         Step -> redraw (pure ()) >> unhandled
         _ -> unhandled
 
--- | A utility to react to key presses listed in a Map.
+-- | A utility to react to key presses listed.
+-- Be careful, if you mix scancodes and keycodes: the first match in the foldable will
+-- be retained. Ideally, you should use scancodes taken from a keybinding map
+-- from your application.
+-- As we might need to iterate through the whole foldable, this can become fairly
+-- inefficient if you have _a lot_ of key modifiers.
 keyPressHandler ::
-  (Monad m) =>
-  -- | A map of expected key codes and the actions to perform if this key was pressed
-  M.Map (SDL.Keycode, S.Set Modifier) (EventHandler m state e n) ->
+  (Monad m, Foldable f) =>
+  -- | A list of expected key codes and the actions to perform if this key was pressed
+  f (KeyDetailsMatch, EventHandler m state e n) ->
   EventHandler m state e n
-keyPressHandler keyMap state event =
+keyPressHandler keyMatches state event =
   case event of
     KeyDown KeyDownDetails {key} ->
-      let handler = (keycode key, modifiers key) `M.lookup` keyMap
+      let handler = (snd <$> find ((`matchKeyDetails` key) . fst) keyMatches)
        in maybe unhandled (\h -> h state event) handler
     _ -> unhandled
 

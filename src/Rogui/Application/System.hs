@@ -514,7 +514,7 @@ keysymToKeyDetails SDL.Keysym {..} =
             if keyModifierRightAlt then Just Alt else Nothing,
             if keyModifierAltGr then Just Alt else Nothing
           ]
-   in KeyDetails keysymKeycode (toModifier keysymModifier)
+   in KeyDetails keysymKeycode keysymScancode (toModifier keysymModifier)
 
 renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError rc rb) m) => Rogui rc rb n s e m' -> Brush -> Console -> Component n -> m (ExtentMap n)
 renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usingBrush usingConsole@Console {tileSize = consoleTileSize} Component {..} = do

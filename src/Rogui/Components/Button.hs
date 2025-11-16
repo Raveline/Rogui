@@ -1,10 +1,10 @@
 module Rogui.Components.Button
   ( button,
     handleButtonEvent,
+    ButtonAction (..),
   )
 where
 
-import qualified Data.Map as M
 import Rogui.Application.Event
 import Rogui.Components.Core (Component (..), recordExtent)
 import Rogui.Components.Label (label)
@@ -48,15 +48,23 @@ button n content baseAlignment normalColours focusedColours focused =
         { draw = recordExtent n >> draw labelComponent
         }
 
+-- | The possible actions with a button
+data ButtonAction
+  = -- | Distribute focus
+    ButtonNextFocus
+  | -- | Distribute focus
+    ButtonPrevFocus
+  | -- | Activate the button
+    ButtonFire
+
 -- | A sensible default implementation for the button component.
 -- This will fire the given event when getting enter, and
 -- focus next and prev on arrows up and down.
 handleButtonEvent :: (Monad m) => Event e -> EventHandler m state e n
 handleButtonEvent toFire =
   let keyHandler =
-        M.fromList
-          [ ((SDL.KeycodeReturn, mempty), \_ _ -> fireEvent toFire),
-            ((SDL.KeycodeUp, mempty), \_ _ -> fireEvent $ Focus FocusPrev),
-            ((SDL.KeycodeDown, mempty), \_ _ -> fireEvent $ Focus FocusNext)
-          ]
+        [ (isSC SDL.ScancodeReturn mempty, \_ _ -> fireEvent toFire),
+          (isSC SDL.ScancodeDown mempty, \_ _ -> fireEvent $ Focus FocusPrev),
+          (isSC SDL.ScancodeUp mempty, \_ _ -> fireEvent $ Focus FocusNext)
+        ]
    in keyPressHandler keyHandler

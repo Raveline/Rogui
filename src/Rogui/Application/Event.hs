@@ -96,6 +96,16 @@ module Rogui.Application.Event
     EventHandlingM,
     ClickHandler,
 
+    -- * Key matching utilities
+    isSC,
+    isSC',
+    isKC,
+    isKC',
+    KeyMatch (..),
+    KeyDetailsMatch (..),
+    matchKey,
+    matchKeyDetails,
+
     -- * Convenience default handlers
     baseEventHandler,
     keyPressHandler,

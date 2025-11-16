@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE OverloadedLists #-}
 
 module RogueHarvest.GameModes.Menu
   ( renderMainMenu,
@@ -9,6 +8,7 @@ module RogueHarvest.GameModes.Menu
 where
 
 import Control.Monad (zipWithM_)
+import qualified Data.Map.Strict as M
 import Lens.Micro.Platform
 import RogueHarvest.Constants
 import RogueHarvest.Types (GameMode (..), Names (..), PlayingMode (..), RHEvents (..), RogueHarvest (..), currentMode)
@@ -55,9 +55,10 @@ handleMenuEvents ring = handleKeyEvents ring <||> handleAppEvents
 handleMenuFocus :: (Monad m) => FocusRing Names -> EventHandler m RogueHarvest RHEvents Names
 handleMenuFocus ring =
   let options =
-        [ (MenuNew, handleButtonEvent (AppEvent NewGame)),
-          (MenuQuit, handleButtonEvent Quit)
-        ]
+        M.fromList
+          [ (MenuNew, handleButtonEvent (AppEvent NewGame)),
+            (MenuQuit, handleButtonEvent Quit)
+          ]
    in focusRingHandler options mempty (const ring) (\r -> currentMode .~ Menu r)
 
 handleAppEvents :: (Monad m) => EventHandler m RogueHarvest RHEvents Names
@@ -68,7 +69,7 @@ handleAppEvents _ = \case
 handleKeyEvents :: (Monad m) => FocusRing Names -> EventHandler m RogueHarvest RHEvents Names
 handleKeyEvents ring =
   let keyMap =
-        [ ((SDL.KeycodeQ, []), \_ _ -> fireEvent Quit),
-          ((SDL.KeycodeN, []), \_ _ -> fireAppEvent NewGame)
+        [ (isSC' SDL.ScancodeQ, \_ _ -> fireEvent Quit),
+          (isSC' SDL.ScancodeN, \_ _ -> fireAppEvent NewGame)
         ]
    in keyPressHandler keyMap <||> handleMenuFocus ring

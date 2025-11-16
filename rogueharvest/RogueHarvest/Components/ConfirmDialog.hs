@@ -60,11 +60,11 @@ handleConfirmDialogEvent ::
   (ConfirmChoice -> EventHandlerM m s e n ()) -> -- Action on selection
   EventHandler m s e n
 handleConfirmDialogEvent yesName noName state@ConfirmDialogState {..} updater onSelect _ = \case
-  KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeLeft _)) ->
+  KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeLeft _ _)) ->
     modifyState $ updater state {focusedChoice = Yes}
-  KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeRight _)) ->
+  KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeRight _ _)) ->
     modifyState $ updater state {focusedChoice = No}
-  KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeReturn _)) ->
+  KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeReturn _ _)) ->
     onSelect focusedChoice
   MouseEvent (MouseClickReleased mc) -> do
     clicked <- foundClickedExtents mc

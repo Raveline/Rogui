@@ -1,20 +1,19 @@
 High priority:
 
-[ ] Add event helper for focus ring
 [ ] Add customisable default handlers for components to override keys. This has become even more urgent: see ButtonDemo.hs, it makes no sense to have to use up / down arrow keys here.
+[ ] Add multiline text component
 
 Medium priority:
 
 [ ] Particle utility, whatever form it might have...
-[ ] Generate haddock documentation and see what needs documentation
+[ ] Analyze parts that are still in need of documentation
 [ ] Add a basic modal helper
 [ ] Some tooltip / hovering helper ?
+[ ] Add a "Getting stated" documentation
 
 Low priority:
 
 [ ] Support fullscreen
-[ ] Add multiline text component
-[ ] Ensure LogConsole doesn't display excessive content (beyond visible height)
 [ ] Add a more comprehensive test suite
 [ ] Add FPS overlay
 [ ] Have some benchmarking suite to be able to experiment with performance improvement (grouping draw calls with similar colour, e.g. - or even simply avoiding some SDL calls that are redundant)

@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module RogueHarvest.GameModes.Playing.Events
   ( handlePlayingEvents,
@@ -12,7 +13,6 @@ import Control.Monad (when)
 import Data.Array.Base
 import Data.Foldable (traverse_)
 import Data.List (find)
-import qualified Data.Map as M
 import Lens.Micro.Platform
 import Linear.V2 (V2 (..))
 import RogueHarvest.Components.ConfirmDialog (ConfirmChoice (..), ConfirmDialogState (..))
@@ -43,38 +43,38 @@ handlePlayingEvents pm =
         Aiming a -> handleAimingRHEvents a
    in handleMovementKeys <||> inputs
 
-handleMovementKeys :: (Monad m) => EventHandler m RogueHarvest RHEvents Names
+handleMovementKeys :: (Monad m) => RHEventHandler m
 handleMovementKeys =
-  let keyMap =
-        M.fromList
-          [ ((SDL.KeycodeUp, []), \_ _ -> fireAppEvent (Direction up)),
-            ((SDL.KeycodeKP8, []), \_ _ -> fireAppEvent (Direction up)),
-            ((SDL.KeycodeLeft, []), \_ _ -> fireAppEvent (Direction left)),
-            ((SDL.KeycodeKP4, []), \_ _ -> fireAppEvent (Direction left)),
-            ((SDL.KeycodeKP5, []), \_ _ -> fireAppEvent (Direction (V2 0 0))),
-            ((SDL.KeycodeRight, []), \_ _ -> fireAppEvent (Direction right)),
-            ((SDL.KeycodeKP6, []), \_ _ -> fireAppEvent (Direction right)),
-            ((SDL.KeycodeDown, []), \_ _ -> fireAppEvent (Direction down)),
-            ((SDL.KeycodeKP2, []), \_ _ -> fireAppEvent (Direction down)),
-            ((SDL.KeycodeKP7, []), \_ _ -> fireAppEvent (Direction nw)),
-            ((SDL.KeycodeKP9, []), \_ _ -> fireAppEvent (Direction ne)),
-            ((SDL.KeycodeKP1, []), \_ _ -> fireAppEvent (Direction sw)),
-            ((SDL.KeycodeKP3, []), \_ _ -> fireAppEvent (Direction se))
-          ]
+  let keyMap :: (Monad m) => [(KeyDetailsMatch, RHEventHandler m)]
+      keyMap =
+        [ (isKC' SDL.KeycodeUp, \_ _ -> fireAppEvent (Direction up)),
+          (isKC' SDL.KeycodeKP8, \_ _ -> fireAppEvent (Direction up)),
+          (isKC' SDL.KeycodeLeft, \_ _ -> fireAppEvent (Direction left)),
+          (isKC' SDL.KeycodeKP4, \_ _ -> fireAppEvent (Direction left)),
+          (isKC' SDL.KeycodeKP5, \_ _ -> fireAppEvent (Direction (V2 0 0))),
+          (isKC' SDL.KeycodeRight, \_ _ -> fireAppEvent (Direction right)),
+          (isKC' SDL.KeycodeKP6, \_ _ -> fireAppEvent (Direction right)),
+          (isKC' SDL.KeycodeDown, \_ _ -> fireAppEvent (Direction down)),
+          (isKC' SDL.KeycodeKP2, \_ _ -> fireAppEvent (Direction down)),
+          (isKC' SDL.KeycodeKP7, \_ _ -> fireAppEvent (Direction nw)),
+          (isKC' SDL.KeycodeKP9, \_ _ -> fireAppEvent (Direction ne)),
+          (isKC' SDL.KeycodeKP1, \_ _ -> fireAppEvent (Direction sw)),
+          (isKC' SDL.KeycodeKP3, \_ _ -> fireAppEvent (Direction se))
+        ]
    in keyPressHandler keyMap
 
-handleWalkingKeys :: (Monad m) => EventHandler m RogueHarvest RHEvents Names
+handleWalkingKeys :: (Monad m) => RHEventHandler m
 handleWalkingKeys =
-  let keyMap =
-        M.fromList
-          [ ((SDL.KeycodeS, []), \_ _ -> fireAppEvent (SwitchMode (Trading mkPurchasingState))),
-            ((SDL.KeycodeS, [Shift]), \st _ -> fireAppEvent (SwitchMode (Trading . mkSellingState $ _inventory st))),
-            ((SDL.KeycodeW, []), \_ _ -> fireAppEvent (SwitchMode (Inventory mkListState {selection = Just 0}))),
-            ((SDL.KeycodeW, [Shift]), \_ _ -> fireAppEvent (Wield Nothing)),
-            ((SDL.KeycodeH, []), \_ _ -> fireAppEvent (SwitchMode Help)),
-            ((SDL.KeycodeComma, [Shift]), \_ _ -> fireAppEvent (SwitchMode Help)),
-            ((SDL.KeycodeSpace, []), \_ _ -> fireAppEvent UseWieldedItem)
-          ]
+  let keyMap :: (Monad m) => [(KeyDetailsMatch, RHEventHandler m)]
+      keyMap =
+        [ (isKC' SDL.KeycodeS, \_ _ -> fireAppEvent (SwitchMode (Trading mkPurchasingState))),
+          (isKC SDL.KeycodeS [Shift], \st _ -> fireAppEvent (SwitchMode (Trading . mkSellingState $ _inventory st))),
+          (isKC' SDL.KeycodeW, \_ _ -> fireAppEvent (SwitchMode (Inventory mkListState {selection = Just 0}))),
+          (isKC SDL.KeycodeW [Shift], \_ _ -> fireAppEvent (Wield Nothing)),
+          (isKC' SDL.KeycodeH, \_ _ -> fireAppEvent (SwitchMode Help)),
+          (isKC SDL.KeycodeComma [Shift], \_ _ -> fireAppEvent (SwitchMode Help)),
+          (isKC' SDL.KeycodeSpace, \_ _ -> fireAppEvent UseWieldedItem)
+        ]
    in keyPressHandler keyMap
 
 handleWalkingRHEvents :: (Monad m) => EventHandler m RogueHarvest RHEvents Names
@@ -98,7 +98,7 @@ handleWalkingRHEvents RogueHarvest {..} = \case
 
 handleAimingRHEvents :: (Monad m) => AimingMode -> EventHandler m RogueHarvest RHEvents Names
 handleAimingRHEvents AimingMode {..} rh = \case
-  (KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeReturn _))) ->
+  (KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeReturn _ _))) ->
     traverse_ (actionOn rh _withObject) _currentTarget
   (AppEvent (Direction dest)) -> traverse_ (pickSelectedTile dest (rh ^. playerPos)) (rh ^? currentMode . _Playing . _Aiming . potentialCells)
   _ -> unhandled

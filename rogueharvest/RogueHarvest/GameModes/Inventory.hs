@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE RecordWildCards #-}
 
 -- This lets player see their inventory.
@@ -70,10 +69,9 @@ handleInventoryEvents ls rh e =
 wieldOnEnter :: (Monad m) => ListState -> EventHandler m RogueHarvest RHEvents Names
 wieldOnEnter ls rh e =
   let keyMap item =
-        M.fromList
-          [ ((SDL.KeycodeKPEnter, []), \_ _ -> fireAppEvent (Wield item)),
-            ((SDL.KeycodeReturn, []), \_ _ -> fireAppEvent (Wield item))
-          ]
+        [ (isSC' SDL.ScancodeKPEnter, \_ _ -> fireAppEvent (Wield item)),
+          (isSC' SDL.ScancodeReturn, \_ _ -> fireAppEvent (Wield item))
+        ]
       withItem item = keyPressHandler (keyMap item) rh e
    in withItem . fmap fst . getCurrentSelection (inventoryDefinition rh) $ ls
 

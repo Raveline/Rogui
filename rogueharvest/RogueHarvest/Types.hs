@@ -11,9 +11,6 @@
 --
 -- TH generated lenses generate _a lot_ of stuff to export, so we have
 -- opted for exporting _everything_ here.
---
--- Note: in a "real project", we'd recommend adding aliases for the EventHandler
--- and EventHandlerM, as these signatures get quite long.
 module RogueHarvest.Types
   ( module RogueHarvest.Types,
     module RogueHarvest.Types.Item,
@@ -33,6 +30,7 @@ import Linear.V2 (V2 (..))
 import RogueHarvest.Components.ConfirmDialog (ConfirmDialogState)
 import RogueHarvest.Types.Entity
 import RogueHarvest.Types.Item
+import Rogui.Application.Event
 import Rogui.Components.Game.Utils (GlyphInfo (..))
 import Rogui.Components.List
 import Rogui.Components.MessageLog (LogMessage)
@@ -234,3 +232,5 @@ tileToGlyphInfo pos = \case
 
 makeLenses ''CellContents
 makeLenses ''PlantState
+
+type RHEventHandler m = EventHandler m RogueHarvest RHEvents Names

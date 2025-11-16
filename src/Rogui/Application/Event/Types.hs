@@ -1,4 +1,5 @@
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Rogui.Application.Event.Types
   ( Event (..),
@@ -18,6 +19,16 @@ module Rogui.Application.Event.Types
     (<||>),
     liftEH,
     liftApp,
+
+    -- * Utility for matching keys
+    KeyMatch (..),
+    KeyDetailsMatch (..),
+    isKC,
+    isKC',
+    isSC,
+    isSC',
+    matchKey,
+    matchKeyDetails,
   )
 where
 
@@ -29,7 +40,7 @@ import qualified Data.Set as S
 import Rogui.Components.Types (ExtentMap)
 import Rogui.Graphics (Cell)
 import Rogui.Graphics.Types (Pixel)
-import SDL (EventPayload, Keycode, MouseButton, V2)
+import SDL (EventPayload, Keycode, MouseButton, Scancode, V2)
 
 data Event e
   = -- | Simple adaptation of SDL key down event
@@ -59,6 +70,7 @@ data FocusDestination
 
 data KeyDetails = KeyDetails
   { keycode :: Keycode,
+    scancode :: Scancode,
     modifiers :: S.Set Modifier
   }
 
@@ -234,3 +246,41 @@ liftEH a = EventHandlerM (Handled <$> a)
 -- @
 liftApp :: (Monad m) => m a -> EventHandlerM m s e n a
 liftApp ma = EventHandlerM $ lift $ Handled <$> ma
+
+-- | Match a key, either through its keycode or its scancode.
+-- Constructors are kept short because key matching code
+-- tends to be verbose.
+data KeyMatch = KC Keycode | SC Scancode
+  deriving (Eq, Ord)
+
+-- | Match a key, through a `Keymatch` and  a set of modifiers.
+data KeyDetailsMatch = Is KeyMatch (S.Set Modifier)
+  deriving (Eq, Ord)
+
+-- | Shortcut to match a keycode
+isKC :: Keycode -> S.Set Modifier -> KeyDetailsMatch
+isKC k = Is (KC k)
+
+-- | Shortcut to match a keycode without any modifier
+isKC' :: Keycode -> KeyDetailsMatch
+isKC' k = isKC k mempty
+
+-- | Shortcut to match a scancode
+isSC :: Scancode -> S.Set Modifier -> KeyDetailsMatch
+isSC s = Is (SC s)
+
+isSC' :: Scancode -> KeyDetailsMatch
+isSC' s = isSC s mempty
+
+-- | Check if a key is a match with the provided key match
+matchKey :: KeyMatch -> KeyDetails -> Bool
+matchKey match KeyDetails {keycode, scancode} = case match of
+  KC kc -> keycode == kc
+  SC sc -> scancode == sc
+
+-- | Check if keyDetails match the provided `KeyDetailsMatch`.
+-- This is expected to be the bread and butter of key
+-- mapping.
+matchKeyDetails :: KeyDetailsMatch -> KeyDetails -> Bool
+matchKeyDetails (Is km ms) k@KeyDetails {modifiers} =
+  matchKey km k && modifiers == ms

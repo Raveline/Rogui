@@ -131,7 +131,7 @@ handleGameEvents s@RogueHarvest {..} e = case _currentMode of
 -- follow track.
 handleRHEvents :: (MonadRandom m) => EventHandler m RogueHarvest RHEvents Names
 handleRHEvents RogueHarvest {_farm, _currentMode, _playerPos, _wielding, _entities} = \case
-  (KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeEscape _))) -> leaveMode _currentMode
+  (KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeEscape _ _))) -> leaveMode _currentMode
   (AppEvent (SwitchMode m)) -> modifyState (\s -> s {_currentMode = m})
   (AppEvent (FinalisePurchase pdt bill')) -> modifyState (applyPurchase pdt bill') >> fireAppEvent (SwitchMode (Playing Walking))
   (AppEvent (FinaliseSale sdt bill')) -> modifyState (applySale sdt bill') >> fireAppEvent (SwitchMode (Playing Walking))

@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -105,12 +104,11 @@ arbitraryMap =
 gameKeysHandler :: (Monad m) => EventHandler m State CustomEvent Names
 gameKeysHandler =
   let keyMap =
-        M.fromList
-          [ ((SDL.KeycodeUp, []), \_ _ -> fireAppEvent . Move $ V2 0 (-1)),
-            ((SDL.KeycodeDown, []), \_ _ -> fireAppEvent . Move $ V2 0 1),
-            ((SDL.KeycodeLeft, []), \_ _ -> fireAppEvent . Move $ V2 (-1) 0),
-            ((SDL.KeycodeRight, []), \_ _ -> fireAppEvent . Move $ V2 1 0)
-          ]
+        [ (isSC SDL.ScancodeUp mempty, \_ _ -> fireAppEvent . Move $ V2 0 (-1)),
+          (isSC SDL.ScancodeDown mempty, \_ _ -> fireAppEvent . Move $ V2 0 1),
+          (isSC SDL.ScancodeLeft mempty, \_ _ -> fireAppEvent . Move $ V2 (-1) 0),
+          (isSC SDL.ScancodeRight mempty, \_ _ -> fireAppEvent . Move $ V2 1 0)
+        ]
    in keyPressHandler keyMap
 
 eventHandler :: (Monad m) => EventHandler m State CustomEvent Names

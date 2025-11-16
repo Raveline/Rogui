@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -28,11 +27,13 @@ handleTradingEvents :: (Monad m) => TradingMode -> EventHandler m RogueHarvest R
 handleTradingEvents TradingMode {..} =
   let handleTradingEvents' listDef finalizer tradeChangeHandler =
         let focusMap =
-              [ (ShoppingList, (\_ e -> handleListEvent listDef e _tradingListState updateListState) <||> handleBillChange (tradeChangeHandler _tradingListState)),
-                (ValidateButton, handleButtonEvent (AppEvent (finalizer _bill)))
-              ]
+              M.fromList
+                [ (ShoppingList, (\_ e -> handleListEvent listDef e _tradingListState updateListState) <||> handleBillChange (tradeChangeHandler _tradingListState)),
+                  (ValidateButton, handleButtonEvent (AppEvent (finalizer _bill)))
+                ]
             focusChange =
-              [(ShoppingList, listReceiveFocus listDef _tradingListState updateListState)]
+              M.fromList
+                [(ShoppingList, listReceiveFocus listDef _tradingListState updateListState)]
          in focusRingHandler focusMap focusChange (const _tradingRing) (\r s -> s & currentMode . _Trading . tradingRing .~ r)
    in case _submode of
         Purchasing pm -> handleTradingEvents' (purchaseListDefinition pm) (FinalisePurchase pm) (attemptPurchaseBillChange pm)
@@ -51,12 +52,12 @@ updateSale cs = currentMode . _Trading . submode . _Selling . _Just . currentSal
 handleBillChange :: (Monad m) => ((Int -> Int) -> EventHandler m RogueHarvest RHEvents Names) -> EventHandler m RogueHarvest RHEvents Names
 handleBillChange changeBill =
   let keyMaps =
-        [ ((SDL.KeycodeLeft, []), changeBill (\x -> x - 1)),
-          ((SDL.KeycodeKP4, []), changeBill (\x -> x - 1)),
-          ((SDL.KeycodeRight, []), changeBill (+ 1)),
-          ((SDL.KeycodeKP6, []), changeBill (+ 1)),
+        [ (isSC' SDL.ScancodeLeft, changeBill (subtract 1)),
+          (isSC' SDL.ScancodeKP4, changeBill (subtract 1)),
+          (isSC' SDL.ScancodeRight, changeBill (+ 1)),
+          (isSC' SDL.ScancodeKP6, changeBill (+ 1)),
           -- Move cursor to the purchase button if user press enter
-          ((SDL.KeycodeReturn, []), \_ _ -> fireEvent $ Focus FocusNext)
+          (isSC' SDL.ScancodeReturn, \_ _ -> fireEvent $ Focus FocusNext)
         ]
    in keyPressHandler keyMaps
 

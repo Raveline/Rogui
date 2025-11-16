@@ -1,10 +1,10 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Main where
 
+import qualified Data.Set as S
 import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.System (RoguiConfig (..), bootAndPrintError)
@@ -60,13 +60,15 @@ baseProgressBarDefinition =
 
 handleEvent :: (Monad m) => EventHandler m DemoState () Names
 handleEvent =
-  let keyMap =
-        [ ((SDL.KeycodeLeft, []), changeValue (\x -> x - 1)),
-          ((SDL.KeycodeLeft, [Shift]), changeValue (\x -> x - 5)),
-          ((SDL.KeycodeLeft, [Ctrl]), changeValue (\x -> x - 50)),
-          ((SDL.KeycodeRight, []), changeValue (+ 1)),
-          ((SDL.KeycodeRight, [Shift]), changeValue (+ 5)),
-          ((SDL.KeycodeRight, [Ctrl]), changeValue (+ 50))
+  let withShift = S.fromList [Shift]
+      withCtrl = S.fromList [Ctrl]
+      keyMap =
+        [ (isSC SDL.ScancodeLeft mempty, changeValue (subtract 1)),
+          (isSC SDL.ScancodeLeft withShift, changeValue (\x -> x - 5)),
+          (isSC SDL.ScancodeLeft withCtrl, changeValue (\x -> x - 50)),
+          (isSC SDL.ScancodeRight mempty, changeValue (+ 1)),
+          (isSC SDL.ScancodeRight withShift, changeValue (+ 5)),
+          (isSC SDL.ScancodeRight withCtrl, changeValue (+ 50))
         ]
    in keyPressHandler keyMap
 
