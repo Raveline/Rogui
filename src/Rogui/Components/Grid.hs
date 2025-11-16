@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 -- | A grid component for geometric layouts.  Default implementation offers
@@ -13,12 +14,16 @@ module Rogui.Components.Grid
     mkGridState,
     selectedGridItem,
     handleGridEvent,
+    handleGridEvent',
+    GridAction (..),
+    defaultGridKeys,
     handleClickOnGrid,
   )
 where
 
 import Control.Monad (forM_, when)
 import Control.Monad.State.Strict hiding (state)
+import Data.Bifunctor
 import Data.Foldable (traverse_)
 import qualified Data.List.NonEmpty as NE
 import Rogui.Application.Event hiding (repeat)
@@ -138,6 +143,22 @@ getItemAt items nbCols (col, row) =
         then Just (items !! idx)
         else Nothing
 
+data GridAction
+  = GridUp
+  | GridDown
+  | GridLeft
+  | GridRight
+  | GridFire
+
+defaultGridKeys :: [(KeyDetailsMatch, GridAction)]
+defaultGridKeys =
+  [ (isSC' SDL.ScancodeUp, GridUp),
+    (isSC' SDL.ScancodeDown, GridDown),
+    (isSC' SDL.ScancodeLeft, GridLeft),
+    (isSC' SDL.ScancodeRight, GridRight),
+    (isSC' SDL.ScancodeReturn, GridFire)
+  ]
+
 -- | A default handler to select an item in a grid.
 --
 -- This supports:
@@ -150,16 +171,36 @@ handleGridEvent ::
   (Monad m, Ord n) =>
   -- | The grid definition used at rendering
   GridDefinition a n ->
-  -- | The event we are processing
-  Event e ->
   -- | Our input grid state
   GridState ->
   -- | A function to modify the grid state in the application state
   (GridState -> s -> s) ->
   -- | An action to perform on pressing enter on the current selection (if any)
   (Maybe a -> EventHandlerM m s e n ()) ->
-  EventHandlerM m s e n ()
-handleGridEvent GridDefinition {..} event state@GridState {..} modifier onEnter = do
+  EventHandler m s e n
+handleGridEvent = handleGridEvent' defaultGridKeys
+
+-- | A default handler to select an item in a grid.
+--
+-- This supports:
+--
+-- * Moving the selection on the grid using arrow keys
+-- * Doing an action (depending on current selection) on pressing enter;
+--
+-- Getting out of the grid limits will trigger a `FocusNext` or `FocusPrev` event.
+handleGridEvent' ::
+  (Monad m, Ord n) =>
+  [(KeyDetailsMatch, GridAction)] ->
+  -- | The grid definition used at rendering
+  GridDefinition a n ->
+  -- | Our input grid state
+  GridState ->
+  -- | A function to modify the grid state in the application state
+  (GridState -> s -> s) ->
+  -- | An action to perform on pressing enter on the current selection (if any)
+  (Maybe a -> EventHandlerM m s e n ()) ->
+  EventHandler m s e n
+handleGridEvent' keyMap GridDefinition {gridName, gridRows, cellWidths, cellHeight, spacing, gridContent} state@GridState {..} modifier onEnter s e = do
   V2 _ visibleHeight <- getExtentSize gridName
   let cols = NE.length cellWidths
       rows = gridRows
@@ -176,34 +217,36 @@ handleGridEvent GridDefinition {..} event state@GridState {..} modifier onEnter 
                 if selRow >= scrollRow + visibleRows
                   then Cell (selRow - visibleRows + 1)
                   else scrollOffset
-  case event of
-    KeyDown KeyDownDetails {key} -> case keycode key of
-      SDL.KeycodeRight -> case selection of
+      toEvent = \case
+        GridRight -> \_ _ -> gridRight
+        GridLeft -> \_ _ -> gridLeft
+        GridUp -> \_ _ -> gridUp
+        GridDown -> \_ _ -> gridDown
+        GridFire -> \_ _ -> gridFire
+      gridRight = case selection of
         Nothing -> redraw $ modifyState (modifier $ state {selection = Just (0, 0)})
         Just (col, row)
           | col + 1 < cols -> updateSelection (col + 1, row)
           | row + 1 < rows -> updateSelection (0, row + 1)
           | otherwise -> fireAndDeselect $ Focus FocusNext
-      SDL.KeycodeLeft -> case selection of
+      gridLeft = case selection of
         Nothing -> redraw $ modifyState (modifier $ state {selection = Just (cols - 1, rows - 1)})
         Just (col, row)
           | col > 0 -> updateSelection (col - 1, row)
           | row > 0 -> updateSelection (cols - 1, row - 1)
           | otherwise -> fireAndDeselect $ Focus FocusPrev
-      SDL.KeycodeDown -> case selection of
+      gridDown = case selection of
         Nothing -> redraw $ modifyState (modifier $ state {selection = Just (0, 0)})
         Just (col, row)
           | row + 1 < rows -> updateSelection (col, row + 1)
           | otherwise -> fireAndDeselect $ Focus FocusNext
-      SDL.KeycodeUp -> case selection of
+      gridUp = case selection of
         Nothing -> redraw $ modifyState (modifier $ state {selection = Just (cols - 1, rows - 1)})
         Just (col, row)
           | row > 0 -> updateSelection (col, row - 1)
           | otherwise -> fireAndDeselect $ Focus FocusPrev
-      SDL.KeycodeReturn ->
-        onEnter (selection >>= getItemAt gridContent cols)
-      _ -> pure ()
-    _ -> pure ()
+      gridFire = onEnter (selection >>= getItemAt gridContent cols)
+   in keyPressHandler (second toEvent <$> keyMap) s e
 
 -- | A default event handler for the grid component. This will
 -- select the clicked item, if any, and trigger an action

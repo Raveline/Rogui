@@ -56,7 +56,7 @@ data GridContent
   | ProgressBar Int
 
 eventHandler :: (Monad m) => EventHandler m DemoState () Names
-eventHandler DemoState {..} e =
+eventHandler s@DemoState {..} e =
   let alterGrid gs s' = s' {gridState = gs}
       pickComponent a = redraw $ modifyState $ \s' -> s' {picked = a}
    in case e of
@@ -73,10 +73,11 @@ eventHandler DemoState {..} e =
         otherEvent ->
           handleGridEvent
             demoGrid
-            otherEvent
             gridState
             alterGrid
             pickComponent
+            s
+            otherEvent
 
 bnw :: Colours
 bnw = Colours (Just white) (Just black)
