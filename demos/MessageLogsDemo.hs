@@ -83,8 +83,8 @@ fakeLogs =
     <> manyBottlesOfBeers
 
 logEventHandler :: (Monad m) => EventHandler m State () Names
-logEventHandler (State logViewport') e =
-  handleMessageLogEvent LogView fakeLogs e logViewport' $ \newViewport s' -> s' {logViewport = newViewport}
+logEventHandler s@(State logViewport') =
+  handleMessageLogEvent LogView fakeLogs logViewport' (\newViewport s' -> s' {logViewport = newViewport}) s
 
 renderApp :: ConsoleDrawers Consoles Brushes Names State
 renderApp _ (State logViewport') =

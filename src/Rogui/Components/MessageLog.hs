@@ -13,9 +13,9 @@ import Control.Monad (void)
 import Data.Foldable
 import Data.List (intersperse)
 import qualified Data.Sequence as Seq
-import Rogui.Application.Event (Event (..), EventHandlerM, getExtentSize)
+import Rogui.Application.Event
 import Rogui.Components.Core (Component (..), DrawM, contextCellHeight, contextCellWidth, emptyComponent)
-import Rogui.Components.Viewport (ViewportState (..), handleViewportEvent, viewport)
+import Rogui.Components.Viewport (ViewportAction, ViewportState (..), defaultViewportKeys, handleViewportEvent', viewport)
 import Rogui.Graphics (Cell (..), Colours, setColours, str)
 import Rogui.Graphics.Console (TextAlign (TLeft))
 import Rogui.Graphics.DSL.Instructions (newLine)
@@ -158,24 +158,36 @@ messageLog name viewportState msgs =
 -- gets added; or if you know you'll always have enough size to display logs
 -- it becomes as simple as computing the length).
 --
--- Default supported events are:
--- * Arrow keys to scroll by one in all directions
--- * Page down and page up to scroll by one full page
+-- Default supported events are the one from `Rogui.Components.Viewport.handleViewportEvent`.
+-- You can use different mappings with `handleMessageLogEvent'`.
 handleMessageLogEvent ::
   (Monad m, Ord n, Foldable f, Functor f) =>
   -- | Name of the component, needed to retrieve its extent
   n ->
   -- | Current messages to calculate content height
   f LogMessage ->
-  -- | Event to process
-  Event e ->
   -- | Current viewport state
   ViewportState ->
   -- | How to update the viewport state in your application state
   (ViewportState -> s -> s) ->
-  EventHandlerM m s e n ()
-handleMessageLogEvent name msgs event state modifier = do
+  EventHandler m s e n
+handleMessageLogEvent = do
+  handleMessageLogEvent' defaultViewportKeys
+
+handleMessageLogEvent' ::
+  (Monad m, Ord n, Foldable f, Functor f) =>
+  [(KeyDetailsMatch, ViewportAction)] ->
+  -- | Name of the component, needed to retrieve its extent
+  n ->
+  -- | Current messages to calculate content height
+  f LogMessage ->
+  -- | Current viewport state
+  ViewportState ->
+  -- | How to update the viewport state in your application state
+  (ViewportState -> s -> s) ->
+  EventHandler m s e n
+handleMessageLogEvent' keyMap name msgs state modifier s e = do
   (V2 visibleW _) <- getExtentSize name
   let contentHeight = calculateMessageLogHeight visibleW msgs
       updatedState = state {contentSize = V2 0 contentHeight}
-  handleViewportEvent name event updatedState modifier
+  handleViewportEvent' keyMap name updatedState modifier s e

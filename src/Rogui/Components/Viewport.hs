@@ -25,13 +25,17 @@
 -- incredibly slow FPS.
 module Rogui.Components.Viewport
   ( viewport,
+    defaultViewportKeys,
     handleViewportEvent,
+    handleViewportEvent',
     scroll,
     ViewportState (..),
+    ViewportAction (..),
   )
 where
 
-import Rogui.Application.Event (Event (..), EventHandlerM, KeyDetails (..), KeyDownDetails (..), getExtentSize, modifyState, unhandled)
+import Data.Bifunctor
+import Rogui.Application.Event
 import Rogui.Components.Core (Component (..), emptyComponent, recordExtent)
 import Rogui.Graphics (Cell (..))
 import Rogui.Graphics.DSL.Instructions (pencilAt)
@@ -72,7 +76,17 @@ data ViewportState = ViewportState
 -- | Type identifying the type of scrolling requested.
 -- Page scrolling is meant to be for vertical scrolling,
 -- horizontal pages are not supported.
-data ScrollTo = OneDown | OneUp | OneLeft | OneRight | PageDown | PageUp
+data ViewportAction = OneDown | OneUp | OneLeft | OneRight | PageDown | PageUp
+
+defaultViewportKeys :: [(KeyDetailsMatch, ViewportAction)]
+defaultViewportKeys =
+  [ (isSC' SDL.ScancodeDown, OneDown),
+    (isSC' SDL.ScancodeUp, OneUp),
+    (isSC' SDL.ScancodeLeft, OneLeft),
+    (isSC' SDL.ScancodeRight, OneRight),
+    (isSC' SDL.ScancodePageDown, PageDown),
+    (isSC' SDL.ScancodePageUp, PageUp)
+  ]
 
 -- | A helper to update the viewport state depending on the
 -- scroll requested. It needs to access the recorded extent.
@@ -81,7 +95,7 @@ scroll ::
   -- | Component name
   n ->
   -- | Scrolling instruction
-  ScrollTo ->
+  ViewportAction ->
   -- | Current viewport state to modify
   ViewportState ->
   EventHandlerM m s e n ViewportState
@@ -100,7 +114,7 @@ scroll name scrollTo state@ViewportState {scrollOffset, contentSize = (V2 conten
     PageUp -> state {scrollOffset = clampScroll $ scrollOffset - V2 0 visibleH}
 
 -- | Handle viewport event to manage scrolling.
--- Default supported events are:
+-- Default supported keys are:
 --
 -- * Arrow keys to scroll by one in all directions;
 -- * Page down and page up to scroll by one full page.
@@ -108,21 +122,24 @@ handleViewportEvent ::
   (Monad m, Ord n) =>
   -- | Name of the component, needed to retrieve its extent.
   n ->
-  -- | Event to process
-  Event e ->
   -- | Current state
   ViewportState ->
   -- | How to update the viewport state in your application state
   (ViewportState -> s -> s) ->
-  EventHandlerM m s e n ()
-handleViewportEvent name event state modifier = do
-  case event of
-    KeyDown KeyDownDetails {key} -> case keycode key of
-      SDL.KeycodePageDown -> scroll name PageDown state >>= modifyState . modifier
-      SDL.KeycodePageUp -> scroll name PageUp state >>= modifyState . modifier
-      SDL.KeycodeLeft -> scroll name OneLeft state >>= modifyState . modifier
-      SDL.KeycodeRight -> scroll name OneRight state >>= modifyState . modifier
-      SDL.KeycodeDown -> scroll name OneDown state >>= modifyState . modifier
-      SDL.KeycodeUp -> scroll name OneUp state >>= modifyState . modifier
-      _ -> unhandled
-    _ -> unhandled
+  EventHandler m s e n
+handleViewportEvent = handleViewportEvent' defaultViewportKeys
+
+handleViewportEvent' ::
+  (Monad m, Ord n) =>
+  -- | Mapping of key to actions
+  [(KeyDetailsMatch, ViewportAction)] ->
+  -- | Name of the component, needed to retrieve its extent.
+  n ->
+  -- | Current state
+  ViewportState ->
+  -- | How to update the viewport state in your application state
+  (ViewportState -> s -> s) ->
+  EventHandler m s e n
+handleViewportEvent' keyMap name state modifier =
+  let toEvent e _ _ = scroll name e state >>= modifyState . modifier
+   in keyPressHandler (second toEvent <$> keyMap)
