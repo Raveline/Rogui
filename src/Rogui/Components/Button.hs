@@ -1,10 +1,15 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Rogui.Components.Button
   ( button,
     handleButtonEvent,
+    handleButtonEvent',
+    defaultButtonKeys,
     ButtonAction (..),
   )
 where
 
+import Data.Bifunctor
 import Rogui.Application.Event
 import Rogui.Components.Core (Component (..), recordExtent)
 import Rogui.Components.Label (label)
@@ -51,20 +56,35 @@ button n content baseAlignment normalColours focusedColours focused =
 -- | The possible actions with a button
 data ButtonAction
   = -- | Distribute focus
-    ButtonNextFocus
+    ButtonFocusNext
   | -- | Distribute focus
-    ButtonPrevFocus
+    ButtonFocusPrev
   | -- | Activate the button
     ButtonFire
+
+-- | The default managed keys for buttons:
+-- * Enter to activate the button;
+-- * Up to focus previous;
+-- * Down to focus next;
+defaultButtonKeys :: [(KeyDetailsMatch, ButtonAction)]
+defaultButtonKeys =
+  [ (isSC' SDL.ScancodeReturn, ButtonFire),
+    (isSC' SDL.ScancodeDown, ButtonFocusNext),
+    (isSC' SDL.ScancodeUp, ButtonFocusPrev)
+  ]
 
 -- | A sensible default implementation for the button component.
 -- This will fire the given event when getting enter, and
 -- focus next and prev on arrows up and down.
 handleButtonEvent :: (Monad m) => Event e -> EventHandler m state e n
-handleButtonEvent toFire =
-  let keyHandler =
-        [ (isSC SDL.ScancodeReturn mempty, \_ _ -> fireEvent toFire),
-          (isSC SDL.ScancodeDown mempty, \_ _ -> fireEvent $ Focus FocusPrev),
-          (isSC SDL.ScancodeUp mempty, \_ _ -> fireEvent $ Focus FocusNext)
-        ]
-   in keyPressHandler keyHandler
+handleButtonEvent = handleButtonEvent' defaultButtonKeys
+
+-- | A version of handle button event that lets you override the
+-- default keys.
+handleButtonEvent' :: (Monad m) => [(KeyDetailsMatch, ButtonAction)] -> Event e -> EventHandler m state e n
+handleButtonEvent' keysToActions toFire =
+  let toEvents = \case
+        ButtonFire -> \_ _ -> fireEvent toFire
+        ButtonFocusNext -> \_ _ -> fireEvent $ Focus FocusNext
+        ButtonFocusPrev -> \_ _ -> fireEvent $ Focus FocusPrev
+   in keyPressHandler (second toEvents <$> keysToActions)

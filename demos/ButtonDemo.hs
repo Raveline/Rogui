@@ -1,11 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Main where
 
+import qualified Data.Map.Strict as M
 import Linear (V2 (..))
 import Rogui.Application
 import Rogui.Application.Event.Handlers (focusRingHandler)
@@ -13,6 +13,7 @@ import Rogui.Components
 import Rogui.FocusRing
 import Rogui.Graphics
 import Rogui.Types (ConsoleDrawers)
+import qualified SDL
 
 data Consoles = Root
   deriving (Show, Eq, Ord)
@@ -75,10 +76,20 @@ customEventHandler _ = \case
 
 focusHandler :: (Monad m) => EventHandler m State CustomEvent Names
 focusHandler =
-  let focused =
-        [ (ButtonInc, handleButtonEvent increaseEvent),
-          (ButtonDec, handleButtonEvent decreaseEvent)
+  -- Since the button are horizontally aligned, it makes more sense
+  -- to use left and right keys for managing focus. Since users
+  -- could still want to use the up and down arrow, we'll simply
+  -- add to the default map.
+  let movementMap =
+        [ (isSC' SDL.ScancodeLeft, ButtonFocusPrev),
+          (isSC' SDL.ScancodeRight, ButtonFocusNext)
         ]
+          <> defaultButtonKeys
+      focused =
+        M.fromList
+          [ (ButtonInc, handleButtonEvent' movementMap increaseEvent),
+            (ButtonDec, handleButtonEvent' movementMap decreaseEvent)
+          ]
    in focusRingHandler focused mempty ring (\r s -> s {ring = r})
 
 renderApp :: ConsoleDrawers Consoles Brushes Names State

@@ -147,8 +147,10 @@ executable rogui-button-demo
     main-is:          ButtonDemo.hs
     build-depends:
         , base
+        , containers
         , linear
         , rogui
+        , sdl2
 
 executable rogui-colour-demo
     hs-source-dirs:   demos
