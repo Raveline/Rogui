@@ -119,6 +119,7 @@ library
         , dlist
         , monad-control
         , monad-logger
+        , MonadRandom
         , mtl
         , sdl2
         , sdl2-image

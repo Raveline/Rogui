@@ -23,14 +23,15 @@ module Rogui.Graphics.Types
   )
 where
 
+import Control.Monad.Random
 import Data.Ix (Ix)
 import SDL (Texture, V2 (..))
 
 newtype Pixel = Pixel {getPixel :: Int}
-  deriving newtype (Num, Integral, Real, Ord, Eq, Enum, Show)
+  deriving newtype (Num, Integral, Real, Ord, Eq, Enum, Show, Random)
 
 newtype Cell = Cell {getCell :: Int}
-  deriving newtype (Num, Integral, Real, Ord, Eq, Enum, Show, Ix)
+  deriving newtype (Num, Integral, Real, Ord, Eq, Enum, Show, Ix, Random)
 
 (.*=.) :: Pixel -> Cell -> Pixel
 (Pixel p) .*=. (Cell c) = Pixel (p * c)
