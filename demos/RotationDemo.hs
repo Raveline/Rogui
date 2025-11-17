@@ -27,16 +27,17 @@ main = do
             targetFPS = 60,
             rootConsoleReference = Root,
             defaultBrushReference = Charset,
-            defaultBrushPath = "terminal_16x16.png",
+            defaultBrushPath = Right "terminal_16x16.png",
+            defaultBrushTransparencyColour = pure black,
             drawingFunction = renderApp,
             stepMs = 100,
             eventFunction = baseEventHandler,
             consoleSpecs = [],
+            brushesSpecs = [],
             allowResize = True
           }
   bootAndPrintError
     config
-    pure
     ()
 
 verticalTextComponent :: String -> Colours -> Component n

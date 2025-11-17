@@ -36,14 +36,16 @@ main = do
             targetFPS = 60,
             rootConsoleReference = Root,
             defaultBrushReference = Charset,
-            defaultBrushPath = "terminal_10x16.png",
+            defaultBrushPath = Right "terminal_10x16.png",
+            defaultBrushTransparencyColour = pure black,
             drawingFunction = renderApp,
             stepMs = 100,
             eventFunction = baseEventHandler <||> logEventHandler,
             consoleSpecs = [],
+            brushesSpecs = [],
             allowResize = True
           }
-  bootAndPrintError config pure
+  bootAndPrintError config
     . State
     -- Content size is calculated dynamically, so we just initialize with zeros
     $ ViewportState (V2 0 0) (V2 0 0)

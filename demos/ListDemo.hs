@@ -43,16 +43,17 @@ main = do
             targetFPS = 60,
             rootConsoleReference = Root,
             defaultBrushReference = Charset,
-            defaultBrushPath = "terminal_10x16.png",
+            defaultBrushPath = Right "terminal_10x16.png",
+            defaultBrushTransparencyColour = pure black,
             drawingFunction = renderApp,
             stepMs = 100,
             eventFunction = baseEventHandler <||> handleEvent,
             consoleSpecs = [],
+            brushesSpecs = [],
             allowResize = True
           }
   bootAndPrintError
     config
-    pure
     $ DemoState {listState = mkListState}
 
 -- | Before you come yelling at me with Berlin interpretation:

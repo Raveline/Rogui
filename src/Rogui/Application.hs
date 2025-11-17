@@ -78,9 +78,6 @@ module Rogui.Application
     boot,
     bootAndPrintError,
 
-    -- * Setting up utilities
-    addBrush,
-
     -- * Log wrapper
     LogOutput (..),
     withLogging,

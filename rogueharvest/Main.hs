@@ -24,6 +24,7 @@ import RogueHarvest.Types
 import Rogui.Application.Event (baseEventHandler, (<||>))
 import Rogui.Application.System
 import Rogui.Components
+import Rogui.Graphics
 import Rogui.Types
 
 main :: IO ()
@@ -40,7 +41,8 @@ main = do
             rootConsoleReference = Root,
             defaultBrushReference = Charset,
             allowResize = True,
-            defaultBrushPath = "rogueharvest/assets/terminal_16x16.png",
+            defaultBrushPath = Right "rogueharvest/assets/terminal_16x16.png",
+            defaultBrushTransparencyColour = pure black,
             -- `renderGame` is the entry point to read about rendering
             drawingFunction = renderGame,
             stepMs = 100,
@@ -54,9 +56,9 @@ main = do
                 (StatusBar, ts10x16, SizeWindowPct 100 3, Below LogConsole),
                 (ModalShop, ts10x16, SizeWindowPct 90 90, Center),
                 (ModalLayer, ts10x16, FullWindow, TopLeft)
-              ]
+              ],
+            brushesSpecs = [(SmallCharset, pure black, ts10x16, Right "rogueharvest/assets/terminal_10x16.png")]
           }
-      guiMaker = addBrush SmallCharset "rogueharvest/assets/terminal_10x16.png" ts10x16
 
   -- Then we boot. Since we're using the actual `boot`, unlike the
   -- demos, we need to satisfy some constraints: MonadError (through ExcepT)
@@ -66,7 +68,6 @@ main = do
       . withLogging LogStdout
       $ boot
         config
-        guiMaker
         baseState
 
   -- We don't try to recover from errors - to be honest, Rogui doesn't

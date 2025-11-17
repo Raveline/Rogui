@@ -34,17 +34,43 @@
 --
 -- @
 --
+-- let t10x16 = TileSize 10 16
+-- let t16x16 = TileSize 16 16
 -- let conf = RoguiConfig
---   { brushTilesize = TileSize 10 16,   -- The default brush tile size
---     appName = "My app name",          -- Name for your app, will be the window title
---     consoleCellSize = V2 50 38,       -- The full window size, given in cells with the default brush tile size.
---     targetFPS = 60,                   -- The FPS to run at. Main loop will sleep to avoid going above.
---     rootConsoleReference = Root,      -- One of the `Consoles` constructor we've defined above
---     defaultBrushReference = Charset,  -- One of the `Brushes` constructor we've defined above
---     defaultBrushPath = "tileset.png", -- Path to the resource
---     drawingFunction = const [],       -- We'll describe this one later
---     stepMs = 100,                     -- A custom step that will fire a "Step" event you can use.
---     eventFunction = baseEventHandler  -- How to react to event. `baseEventHandler` ensures you can quit the app.
+--   { -- The default brush tile size
+--     brushTilesize = ts10x16,
+--     -- Name for your app, will be the window title
+--     appName = "My app name",
+--     -- The full window size, given in cells with the default brush tile size.
+--     consoleCellSize = V2 50 38,
+--     -- The FPS to run at. Main loop will sleep to avoid going above.
+--     targetFPS = 60,
+--     -- One of the `Consoles` constructor we've defined above
+--     rootConsoleReference = Root,
+--     -- One of the `Brushes` constructor we've defined above
+--     defaultBrushReference = Charset,
+--     -- Path to the resource. Left for a Bytestring, Right for a filepath.
+--     defaultBrushPath = Right "tileset.png",
+--     -- Transparency colour (if any) for your brush. Charset often use black.
+--     defaultBrushTransparencyColour = Just black
+--     -- We'll describe this one later
+--     drawingFunction = const [],
+--     -- A custom step that will fire a "Step" event you can use.
+--     stepMs = 100,                               -
+--     -- How to react to event. `baseEventHandler` ensures you can quit the app.
+--     -- You'll learn more about this in the Events module.
+--     eventFunction = baseEventHandler,
+--     -- This lets you define all the consoles from which you'll display
+--     game and UI elements.
+--     consoleSpecs =
+--       [ (TopBar, ts10Xx16, TileSize 100 2, TopLeft)
+--       , (GameGrid, ts16x16, SizeWindowPct 100 98, Below TopBar)
+--       , (ModalWindow, ts10x16, SizeWindowPct 80 80, Center)
+--       ]
+--     -- And this let you load additional tilesets or charsets (called Brush
+--     in Rogui) that you might need.
+--     brushesSpecs =
+--       [ (TileSet, pure black, ts10x16, Right "path_other_tileset.png") ]
 -- }
 --
 -- @
@@ -56,20 +82,6 @@
 -- In "real" applications, it often useful to have a `catMaybes` and a bunch of conditional
 -- to know if you want to display a given console or not. Here, we'll just return an empty
 -- map so that it compiles.
---
--- Before booting, we need a function to load all the consoles and the brush we're going to use.
--- This function receives a `Rogui` object, and should return another. You will typically
--- chain calls to `addBrush` and `addConsoleWithSpecs` inside, like this:
---
--- @
---
--- let guiMaker rogui =
---     addBrush Tileset "path_other_tileset.png" (TileSize 16 16) rogui
---     >>= addConsoleWithSpec TopBar (TileSize 10 16) (TilesSize 100 2) TopLeft
---     >>= addConsoleWithSpec GameGrid (TileSize 16 16) (SizeWindowPct 100 98) (Below TopBar)
---     >>= addConsoleWithSpec ModalWindow (TileSize 10 16) (TilesSize 80 80) Center
---
--- @
 --
 -- Pay attention to the fact that consoles have an expected tilesize. Here, we can use
 -- our `TileSet` brush on the `GameGrid` console, but not on the other consoles (an
@@ -94,9 +106,6 @@ module Rogui.Application.System
     boot,
     bootAndPrintError,
 
-    -- * Setting up utilities
-    addBrush,
-
     -- * Log wrapper
     LogOutput (..),
     withLogging,
@@ -120,6 +129,7 @@ import Control.Monad.State.Strict hiding (state)
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Writer.Strict
 import Data.Bifunctor
+import Data.ByteString (ByteString)
 import Data.Foldable (traverse_)
 import Data.List (nub)
 import Data.Map qualified as M
@@ -135,7 +145,7 @@ import Rogui.Application.Event
 import Rogui.Application.Types (ConsoleSpec, RoguiConfig (..))
 import Rogui.Components.Types
 import Rogui.Graphics
-import Rogui.Types (PositionSpec (..), Rogui (..), SizeSpec (..))
+import Rogui.Types (BrushSpec, PositionSpec (..), Rogui (..), SizeSpec (..))
 import SDL (MouseMotionEventData (MouseMotionEventData))
 import SDL qualified
 import SDL.Event (MouseButtonEventData (..))
@@ -164,14 +174,14 @@ convertSurface (SDL.Surface s _) pixFmt = do
   surface <- SDL.Surface <$> Raw.convertSurface s fmt 0 <*> pure Nothing
   surface <$ Raw.freeFormat fmt
 
-loadBrush :: (MonadIO m, MonadLogger m) => SDL.Renderer -> FilePath -> TileSize -> m Brush
-loadBrush renderer path TileSize {..} = do
-  logDebugN $ "Loading brush at " <> fromString path
-  fontSurface <- SDL.load path
+loadBrush :: (MonadIO m, MonadLogger m) => SDL.Renderer -> Maybe RGBA -> Either ByteString FilePath -> TileSize -> m Brush
+loadBrush renderer transparency method TileSize {..} = do
+  fontSurface <- case method of
+    Left bs -> SDL.decode bs
+    Right fp -> logDebugN ("Loading brush at " <> fromString fp) >> SDL.load fp
+
   surface <- convertSurface fontSurface SDL.RGBA8888
-  let black' :: SDL.V4 Word8
-      black' = SDL.V4 0 0 0 0x00
-  void $ SDL.surfaceColorKey surface SDL.$= pure black'
+  void $ SDL.surfaceColorKey surface SDL.$= transparency
   brush <- SDL.createTextureFromSurface renderer surface
   textInfo <- SDL.queryTexture brush
   pure $
@@ -183,28 +193,22 @@ loadBrush renderer path TileSize {..} = do
         brush
       }
 
--- | Load and store a brush into a `Rogui` datatype.
---
--- Expected to be chained monadically like this:
---
--- @
--- prepareRogui baseGui = do
---   addBrush Enum1 "pathToBrush.png" (TileSize 16 16) baseGui
---   >>= addBrush BigCharset "terminal_16x16.png" (TileSize 16 16)
--- @
+-- Load and store a brush into a `Rogui` datatype.
 addBrush ::
   (MonadIO m, MonadLogger m, Ord rb) =>
   -- | Brush reference constructor
   rb ->
+  -- | Transparency colour used in this brush, if any
+  Maybe RGBA ->
   -- | Filepath to the brush
-  FilePath ->
+  Either ByteString FilePath ->
   -- | Expected Tilesize for the brush
   TileSize ->
   -- | Rogui object where the brush will be loaded
   Rogui rc rb n s e m' ->
   m (Rogui rc rb n s e m')
-addBrush ref path tileSize rogui@Rogui {..} = do
-  brush <- loadBrush renderer path tileSize
+addBrush ref transparency path tileSize rogui@Rogui {..} = do
+  brush <- loadBrush renderer transparency path tileSize
   pure $ rogui {brushes = M.insert ref brush brushes}
 
 -- | Store a console to be reused later on. Each console are registered with a
@@ -262,6 +266,16 @@ buildConsoleFromSpecs consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
         RightOf rc -> consoleRight rc rogui
   (Console w h <$> pos) <*> pure consoleTS
 
+applyBrushSpecs ::
+  (MonadLogger m, MonadIO m, MonadError (RoguiError rc rb) m, Ord rb) =>
+  [BrushSpec rb] ->
+  Rogui rc rb n s e m ->
+  m (Rogui rc rb n s e m)
+applyBrushSpecs specs rogui =
+  let foldSpecs rogui' (ref, tpColour, tileSize, loadingMethod) =
+        addBrush ref tpColour loadingMethod tileSize rogui'
+   in foldM foldSpecs rogui specs
+
 applyConsoleSpecs ::
   (MonadError (RoguiError rc rb) m, Ord rc) =>
   Console ->
@@ -283,29 +297,24 @@ bootAndPrintError ::
   (Show rc, Show rb, Ord rb, Ord rc, Ord n, MonadIO m) =>
   -- | A Configuration that will be used to make a Rogui datatype
   RoguiConfig rc rb n s e (ExceptT (RoguiError rc rb) (LoggingT m)) ->
-  -- | Function to load consoles and brushes
-  (Rogui rc rb n s e (ExceptT (RoguiError rc rb) (LoggingT m)) -> ExceptT (RoguiError rc rb) (LoggingT m) (Rogui rc rb n s e (ExceptT (RoguiError rc rb) (LoggingT m)))) ->
   -- | Initial state
   s ->
   m ()
-bootAndPrintError c b i = runStdoutLoggingT $ do
-  result <- runExceptT (boot c b i)
+bootAndPrintError c i = runStdoutLoggingT $ do
+  result <- runExceptT (boot c i)
   either (liftIO . print) pure result
 
--- | This function uses the `RoguiConfig` provided to initialise a `Rogui` datatype.
--- This Rogui can then be altered in the function passed as parameter,
--- before being run in the appLoop (starting with the initial state provided as last parameter).
+-- | This function uses the `RoguiConfig` provided to initialise a `Rogui` datatype,
+-- and start the main loop.
 -- Boot will return once a `Halt` EventResult has been processed in the event handler.
 boot ::
   (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) =>
   -- | A Configuration that will be used to make a Rogui datatype
   RoguiConfig rc rb n s e m ->
-  -- | Function to load consoles and brushes
-  (Rogui rc rb n s e m -> m (Rogui rc rb n s e m)) ->
   -- | Initial state
   s ->
   m ()
-boot RoguiConfig {..} guiBuilder initialState = do
+boot RoguiConfig {..} initialState = do
   SDL.initializeAll
   let TileSize {..} = brushTilesize
       (SDL.V2 widthInTiles heightInTiles) = consoleCellSize
@@ -321,7 +330,7 @@ boot RoguiConfig {..} guiBuilder initialState = do
     . void
     $ SDL.windowMinimumSize window SDL.$= (fromIntegral <$> windowSize)
   renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
-  baseBrush <- loadBrush renderer defaultBrushPath brushTilesize
+  baseBrush <- loadBrush renderer defaultBrushTransparencyColour defaultBrushPath brushTilesize
   let baseConsole = Console {width = w, height = h, position = SDL.V2 0 0, tileSize = brushTilesize}
       frameTime = 1000 `div` fromIntegral targetFPS -- milliseconds per frame
       baseRogui =
@@ -344,10 +353,10 @@ boot RoguiConfig {..} guiBuilder initialState = do
             lastFPSWarning = 0,
             roguiConsoleSpecs = consoleSpecs
           }
-  gui <- guiBuilder baseRogui
-  withConsoles <- applyConsoleSpecs baseConsole consoleSpecs gui
+  withConsoles <- applyConsoleSpecs baseConsole consoleSpecs baseRogui
+  withBrushes <- applyBrushSpecs brushesSpecs withConsoles
 
-  appLoop withConsoles initialState
+  appLoop withBrushes initialState
 
   SDL.destroyWindow window
 

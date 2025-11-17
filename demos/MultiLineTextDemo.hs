@@ -33,16 +33,17 @@ main = do
             targetFPS = 60,
             rootConsoleReference = Root,
             defaultBrushReference = Charset,
-            defaultBrushPath = "terminal_10x16.png",
+            defaultBrushPath = Right "terminal_10x16.png",
+            defaultBrushTransparencyColour = pure black,
             drawingFunction = renderApp,
             stepMs = 100,
             eventFunction = baseEventHandler <||> handleEvents,
             consoleSpecs = [],
+            brushesSpecs = [],
             allowResize = True
           }
   bootAndPrintError
     config
-    pure
     (DemoState $ ViewportState (V2 0 0) (V2 0 0))
 
 handleEvents :: (Monad m) => EventHandler m DemoState () Names

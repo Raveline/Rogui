@@ -160,21 +160,36 @@ module Rogui.Types
     PositionSpec (..),
     SizeSpec (..),
 
+    -- * Brush specification
+    BrushSpec,
+
     -- * Drawing
     ToDraw,
   )
 where
 
+import Data.ByteString (ByteString)
 import qualified Data.Map as M
 import Data.Sequence (Seq)
 import Data.Word (Word32)
 import Rogui.Application.Event (EventHandler)
 import Rogui.Components.Core (Component, ExtentMap)
-import Rogui.Graphics.Types
+import Rogui.Graphics
 import SDL (Renderer)
 
--- | Instructions on how to build a console
+-- | Instructions on how to build a console. Expects:
+-- * A reference to store the console;
+-- * An expected tilesize for brushes that will paint on this console;
+-- * A size specification (see `SizeSpec`);
+-- * A position specification (see `PositionSpec`).
 type ConsoleSpec rc = (rc, TileSize, SizeSpec, PositionSpec rc)
+
+-- | Instructions on how to load a brush. Expects:
+-- * A reference to store the brush;
+-- * An optional transparency colour;
+-- * A tilesize;
+-- * A way to load it (either a filepath or a bytestring containing the file).
+type BrushSpec rb = (rb, Maybe RGBA, TileSize, Either ByteString FilePath)
 
 -- | Drawing function type. Drawing functions have access to all registered
 -- brushes (but if you need to switch brush on a given console,

@@ -41,16 +41,17 @@ main = do
             targetFPS = 60,
             rootConsoleReference = Root,
             defaultBrushReference = Charset,
-            defaultBrushPath = "terminal_10x16.png",
+            defaultBrushPath = Right "terminal_10x16.png",
+            defaultBrushTransparencyColour = Just black,
             drawingFunction = renderApp,
             stepMs = 100,
             consoleSpecs = [],
+            brushesSpecs = [],
             allowResize = True,
             eventFunction = baseEventHandler <||> mouseHandler <||> focusHandler <||> customEventHandler
           }
   bootAndPrintError
     config
-    pure
     $ State 0 (focusRing [ButtonInc, ButtonDec])
 
 increaseEvent :: Event CustomEvent

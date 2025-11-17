@@ -46,32 +46,31 @@ main :: IO ()
 main = do
   let config =
         RoguiConfig
-          { brushTilesize = TileSize 16 16,
+          { brushTilesize = ts16x16,
             appName = "RoGUI example",
             consoleCellSize = V2 50 38,
             targetFPS = 60,
             rootConsoleReference = Root,
             defaultBrushReference = Drawings,
-            defaultBrushPath = "punyworld-dungeon-tileset.png",
+            defaultBrushPath = Right "punyworld-dungeon-tileset.png",
+            defaultBrushTransparencyColour = Just black,
             drawingFunction = renderApp,
             stepMs = 100,
             consoleSpecs =
               [ (StatusBar, ts10x16, TilesSize 100 1, TopLeft),
                 (GameArea, ts16x16, SizeWindowPct 100 98, Below StatusBar)
               ],
+            brushesSpecs =
+              [ (BigCharset, pure black, ts16x16, Right "terminal_16x16.png"),
+                (SmallCharset, pure black, ts10x16, Right "terminal_10x16.png")
+              ],
             eventFunction = baseEventHandler <||> eventHandler,
             allowResize = True
           }
       ts16x16 = TileSize 16 16
       ts10x16 = TileSize 10 16
-      -- The signature for this function is often complicated, so we
-      -- recommend writing it as a subfunction in main.
-      guiMaker =
-        addBrush BigCharset "terminal_16x16.png" ts16x16
-          >=> addBrush SmallCharset "terminal_10x16.png" ts10x16
   bootAndPrintError
     config
-    guiMaker
     $ State
       { mousePosition = V2 0 0,
         worldPosition = Nothing,

@@ -4,10 +4,12 @@ module Rogui.Application.Types
   )
 where
 
+import Data.ByteString (ByteString)
 import Data.Text (Text)
 import Data.Word (Word32)
 import Rogui.Graphics (Cell, TileSize)
-import Rogui.Types (ConsoleDrawers, ConsoleSpec, EventHandler)
+import Rogui.Graphics.Primitives (RGBA)
+import Rogui.Types (BrushSpec, ConsoleDrawers, ConsoleSpec, EventHandler)
 import SDL (V2)
 
 -- | A simple configuration type provided to the `boot` function.
@@ -30,11 +32,14 @@ data RoguiConfig rc rb name state event m = RoguiConfig
     -- | Constructor to be associated to the default brush
     defaultBrushReference :: rb,
     -- | Path to the default brush
-    defaultBrushPath :: FilePath,
+    defaultBrushPath :: Either ByteString FilePath,
+    defaultBrushTransparencyColour :: Maybe RGBA,
     -- | Main drawing function
     drawingFunction :: ConsoleDrawers rc rb name state,
     -- | Main event handling function
     eventFunction :: EventHandler m state event name,
     -- | Console building instructions
-    consoleSpecs :: [ConsoleSpec rc]
+    consoleSpecs :: [ConsoleSpec rc],
+    -- | Brush loading instructions
+    brushesSpecs :: [BrushSpec rb]
   }
