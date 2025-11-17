@@ -5,16 +5,21 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Rogui.Application.Event.Handlers
-  ( baseEventHandler,
+  ( -- * Specific tasks handlers
+    baseEventHandler,
     keyPressHandler,
     focusRingHandler,
+
+    -- * Case analysis helpers
+    withAppEvent,
+    withMouseEvent,
   )
 where
 
 import Data.Foldable (find, traverse_)
 import qualified Data.Map as M
 import Rogui.Application.Event.Monad (halt, modifyState, redraw, unhandled)
-import Rogui.Application.Event.Types (Event (..), EventHandler, EventHandlerM, FocusDestination (..), KeyDetailsMatch (Is), KeyDownDetails (..), KeyMatch (..), Modifier (..), matchKeyDetails)
+import Rogui.Application.Event.Types (Event (..), EventHandler, EventHandlerM, FocusDestination (..), KeyDetailsMatch (Is), KeyDownDetails (..), KeyMatch (..), Modifier (..), MouseEventDetails, matchKeyDetails)
 import Rogui.FocusRing
 import qualified SDL
 
@@ -89,3 +94,23 @@ focusRingHandler focusedComponentHandlers onFocusedHandlers getRing setRing s =
         (Focus FocusNext) -> changeFocus focusNext FocusNext
         (Focus FocusPrev) -> changeFocus focusPrev FocusPrev
         e -> maybe unhandled (\h -> h s e) handler
+
+-- | Utility to define a handler that will operate only on AppEvent.
+-- Any other event will be marked as `unhandled`.
+withAppEvent ::
+  (Ord n, Monad m) =>
+  (s -> e -> EventHandlerM m s e n ()) ->
+  EventHandler m s e n
+withAppEvent f s = \case
+  AppEvent e -> f s e
+  _ -> unhandled
+
+-- | Utility to define a handler that will operate only on MouseEvents
+-- Any other event will be marked as `unhandled`.
+withMouseEvent ::
+  (Ord n, Monad m) =>
+  (s -> MouseEventDetails -> EventHandlerM m s e n ()) ->
+  EventHandler m s e n
+withMouseEvent f s = \case
+  MouseEvent md -> f s md
+  _ -> unhandled
