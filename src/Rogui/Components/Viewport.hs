@@ -167,6 +167,10 @@ scroll name scrollTo state@ViewportState {scrollOffset, contentSize = (V2 conten
 --
 -- * Arrow keys to scroll by one in all directions;
 -- * Page down and page up to scroll by one full page.
+--
+-- Components that optimize their rendering by encapsulating their
+-- own viewportState (like messageLogs) must call this by providing
+-- twice the same name.
 handleViewportEvent ::
   (Monad m, Ord n) =>
   -- | Name of the viewport (to query visible extent for clamping)
@@ -180,6 +184,7 @@ handleViewportEvent ::
   EventHandler m s e n
 handleViewportEvent = handleViewportEvent' defaultViewportKeys
 
+-- | A version of `handleViewportEvent` with custom key binding.
 handleViewportEvent' ::
   (Monad m, Ord n) =>
   -- | Mapping of key to actions
@@ -196,7 +201,7 @@ handleViewportEvent' ::
 handleViewportEvent' keyMap viewportName childName state modifier =
   let toEvent e _ _ = redraw $ do
         updatedState <-
-          if contentSize state == V2 0 0
+          if viewportName /= childName
             then do
               contentSize' <- getExtentSize childName
               pure $ state {contentSize = contentSize'}
