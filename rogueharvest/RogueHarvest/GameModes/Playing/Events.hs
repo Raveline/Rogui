@@ -41,6 +41,7 @@ handlePlayingEvents pm =
   let inputs = case pm of
         Walking -> handleWalkingKeys <||> handleWalkingRHEvents
         Aiming a -> handleAimingRHEvents a
+        WateringAnimation state -> handleWateringAnimationEvents state
    in handleMovementKeys <||> inputs
 
 handleMovementKeys :: (Monad m) => RHEventHandler m
@@ -113,13 +114,13 @@ actionOn RogueHarvest {..} i target = case i of
         >> addLog [(bnw, "You till a piece of land")]
         >> setAiming (Just Hoe)
   (Just Watercan) -> do
-    let (wateredCrop, entities') = waterPlant target _entities
+    let (wateredCrop, _) = waterPlant target _entities
     withEnergy 2 $ do
       case wateredCrop of
         Just crop -> do
           addLog [(bnw, "You watered a "), (bny, show crop)]
-          modifyState (\s -> s {_entities = entities'})
-          setAiming (Just Watercan)
+          -- Start the watering animation instead of immediately applying the effect
+          setCurrentMode (Playing (WateringAnimation (WateringAnimationState target 0)))
         Nothing -> setCurrentMode (Playing Walking)
   (Just (Seed s)) ->
     withEnergy 3 $ do
@@ -178,3 +179,19 @@ pickSelectedTile dir from cells =
    in case matching of
         [] -> unhandled
         (target : _) -> modifyState $ (currentMode . _Playing . _Aiming . currentTarget) ?~ target
+
+-- Handle events during the watering animation
+handleWateringAnimationEvents :: (Monad m) => WateringAnimationState -> EventHandler m RogueHarvest RHEvents Names
+handleWateringAnimationEvents WateringAnimationState {..} RogueHarvest {..} = \case
+  Step -> do
+    let newStepsElapsed = _animationStepsElapsed + 1
+        animationComplete = newStepsElapsed >= 10
+    if animationComplete
+      then do
+        let (_, entities') = waterPlant _animationTarget _entities
+        modifyState (\s -> s {_entities = entities'})
+        setAiming (Just Watercan)
+      else do
+        modifyState $ (currentMode . _Playing . _WateringAnimation . animationStepsElapsed) .~ newStepsElapsed
+  -- By using pure and not unhandled, we block inputs during the animation
+  _ -> pure ()

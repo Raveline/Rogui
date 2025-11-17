@@ -63,11 +63,20 @@ data AimingMode = AimingMode
 
 makeLenses ''AimingMode
 
+-- This mode is used when player waters a plant and we show an animation.
+data WateringAnimationState = WateringAnimationState
+  { _animationTarget :: V2 Cell,
+    _animationStepsElapsed :: Int
+  }
+
+makeLenses ''WateringAnimationState
+
 -- Modes can be subdivided: for instant, the main "Playing" mode is thus
 -- divided between walking and aiming.
 data PlayingMode
   = Walking
   | Aiming AimingMode
+  | WateringAnimation WateringAnimationState
 
 makePrisms ''PlayingMode
 

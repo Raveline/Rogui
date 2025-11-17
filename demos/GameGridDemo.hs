@@ -8,7 +8,7 @@
 
 module Main where
 
-import Control.Monad (when, (>=>))
+import Control.Monad (when)
 import Data.Array
 import Data.Array.IArray (genArray)
 import qualified Data.Map as M
@@ -44,7 +44,9 @@ fullMapSize = V2 100 100
 
 main :: IO ()
 main = do
-  let config =
+  let ts16x16 = TileSize 16 16
+      ts10x16 = TileSize 10 16
+      config =
         RoguiConfig
           { brushTilesize = ts16x16,
             appName = "RoGUI example",
@@ -67,8 +69,6 @@ main = do
             eventFunction = baseEventHandler <||> eventHandler,
             allowResize = True
           }
-      ts16x16 = TileSize 16 16
-      ts10x16 = TileSize 10 16
   bootAndPrintError
     config
     $ State

@@ -38,19 +38,46 @@ renderGrid _ RogueHarvest {..} =
     _playerPos
     [ gridTile (\pos -> (pos, _farm ! pos)) (uncurry tileToGlyphInfo),
       renderEntities _entities,
-      renderWateredLayer _entities,
+      renderWateredLayer _currentMode _entities,
       gameModeLayer _currentMode _playerPos
     ]
 
 -- To render watered crops, we simply add a blue-ish lightshade glyph on top of
 -- the previously renderer plant. It's not very realistic (watered ground doesn't
 -- look blue) but we opted for a more symbolic approach.
-renderWateredLayer :: EntityMap -> MapViewport -> Component Names
-renderWateredLayer entitiesMap =
-  let rendering = GlyphInfo lightShade (Colours (Just (setAlpha lightBlue 128)) Nothing) []
-      isWatered cc = fromMaybe False $ cc ^? cellPlant . _Just . watered
-      toRender = fmap fst . filter (isWatered . snd) . assocs $ entitiesMap
-   in entitiesLayer toRender (const rendering) id
+-- During watering animation:
+-- - Alpha fades from 255 (fully opaque) to 64 (quite transparent), creating a dramatic effect
+-- - Glyph changes: fullBlock (0-4 steps) → mediumShade (5-9 steps) → lightShade (final)
+renderWateredLayer :: GameMode -> EntityMap -> MapViewport -> Component Names
+renderWateredLayer gm entitiesMap =
+  let isWatered cc = fromMaybe False $ cc ^? cellPlant . _Just . watered
+      wateredCells = fmap fst . filter (isWatered . snd) . assocs $ entitiesMap
+      -- Check if we're currently animating a watering action
+      (animatingCell, animationAlpha, animationGlyph) = case gm of
+        Playing (WateringAnimation WateringAnimationState {..}) ->
+          -- Calculate alpha: 255 at step 0, fading to 64 at step 10
+          -- Linear interpolation: alpha = 255 - (stepsElapsed * 191) / 10
+          -- This gives: 255 → 236 → 217 → 198 → 179 → 160 → 141 → 122 → 103 → 84 → 64
+          let alpha = fromIntegral $ max 64 (255 - ((_animationStepsElapsed * 191) `div` 10))
+              -- Glyph progression: fullBlock (0-4) → mediumShade (5-9) → lightShade (10+)
+              glyphChar = if _animationStepsElapsed < 5
+                        then fullBlock
+                        else if _animationStepsElapsed < 10
+                               then mediumShade
+                               else lightShade
+           in (Just _animationTarget, alpha, glyphChar)
+        _ -> (Nothing, 128, lightShade)
+      -- Render function that uses animated or static alpha and glyph
+      renderWater pos =
+        let (alpha, glyphChar) = if Just pos == animatingCell
+                               then (animationAlpha, animationGlyph)
+                               else (128, lightShade)
+         in GlyphInfo glyphChar (Colours (Just (setAlpha lightBlue alpha)) Nothing) []
+      -- For animation, include the animating cell even if not yet marked as watered
+      cellsToRender = case animatingCell of
+        Just cell | cell `notElem` wateredCells -> cell : wateredCells
+        _ -> wateredCells
+   in entitiesLayer cellsToRender renderWater id
 
 -- Utility to distinguish when we're drawing player and when we are drawing
 -- targets.
