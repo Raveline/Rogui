@@ -11,42 +11,17 @@ where
 
 import Control.Monad (void)
 import Data.Foldable
-import Data.List (intersperse)
-import qualified Data.Sequence as Seq
 import Rogui.Application.Event
 import Rogui.Components.Core (Component (..), DrawM, contextCellHeight, contextCellWidth, emptyComponent)
+import Rogui.Components.TextWrap
 import Rogui.Components.Viewport (ViewportAction, ViewportState (..), defaultViewportKeys, handleViewportEvent', viewport)
-import Rogui.Graphics (Cell (..), Colours, setColours, str)
-import Rogui.Graphics.Console (TextAlign (TLeft))
+import Rogui.Graphics (Cell (..))
 import Rogui.Graphics.DSL.Instructions (newLine)
 import SDL (V2 (..))
 
-type LogChunk = (Colours, String)
+type LogChunk = TextChunk
 
 type LogMessage = [LogChunk]
-
-splitChunk :: Int -> (Colours, String) -> (Maybe (Colours, String), (Colours, String))
-splitChunk n (rgb, content) =
-  let splitByWord = words content
-      (fittingWords, nonFittingWord) = getTextLikeUntil n (\w -> length w + 1) (\_ t -> (Nothing, t)) splitByWord
-   in if not . null $ fittingWords
-        then (Just (rgb, unwords fittingWords), (rgb, unwords nonFittingWord))
-        else
-          (Nothing, (rgb, content))
-
-getTextLikeUntil :: Int -> (t -> Int) -> (Int -> t -> (Maybe t, t)) -> [t] -> ([t], [t])
-getTextLikeUntil width getLength breaker ts =
-  let folder (size, collected, left) item
-        | (getLength item + size) > width =
-            -- Item is too big. Let's try to break it
-            case breaker (width - size) item of
-              (Just enough, tooBig) -> (width, collected Seq.|> enough, left Seq.|> tooBig)
-              (Nothing, tooBig) ->
-                (width, collected, left Seq.|> tooBig)
-        | otherwise =
-            (size + getLength item, collected Seq.|> item, left)
-      getResult (_, taken, left) = (toList taken, toList left)
-   in getResult . foldl' folder (0, Seq.empty, Seq.empty) $ ts
 
 drawMessageLog :: Cell -> LogMessage -> Cell -> DrawM n Cell
 drawMessageLog _ _ 0 = pure 0
@@ -62,18 +37,6 @@ drawMessageLog width msg remainingLines = do
       drawChunksWithSpaces msg
       newLine
       pure (remainingLines - 1)
-
-drawChunksWithSpaces :: [LogChunk] -> DrawM n ()
-drawChunksWithSpaces chunks =
-  traverse_ drawChunkOrSpace (intersperse (Left " ") (Right <$> chunks))
-  where
-    drawChunkOrSpace (Left space) = str TLeft space
-    drawChunkOrSpace (Right chunk) = drawChunk chunk
-
-drawChunk :: LogChunk -> DrawM n ()
-drawChunk (chunkColour, chunkTxt) = do
-  setColours chunkColour
-  str TLeft chunkTxt
 
 truncateWordBy :: Int -> String -> String
 truncateWordBy beyond w
@@ -190,4 +153,5 @@ handleMessageLogEvent' keyMap name msgs state modifier s e = do
   (V2 visibleW _) <- getExtentSize name
   let contentHeight = calculateMessageLogHeight visibleW msgs
       updatedState = state {contentSize = V2 0 contentHeight}
-  handleViewportEvent' keyMap name updatedState modifier s e
+  -- MessageLog uses optimized viewport, so viewport and child have same name
+  handleViewportEvent' keyMap name name updatedState modifier s e

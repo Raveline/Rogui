@@ -1,8 +1,5 @@
 High priority:
 
-[ ] Add customisable default handlers for components to override keys. This has become even more urgent: see ButtonDemo.hs, it makes no sense to have to use up / down arrow keys here.
-[ ] Add multiline text component
-
 Medium priority:
 
 [ ] Particle utility, whatever form it might have...

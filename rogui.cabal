@@ -87,8 +87,10 @@ library
         Rogui.Components.Label
         Rogui.Components.List
         Rogui.Components.MessageLog
+        Rogui.Components.MultilineText
         Rogui.Components.ProgressBar
         Rogui.Components.TextInput
+        Rogui.Components.TextWrap
         Rogui.Components.Types
         Rogui.Components.Viewport
         Rogui.FocusRing
@@ -207,6 +209,16 @@ executable rogui-messagelogs-demo
         , linear
         , rogui
 
+executable rogui-multilinetext-demo
+    hs-source-dirs:   demos
+    ghc-options:      -threaded -Wall -Wcompat -O2
+    default-language: Haskell2010
+    main-is:          MultiLineTextDemo.hs
+    build-depends:
+        , base
+        , linear
+        , rogui
+
 executable rogui-progressbar-demo
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
@@ -288,6 +300,7 @@ test-suite rogui-test
     other-modules:
         Rogui.Components.Layout
         Rogui.Components.MessageLogTest
+        Rogui.Components.TextWrapTest
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

@@ -4,6 +4,7 @@ module Rogui.Components
     module Rogui.Components.Grid,
     module Rogui.Components.Label,
     module Rogui.Components.MessageLog,
+    module Rogui.Components.MultilineText,
     module Rogui.Components.ProgressBar,
     module Rogui.Components.TextInput,
     module Rogui.Components.Types,
@@ -57,6 +58,7 @@ import Rogui.Components.Core
 import Rogui.Components.Grid
 import Rogui.Components.Label
 import Rogui.Components.MessageLog
+import Rogui.Components.MultilineText
 import Rogui.Components.ProgressBar
 import Rogui.Components.TextInput
 import Rogui.Components.Types

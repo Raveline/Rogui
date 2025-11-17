@@ -25,6 +25,7 @@
 -- incredibly slow FPS.
 module Rogui.Components.Viewport
   ( viewport,
+    viewportClipped,
     defaultViewportKeys,
     handleViewportEvent,
     handleViewportEvent',
@@ -42,15 +43,12 @@ import Rogui.Graphics.DSL.Instructions (pencilAt)
 import SDL (V2 (V2))
 import qualified SDL
 
--- | This is a simple viewport, which relies heavily on clipping: it moves up
--- the component when scrolling down - the negatives positions will be clipped
--- by SDL.  This is suitable for a small area to scroll, but widely inefficient
--- for huge components, unless they are smart enough to limit their own display.
--- As they need to know their extent to operate, viewport state need to be
--- named.
+-- | This is an optimized viewport where the child component receives the scroll
+-- offset as a parameter, allowing it to efficiently render only the visible
+-- portion plus the scrolled area. This is suitable for very large components
+-- like message logs that can optimize their rendering.
 --
--- The child component receives the current scroll offset as a parameter, allowing
--- it to efficiently render only the visible portion plus the scrolled area.
+-- For simpler use cases where the content is not huge, see 'viewportClipped'.
 viewport ::
   (Ord n) =>
   -- | Name for the viewport
@@ -67,7 +65,57 @@ viewport name (ViewportState scrollOffset@(V2 scrollX scrollY) _) childFn =
         draw (childFn scrollOffset)
    in emptyComponent {draw = draw'}
 
--- | A viewport state to handle
+-- | A simpler viewport that relies on SDL clipping.
+--
+-- This viewport simply offsets the child component and lets SDL clip anything
+-- that falls outside the viewport bounds. This is much simpler to use than
+-- 'viewport' because the child component doesn't need to be aware of scrolling.
+--
+-- This is suitable for smaller content areas (like text that isn't extremely
+-- long) where rendering the entire content is acceptable. The rendering is still
+-- efficient because SDL will clip anything outside the visible area.
+--
+-- For this to work, you will need to ensure that the child has a dedicated
+-- way of recording its extent (not via `recordExtent` or `withRecordedExtent`,
+-- which only takes the console space available). You need a logic inside the
+-- component itself. `multiLineText` is a good example of this.
+--
+-- @
+-- data Names = TextViewport TextContent
+--
+-- renderText :: ViewportState -> Component Names
+-- renderText viewportState =
+--   viewportClipped TextViewport viewportState $
+--     multilineText TextContent
+--       [ (Colours (Just white) (Just black), "Long text here...")
+--       , (Colours (Just red) Nothing, "More text...")
+--       ]
+--
+-- handleEvents state event =
+--   handleViewportEvent TextViewport TextContent viewportState updater state event
+-- @
+viewportClipped ::
+  (Ord n) =>
+  -- | Name for the viewport (to query its visible extent)
+  n ->
+  -- | Current viewport state
+  ViewportState ->
+  -- | Child component to scroll
+  Component n ->
+  Component n
+viewportClipped viewportName (ViewportState (V2 scrollX scrollY) _) child =
+  let draw' = do
+        recordExtent viewportName
+        pencilAt (V2 (negate scrollX) (negate scrollY))
+        draw child
+   in emptyComponent {draw = draw'}
+
+-- | A viewport state to handle scrolling.
+--
+-- The contentSize field determines the maximum scroll bounds. If either
+-- component is 0, scrolling in that direction is unlimited (useful when
+-- the actual content size is unknown or when using viewportClipped with
+-- content that will be clipped by SDL anyway).
 data ViewportState = ViewportState
   { scrollOffset :: V2 Cell,
     contentSize :: V2 Cell
@@ -103,8 +151,9 @@ scroll name scrollTo state@ViewportState {scrollOffset, contentSize = (V2 conten
   (V2 visibleW visibleH) <- getExtentSize name
   let clampScroll (V2 x y) =
         V2
-          (max 0 $ min x (contentX - visibleW))
-          (max 0 $ min y (contentY - visibleH))
+          -- If content is 0, allow unlimited scrolling
+          (if contentX == 0 then max 0 x else max 0 $ min x (contentX - visibleW))
+          (if contentY == 0 then max 0 y else max 0 $ min y (contentY - visibleH))
   pure $ case scrollTo of
     OneDown -> state {scrollOffset = clampScroll $ scrollOffset + V2 0 1}
     OneRight -> state {scrollOffset = clampScroll $ scrollOffset + V2 1 0}
@@ -120,7 +169,9 @@ scroll name scrollTo state@ViewportState {scrollOffset, contentSize = (V2 conten
 -- * Page down and page up to scroll by one full page.
 handleViewportEvent ::
   (Monad m, Ord n) =>
-  -- | Name of the component, needed to retrieve its extent.
+  -- | Name of the viewport (to query visible extent for clamping)
+  n ->
+  -- | Name of the child content (to query content extent for updating state)
   n ->
   -- | Current state
   ViewportState ->
@@ -133,13 +184,23 @@ handleViewportEvent' ::
   (Monad m, Ord n) =>
   -- | Mapping of key to actions
   [(KeyDetailsMatch, ViewportAction)] ->
-  -- | Name of the component, needed to retrieve its extent.
+  -- | Name of the viewport (to query visible extent for clamping)
+  n ->
+  -- | Name of the child content (to query content extent for updating state)
   n ->
   -- | Current state
   ViewportState ->
   -- | How to update the viewport state in your application state
   (ViewportState -> s -> s) ->
   EventHandler m s e n
-handleViewportEvent' keyMap name state modifier =
-  let toEvent e _ _ = scroll name e state >>= modifyState . modifier
+handleViewportEvent' keyMap viewportName childName state modifier =
+  let toEvent e _ _ = redraw $ do
+        updatedState <-
+          if contentSize state == V2 0 0
+            then do
+              contentSize' <- getExtentSize childName
+              pure $ state {contentSize = contentSize'}
+            else
+              pure state
+        scroll viewportName e updatedState >>= modifyState . modifier
    in keyPressHandler (second toEvent <$> keyMap)

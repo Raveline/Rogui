@@ -39,6 +39,7 @@ module Rogui.Components.Core
     recordExtent,
     isInExtent,
     withRecordedExtent,
+    consoleToExtent,
 
     -- * Drawing utilities
     contextCellWidth,
