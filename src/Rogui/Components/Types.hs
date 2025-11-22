@@ -64,6 +64,7 @@ data Extent = Extent
     -- The actual console used (in pixels)
     extentConsole :: Console
   }
+  deriving (Eq)
 
 type ExtentMap n = M.Map n Extent
 

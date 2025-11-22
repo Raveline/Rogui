@@ -122,7 +122,10 @@ recordExtent :: (Ord n) => n -> DrawM n ()
 recordExtent name = do
   DrawingContext {console, brush, currentExtents} <- get
   let extent = consoleToExtent brush console
-  modify $ \s -> s {currentExtents = M.insert name extent currentExtents}
+      knownExtent = name `M.lookup` currentExtents
+  when (knownExtent /= Just extent) $
+    modify $
+      \s -> s {currentExtents = M.insert name extent currentExtents}
 
 -- | Record the extent of any arbitrary component, under the given
 -- name. Useful when you need the extent for a component that doesn't
