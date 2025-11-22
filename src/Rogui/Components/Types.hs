@@ -85,14 +85,14 @@ type ExtentMap n = M.Map n Extent
 -- the `currentExtents` map stores it.
 data DrawingContext n = DrawingContext
   { -- | The current brush being used
-    brush :: Brush,
+    brush :: !Brush,
     -- | The current console being used
-    console :: Console,
+    console :: !Console,
     -- | The number of steps events emitted by the application. Can be
     -- used for simple animations.
-    steps :: Int,
+    steps :: !Int,
     -- | The size of named components after rendering them if `recordExtent` was used.
-    currentExtents :: ExtentMap n
+    currentExtents :: !(ExtentMap n)
   }
 
 -- | A size type expressing how layout should try to size a component.  A
