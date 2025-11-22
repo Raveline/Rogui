@@ -131,7 +131,6 @@ import Control.Monad.Writer.Strict
 import Data.Bifunctor
 import Data.ByteString (ByteString)
 import Data.Foldable (traverse_)
-import Data.List (nub)
 import Data.Map qualified as M
 import Data.Maybe (catMaybes)
 import Data.Sequence qualified as Seq
@@ -508,7 +507,7 @@ getSDLEvents Brush {..} =
               constructor = if mouseButtonEventMotion == SDL.Released then MouseClickReleased else MouseClickPressed
            in MouseEvent . constructor $ MouseClickDetails {..}
         e -> OtherSDLEvent e
-      deduplicatedPayload = nub . fmap SDL.eventPayload
+      deduplicatedPayload = S.toList . S.fromList . fmap SDL.eventPayload
    in fmap (fmap toRoguiEvent) (deduplicatedPayload <$> SDL.pollEvents)
 
 keysymToKeyDetails :: SDL.Keysym -> KeyDetails
