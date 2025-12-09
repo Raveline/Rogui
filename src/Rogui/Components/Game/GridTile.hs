@@ -3,6 +3,7 @@
 
 module Rogui.Components.Game.GridTile
   ( gridTile,
+    discreteGridTile,
     multiLayeredGrid,
     mouseEventToWorldPos,
   )
@@ -37,6 +38,29 @@ gridTile getTile getTileDisplay viewport@(topLeft, _) =
         let GlyphInfo {..} = getTileDisplay . getTile $ coords
         setColours colours
         glyphAt (coords - topLeft) glyphId transformations
+      draw = traverse_ renderAt tilesToPrint
+   in emptyComponent {draw = draw}
+
+-- | A grid of tiles where not every tile is defined, typically used to display
+-- static things like furniture. Basically like a `gridTile` but with `Maybe`.
+discreteGridTile ::
+  -- | A way to obtain an arbitrary tile type from a position.
+  (V2 Cell -> Maybe t) ->
+  -- | How should an arbitrary tile type be rendered
+  (t -> GlyphInfo) ->
+  -- The map viewport (typically passed through `mutilLayeredGrid`)
+  MapViewport ->
+  Component n
+discreteGridTile getMaybeTile getTileDisplay viewport@(topLeft, _) =
+  let tilesToPrint = cellsInMapViewport viewport
+      renderAt coords = do
+        let mGlyphInfo = getTileDisplay <$> getMaybeTile coords
+        traverse_
+          ( \GlyphInfo {..} -> do
+              setColours colours
+              glyphAt (coords - topLeft) glyphId transformations
+          )
+          mGlyphInfo
       draw = traverse_ renderAt tilesToPrint
    in emptyComponent {draw = draw}
 
