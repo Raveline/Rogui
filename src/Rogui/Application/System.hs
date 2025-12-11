@@ -177,7 +177,7 @@ loadBrush :: (MonadIO m, MonadLogger m) => SDL.Renderer -> Maybe RGBA -> Either 
 loadBrush renderer transparency method TileSize {..} = do
   fontSurface <- case method of
     Left bs -> SDL.decode bs
-    Right fp -> logDebugN ("Loading brush at " <> fromString fp) >> SDL.load fp
+    Right fp -> logDebugNS "Rogui.System" ("Loading brush at " <> fromString fp) >> SDL.load fp
 
   surface <- convertSurface fontSurface SDL.RGBA8888
   void $ SDL.surfaceColorKey surface SDL.$= transparency
@@ -507,7 +507,7 @@ getSDLEvents Brush {..} =
               constructor = if mouseButtonEventMotion == SDL.Released then MouseClickReleased else MouseClickPressed
            in MouseEvent . constructor $ MouseClickDetails {..}
         e -> OtherSDLEvent e
-      deduplicatedPayload = S.toList . S.fromList . fmap SDL.eventPayload
+      deduplicatedPayload es = S.toList . S.fromList $ fmap SDL.eventPayload es
    in fmap (fmap toRoguiEvent) (deduplicatedPayload <$> SDL.pollEvents)
 
 keysymToKeyDetails :: SDL.Keysym -> KeyDetails

@@ -3,6 +3,7 @@ module Rogui.Graphics.Primitives
     fillConsoleWith,
     clipToConsole,
     overlayRect,
+    setFrontColour,
     RGBA,
     Transformation (..),
     Rotation (..),
@@ -91,8 +92,6 @@ printCharAt ::
   Brush ->
   -- | Series of transformation to perform on the glyph
   [Transformation] ->
-  -- | Frontcolour of the sprite.
-  Maybe RGBA ->
   -- | Backcolour of the sprite.
   Maybe RGBA ->
   -- | Sprite to paint. Should in theory be limited to Char, but we
@@ -101,12 +100,11 @@ printCharAt ::
   -- | Logical position in the console (in brush size cells)
   V2 Cell ->
   m ()
-printCharAt renderer console b@Brush {..} trans frontColour backColour n at = do
+printCharAt renderer console b@Brush {..} trans backColour n at = do
   let realRectangle = getScreenRectAt console b (V2 tileWidth tileHeight) at
       flip' = V2 (FlipX `elem` trans) (FlipY `elem` trans)
       rotate = sum $ mapMaybe toDegree trans
   traverse_ (setBackColour renderer realRectangle) backColour
-  traverse_ (setFrontColour brush) frontColour
   SDL.copyEx
     renderer
     brush

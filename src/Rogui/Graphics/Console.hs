@@ -24,10 +24,10 @@ cornerBottomRight437 = 217
 -- | Draw a border around the given console with the given brush.
 -- Assumes the Brush has the standard position for border glyphs
 -- on a CCSID 437 tileset.
-drawBorder :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGBA -> Maybe RGBA -> m ()
-drawBorder renderer console@Console {..} brush'@Brush {..} front back = do
+drawBorder :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGBA -> m ()
+drawBorder renderer console@Console {..} brush'@Brush {..} back = do
   let (w, h) = (width ./.= tileWidth - 1, height ./.= tileHeight - 1)
-      draw = printCharAt renderer console brush' [] front back
+      draw = printCharAt renderer console brush' [] back
       bottoms = [V2 x y | x <- [1 .. w - 1], y <- [h]]
       tops = [V2 x y | x <- [1 .. w - 1], y <- [0]]
       lefts = [V2 x y | x <- [0], y <- [1 .. h - 1]]
@@ -43,9 +43,9 @@ drawBorder renderer console@Console {..} brush'@Brush {..} front back = do
 
 -- | Very basic, dummy string printer. Will not check for overflow.
 -- Print from the position given with the alignment given.
-printStrAt :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGBA -> Maybe RGBA -> TextAlign -> String -> V2 Cell -> m ()
-printStrAt renderer console brush front back alignment str pos =
-  let draw n = printCharAt renderer console brush [] front back (ord n)
+printStrAt :: (MonadIO m) => Renderer -> Console -> Brush -> Maybe RGBA -> TextAlign -> String -> V2 Cell -> m ()
+printStrAt renderer console brush back alignment str pos =
+  let draw n = printCharAt renderer console brush [] back (ord n)
       basePos = case alignment of
         TCenter -> pos - V2 (Cell $ length str `div` 2) 0
         TRight -> pos - V2 (Cell $ length str) 0
