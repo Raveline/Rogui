@@ -6,6 +6,7 @@ module Rogui.Application.Event.Monad
     redraw,
     getState,
     modifyState,
+    modifyStateM,
     setCurrentState,
     fireEvent,
     fireAppEvent,
@@ -17,7 +18,7 @@ module Rogui.Application.Event.Monad
 where
 
 import Control.Applicative (Alternative (..))
-import Control.Monad.State.Strict (gets, modify)
+import Control.Monad.State.Strict (MonadState (..), gets, modify)
 import qualified Data.Map as M
 import Data.Sequence ((|>))
 import Rogui.Application.Event.Types
@@ -47,6 +48,13 @@ getState = liftEH $ gets currentState
 modifyState :: (Monad m) => (state -> state) -> EventHandlerM m state e n ()
 modifyState f =
   liftEH . modify $ \ehs@EventHandlingState {currentState} -> ehs {currentState = f currentState}
+
+-- | Convenience modification of the Event handling state to modify the application state.
+modifyStateM :: (Monad m) => (state -> m state) -> EventHandlerM m state e n ()
+modifyStateM f = do
+  ehs@EventHandlingState {currentState} <- liftEH get
+  newState <- liftApp $ f currentState
+  liftEH $ put $ ehs {currentState = newState}
 
 -- | Convenience modification of the Event handling state to actually _set_ the whole state
 setCurrentState :: (Monad m) => state -> EventHandlerM m state e n ()
