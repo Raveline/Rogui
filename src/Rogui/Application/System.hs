@@ -235,7 +235,7 @@ addConsole ref console rogui@Rogui {..} =
 --   >>= addConsoleWithSpec GameGrid (TileSize 16 16) (SizeWindowPct 100 98) (Below StatusBar)
 -- @
 buildConsoleFromSpecs ::
-  (Ord rc, MonadError (RoguiError rc rb) m) =>
+  (Ord rc, MonadError (RoguiError err rc rb) m) =>
   -- | The size of the console cells, expressed in pixels
   TileSize ->
   -- | How should the size of this console be computed ?
@@ -266,7 +266,7 @@ buildConsoleFromSpecs consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
   (Console w h <$> pos) <*> pure consoleTS
 
 applyBrushSpecs ::
-  (MonadLogger m, MonadIO m, MonadError (RoguiError rc rb) m, Ord rb) =>
+  (MonadLogger m, MonadIO m, MonadError (RoguiError err rc rb) m, Ord rb) =>
   [BrushSpec rb] ->
   Rogui rc rb n s e m ->
   m (Rogui rc rb n s e m)
@@ -276,7 +276,7 @@ applyBrushSpecs specs rogui =
    in foldM foldSpecs rogui specs
 
 applyConsoleSpecs ::
-  (MonadError (RoguiError rc rb) m, Ord rc) =>
+  (MonadError (RoguiError err rc rb) m, Ord rc) =>
   Console ->
   [ConsoleSpec rc] ->
   Rogui rc rb n s e m ->
@@ -291,11 +291,12 @@ applyConsoleSpecs root specs rogui@Rogui {..} =
 -- logging for you. It will output any error (without trying to recover) and log
 -- to the standard output. This is typically useful while you're developing,
 -- or for prototyping, later to be ditched for a call to `boot` with more
--- custom behaviour designed.
+-- custom behaviour designed. It will not work if you need a custom error type
+-- however.
 bootAndPrintError ::
   (Show rc, Show rb, Ord rb, Ord rc, Ord n, MonadIO m) =>
   -- | A Configuration that will be used to make a Rogui datatype
-  RoguiConfig rc rb n s e (ExceptT (RoguiError rc rb) (LoggingT m)) ->
+  RoguiConfig rc rb n s e (ExceptT (RoguiError () rc rb) (LoggingT m)) ->
   -- | Initial state
   s ->
   m ()
@@ -307,7 +308,7 @@ bootAndPrintError c i = runStdoutLoggingT $ do
 -- and start the main loop.
 -- Boot will return once a `Halt` EventResult has been processed in the event handler.
 boot ::
-  (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) =>
+  (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLogger m) =>
   -- | A Configuration that will be used to make a Rogui datatype
   RoguiConfig rc rb n s e m ->
   -- | Initial state
@@ -360,7 +361,7 @@ boot RoguiConfig {..} initialState = do
   SDL.destroyWindow window
 
 -- | Lookup a brush by its reference. Throw an error if not found.
-brushLookup :: (Ord rb, Show rb, MonadError (RoguiError rc rb) m) => M.Map rb Brush -> rb -> m Brush
+brushLookup :: (Ord rb, Show rb, MonadError (RoguiError err rc rb) m) => M.Map rb Brush -> rb -> m Brush
 brushLookup m ref =
   maybe (throwError $ NoSuchBrush ref) pure (M.lookup ref m)
 
@@ -374,7 +375,7 @@ calculateFPS frameTimes minSamples
           avgFrameTime = fromIntegral totalTime / fromIntegral (Seq.length frameTimes) :: Double
        in Just (1000.0 / avgFrameTime)
 
-applyResize :: (Ord rc, MonadError (RoguiError rc rb) m) => SDL.V2 Cell -> Rogui rc rb n s e m -> m (Rogui rc rb n s e m)
+applyResize :: (Ord rc, MonadError (RoguiError err rc rb) m) => SDL.V2 Cell -> Rogui rc rb n s e m -> m (Rogui rc rb n s e m)
 applyResize (SDL.V2 newW newH) r@Rogui {..} =
   let Console {..} = rootConsole
       newRoot =
@@ -388,7 +389,7 @@ applyResize (SDL.V2 newW newH) r@Rogui {..} =
 -- so we can rebuild a Rogui datatype properly to react to this particular event.
 -- This also removes duplicated input events, so they don't build up faster
 -- than rendering.
-preEventLoop :: (Ord rc, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) => Rogui rc rb n s e m -> m (Rogui rc rb n s e m, [Event e])
+preEventLoop :: (Ord rc, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLogger m) => Rogui rc rb n s e m -> m (Rogui rc rb n s e m, [Event e])
 preEventLoop initialRogui@Rogui {..} = do
   sdlEventsWithResize <- getSDLEvents defaultBrush
   let eventFolder (r, evs) ev@(WindowResized newSize) = (,) <$> applyResize newSize r <*> pure (ev : evs)
@@ -396,7 +397,7 @@ preEventLoop initialRogui@Rogui {..} = do
   (finalRogui, processedEvents) <- foldM eventFolder (initialRogui, []) sdlEventsWithResize
   pure (finalRogui, reverse processedEvents)
 
-appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError rc rb) m, MonadLogger m) => Rogui rc rb n s e m -> s -> m ()
+appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLogger m) => Rogui rc rb n s e m -> s -> m ()
 appLoop initialGui state = do
   frameStart <- SDL.ticks
   (roGUI@Rogui {..}, sdlEvents) <- preEventLoop initialGui
@@ -524,7 +525,7 @@ keysymToKeyDetails SDL.Keysym {..} =
           ]
    in KeyDetails keysymKeycode keysymScancode (toModifier keysymModifier)
 
-renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError rc rb) m) => Rogui rc rb n s e m' -> Brush -> Console -> Component n -> m (ExtentMap n)
+renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError err rc rb) m) => Rogui rc rb n s e m' -> Brush -> Console -> Component n -> m (ExtentMap n)
 renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usingBrush usingConsole@Console {tileSize = consoleTileSize} Component {..} = do
   let brushTileSize = fromBrush usingBrush
   when (brushTileSize /= consoleTileSize) $

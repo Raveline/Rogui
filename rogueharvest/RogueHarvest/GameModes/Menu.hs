@@ -34,7 +34,7 @@ renderMainMenu ring =
 renderTitle :: Component Names
 renderTitle =
   let draw' =
-        let colourGradient = gradient green yellow (length "Rogueharvest")
+        let colourGradient = gradient green yellow (length ("Rogueharvest" :: String))
             singleChar fc char =
               setColours (Colours (Just fc) (Just black)) >> str TLeft [char]
          in zipWithM_ singleChar colourGradient "Rogueharvest"

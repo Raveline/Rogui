@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | A silly little application to demonstrate more advanced patterns
@@ -21,6 +22,7 @@ import Control.Monad.Random
 import Linear (V2 (..))
 import RogueHarvest.Game
 import RogueHarvest.Types
+import Rogui.Application.Error
 import Rogui.Application.Event (baseEventHandler, (<||>))
 import Rogui.Application.System
 import Rogui.Components
@@ -74,7 +76,7 @@ main = do
   -- offer much - for now - when it comes to recovery.
   case result of
     Right _ -> pure ()
-    Left e -> putStrLn ("Unexpected error: " <> show e)
+    Left (e :: RoguiError () Consoles Brushes) -> putStrLn ("Unexpected error: " <> show e)
 
 -- | Since LoggingT doesn't know anything about MonadRandom,
 -- we are sadly going to need an orphan instance. In real life,

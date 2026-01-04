@@ -9,7 +9,7 @@ where
 import Control.Exception
 import Rogui.Graphics.Types (TileSize)
 
-data RoguiError rc rb
+data RoguiError err rc rb
   = -- | Console not found. It was probably not initialised in `boot`.
     NoSuchConsole rc
   | -- | Brush not found. It was probably not initialised in `boot`.
@@ -19,6 +19,7 @@ data RoguiError rc rb
   | -- | Exception raised when trying to use a brush that doesn't match the console
     -- expected tilesize.
     BrushConsoleMismatch TileSizeMismatch
+  | ApplicationError err
   deriving (Eq, Show, Exception)
 
 data TileSizeMismatch = TileSizeMismatch

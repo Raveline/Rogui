@@ -58,6 +58,7 @@ common warnings
         FlexibleContexts
         OverloadedStrings
         RecordWildCards
+        TypeApplications
 
 library
     -- Import common warning flags.
@@ -132,6 +133,7 @@ library
     default-language: Haskell2010
 
 executable rogui-animation-demo
+    import:           warnings
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
@@ -145,6 +147,7 @@ executable rogui-animation-demo
         , vector
 
 executable rogui-button-demo
+    import:           warnings
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
@@ -157,6 +160,7 @@ executable rogui-button-demo
         , sdl2
 
 executable rogui-colour-demo
+    import:           warnings
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
@@ -167,6 +171,7 @@ executable rogui-colour-demo
         , rogui
 
 executable rogui-gamegrid-demo
+    import:           warnings
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
@@ -182,6 +187,7 @@ executable rogui-gamegrid-demo
         , sdl2
 
 executable rogui-grid-demo
+    import:           warnings
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
@@ -192,6 +198,7 @@ executable rogui-grid-demo
         , rogui
 
 executable rogui-list-demo
+    import:           warnings
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
@@ -202,6 +209,7 @@ executable rogui-list-demo
         , rogui
 
 executable rogui-messagelogs-demo
+    import:           warnings
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
@@ -212,6 +220,7 @@ executable rogui-messagelogs-demo
         , rogui
 
 executable rogui-multilinetext-demo
+    import:           warnings
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
@@ -222,6 +231,7 @@ executable rogui-multilinetext-demo
         , rogui
 
 executable rogui-progressbar-demo
+    import:           warnings
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
@@ -234,6 +244,7 @@ executable rogui-progressbar-demo
         , sdl2
 
 executable rogui-rotation-demo
+    import:           warnings
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
@@ -244,6 +255,7 @@ executable rogui-rotation-demo
         , rogui
 
 executable rogui-textinput-demo
+    import:           warnings
     hs-source-dirs:   demos
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
@@ -254,6 +266,7 @@ executable rogui-textinput-demo
         , rogui
 
 executable RogueHarvest
+    import:           warnings
     hs-source-dirs:   rogueharvest
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
