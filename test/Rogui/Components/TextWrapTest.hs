@@ -7,8 +7,7 @@ where
 
 import Linear (V4 (..))
 import Rogui.Components.TextWrap
-import Rogui.Graphics (Colours (..))
-import Rogui.Graphics.Primitives (RGBA)
+import Rogui.Graphics
 import Test.Tasty
 import Test.Tasty.HUnit
 

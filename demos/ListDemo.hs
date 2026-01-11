@@ -17,6 +17,7 @@ import Rogui.Application.Event
     (<||>),
   )
 import Rogui.Application.System (RoguiConfig (..), bootAndPrintError)
+import Rogui.Backend.SDL
 import Rogui.Components.Core (Component (..), bordered, emptyComponent, vBox)
 import Rogui.Components.List
 import Rogui.Graphics
@@ -53,6 +54,7 @@ main = do
             allowResize = True
           }
   bootAndPrintError
+    sdlBackend
     config
     $ DemoState {listState = mkListState}
 

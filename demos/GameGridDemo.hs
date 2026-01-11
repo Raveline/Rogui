@@ -15,12 +15,12 @@ import qualified Data.Map as M
 import Data.Maybe
 import Linear
 import Rogui.Application
+import Rogui.Backend.SDL (sdlBackend)
 import Rogui.Components
 import Rogui.Components.Game
 import Rogui.Components.Game.GridTile (mouseEventToWorldPos)
 import Rogui.Graphics
 import Rogui.Types
-import qualified SDL
 
 data Consoles = Root | GameArea | StatusBar
   deriving (Eq, Ord, Show)
@@ -70,6 +70,7 @@ main = do
             allowResize = True
           }
   bootAndPrintError
+    sdlBackend
     config
     $ State
       { mousePosition = V2 0 0,
@@ -103,10 +104,10 @@ arbitraryMap =
 gameKeysHandler :: (Monad m) => EventHandler m State CustomEvent Names
 gameKeysHandler =
   let keyMap =
-        [ (isSC SDL.ScancodeUp mempty, \_ _ -> fireAppEvent . Move $ V2 0 (-1)),
-          (isSC SDL.ScancodeDown mempty, \_ _ -> fireAppEvent . Move $ V2 0 1),
-          (isSC SDL.ScancodeLeft mempty, \_ _ -> fireAppEvent . Move $ V2 (-1) 0),
-          (isSC SDL.ScancodeRight mempty, \_ _ -> fireAppEvent . Move $ V2 1 0)
+        [ (IsNoMod KUp, \_ _ -> fireAppEvent . Move $ V2 0 (-1)),
+          (IsNoMod KDown, \_ _ -> fireAppEvent . Move $ V2 0 1),
+          (IsNoMod KLeft, \_ _ -> fireAppEvent . Move $ V2 (-1) 0),
+          (IsNoMod KRight, \_ _ -> fireAppEvent . Move $ V2 1 0)
         ]
    in keyPressHandler keyMap
 

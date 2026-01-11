@@ -21,7 +21,6 @@ import Rogui.Application
 import Rogui.Application.Event.Handlers (focusRingHandler)
 import Rogui.Components (handleButtonEvent)
 import Rogui.Components.List
-import qualified SDL
 
 handleTradingEvents :: (Monad m) => TradingMode -> EventHandler m RogueHarvest RHEvents Names
 handleTradingEvents TradingMode {..} =
@@ -52,12 +51,12 @@ updateSale cs = currentMode . _Trading . submode . _Selling . _Just . currentSal
 handleBillChange :: (Monad m) => ((Int -> Int) -> EventHandler m RogueHarvest RHEvents Names) -> EventHandler m RogueHarvest RHEvents Names
 handleBillChange changeBill =
   let keyMaps =
-        [ (isSC' SDL.ScancodeLeft, changeBill (subtract 1)),
-          (isSC' SDL.ScancodeKP4, changeBill (subtract 1)),
-          (isSC' SDL.ScancodeRight, changeBill (+ 1)),
-          (isSC' SDL.ScancodeKP6, changeBill (+ 1)),
+        [ (IsNoMod KLeft, changeBill (subtract 1)),
+          (IsNoMod $ KPNum 4, changeBill (subtract 1)),
+          (IsNoMod KRight, changeBill (+ 1)),
+          (IsNoMod $ KPNum 6, changeBill (+ 1)),
           -- Move cursor to the purchase button if user press enter
-          (isSC' SDL.ScancodeReturn, \_ _ -> fireEvent $ Focus FocusNext)
+          (IsNoMod KEnter, \_ _ -> fireEvent $ Focus FocusNext)
         ]
    in keyPressHandler keyMaps
 

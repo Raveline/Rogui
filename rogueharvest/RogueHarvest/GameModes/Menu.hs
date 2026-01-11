@@ -21,7 +21,6 @@ import Rogui.Graphics (Colours (..), TextAlign (..), setColours)
 import Rogui.Graphics.Colours (gradient, invert)
 import Rogui.Graphics.Constants
 import Rogui.Graphics.DSL.Instructions (str)
-import qualified SDL
 
 renderMainMenu :: FocusRing Names -> Component Names
 renderMainMenu ring =
@@ -69,7 +68,7 @@ handleAppEvents _ = \case
 handleKeyEvents :: (Monad m) => FocusRing Names -> EventHandler m RogueHarvest RHEvents Names
 handleKeyEvents ring =
   let keyMap =
-        [ (isSC' SDL.ScancodeQ, \_ _ -> fireEvent Quit),
-          (isSC' SDL.ScancodeN, \_ _ -> fireAppEvent NewGame)
+        [ (IsNoMod $ KChar 'q', \_ _ -> fireEvent Quit),
+          (IsNoMod $ KChar 'n', \_ _ -> fireAppEvent NewGame)
         ]
    in keyPressHandler keyMap <||> handleMenuFocus ring

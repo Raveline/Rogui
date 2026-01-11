@@ -32,7 +32,6 @@ import Rogui.Graphics (Brush (Brush, tileHeight, tileWidth), Cell (..), Colours 
 import Rogui.Graphics.DSL.Instructions
 import Rogui.Graphics.Types (Console (..), (.*=.))
 import SDL (V2 (..))
-import qualified SDL
 
 -- | State of the grid, containing the current selection and
 -- its offset. Selection is given as a pair (column, row).
@@ -150,13 +149,13 @@ data GridAction
   | GridRight
   | GridFire
 
-defaultGridKeys :: [(KeyDetailsMatch, GridAction)]
+defaultGridKeys :: [(KeyMatch, GridAction)]
 defaultGridKeys =
-  [ (isSC' SDL.ScancodeUp, GridUp),
-    (isSC' SDL.ScancodeDown, GridDown),
-    (isSC' SDL.ScancodeLeft, GridLeft),
-    (isSC' SDL.ScancodeRight, GridRight),
-    (isSC' SDL.ScancodeReturn, GridFire)
+  [ (IsNoMod KUp, GridUp),
+    (IsNoMod KDown, GridDown),
+    (IsNoMod KLeft, GridLeft),
+    (IsNoMod KRight, GridRight),
+    (IsNoMod KEnter, GridFire)
   ]
 
 -- | A default handler to select an item in a grid.
@@ -190,7 +189,7 @@ handleGridEvent = handleGridEvent' defaultGridKeys
 -- Getting out of the grid limits will trigger a `FocusNext` or `FocusPrev` event.
 handleGridEvent' ::
   (Monad m, Ord n) =>
-  [(KeyDetailsMatch, GridAction)] ->
+  [(KeyMatch, GridAction)] ->
   -- | The grid definition used at rendering
   GridDefinition a n ->
   -- | Our input grid state
@@ -264,7 +263,7 @@ handleClickOnGrid ::
   -- | An action to perform on clicking
   (Maybe a -> EventHandlerM m s e n ()) ->
   EventHandlerM m s e n ()
-handleClickOnGrid gd@GridDefinition {..} (MouseClickDetails _ mousePos SDL.ButtonLeft) state modifier onCellClick = do
+handleClickOnGrid gd@GridDefinition {..} (MouseClickDetails _ mousePos LeftButton) state modifier onCellClick = do
   gridPos <- getExtentPosition gridName
   V2 _ gridHeight <- getExtentSize gridName
 

@@ -12,7 +12,6 @@ where
 import Rogui.Application.Event
 import Rogui.Components
 import Rogui.Graphics
-import qualified SDL
 
 -- | The two choices in a confirm dialog
 data ConfirmChoice = Yes | No
@@ -60,11 +59,11 @@ handleConfirmDialogEvent ::
   (ConfirmChoice -> EventHandlerM m s e n ()) -> -- Action on selection
   EventHandler m s e n
 handleConfirmDialogEvent yesName noName state@ConfirmDialogState {..} updater onSelect _ = \case
-  KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeLeft _ _)) ->
+  KeyDown (KeyDownDetails _ (KeyDetails KLeft _)) ->
     modifyState $ updater state {focusedChoice = Yes}
-  KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeRight _ _)) ->
+  KeyDown (KeyDownDetails _ (KeyDetails KRight _)) ->
     modifyState $ updater state {focusedChoice = No}
-  KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeReturn _ _)) ->
+  KeyDown (KeyDownDetails _ (KeyDetails KEnter _)) ->
     onSelect focusedChoice
   MouseEvent (MouseClickReleased mc) -> do
     clicked <- foundClickedExtents mc

@@ -2,8 +2,8 @@
 -- (https://github.com/libtcod/libtcod/blob/main/src/libtcod/color.hpp)
 module Rogui.Graphics.Constants where
 
-import Rogui.Graphics.Primitives
-import SDL (V4 (..))
+import Linear (V4 (..))
+import Rogui.Graphics.Colours
 
 white :: RGBA
 white = V4 255 255 255 255
@@ -599,3 +599,21 @@ arrowheadTop = 30
 
 arrowheadBottom :: Int
 arrowheadBottom = 31
+
+vertical437 :: Int
+vertical437 = 179
+
+horizontal437 :: Int
+horizontal437 = 196
+
+cornerTopLeft437 :: Int
+cornerTopLeft437 = 218
+
+cornerTopRight437 :: Int
+cornerTopRight437 = 191
+
+cornerBottomLeft437 :: Int
+cornerBottomLeft437 = 192
+
+cornerBottomRight437 :: Int
+cornerBottomRight437 = 217

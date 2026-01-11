@@ -14,10 +14,7 @@ import Linear (V2 (..), V4 (..))
 import Rogui.Components.Core (Component (..), DrawingContext (..))
 import Rogui.Components.MessageLog (messageLog)
 import Rogui.Components.Viewport (ViewportState (..))
-import Rogui.Graphics (Colours (..))
-import Rogui.Graphics.DSL.Instructions (Instruction (..))
-import Rogui.Graphics.Primitives (RGBA)
-import Rogui.Graphics.Types
+import Rogui.Graphics
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -30,7 +27,7 @@ testColours = Colours (Just testRGBA) Nothing
 extractStrings :: [Instruction] -> [String]
 extractStrings = mapMaybe extractString
   where
-    extractString (DrawString _ str) = Just str
+    extractString (DrawString _ str') = Just str'
     extractString _ = Nothing
 
 countNewlines :: [Instruction] -> Int
@@ -48,7 +45,7 @@ renderMessageLog messages widthInCells heightInCells =
             position = V2 (Pixel 0) (Pixel 0),
             tileSize = TileSize 16 16
           }
-      brush' = Brush {tileWidth = 16, tileHeight = 16, textureWidth = 256, textureHeight = 256, brush = undefined}
+      brush' = Brush {tileWidth = 16, tileHeight = 16, textureWidth = 256, textureHeight = 256, name = ""}
       dc :: DrawingContext Int
       dc = DrawingContext {brush = brush', console = console, steps = 0, currentExtents = mempty}
       viewportState = ViewportState (V2 0 0) (V2 0 0) -- Content size calculated dynamically
@@ -107,9 +104,7 @@ testMultipleMessages =
 
 testMultiColorChunks :: IO ()
 testMultiColorChunks =
-  let red = V4 255 0 0 255
-      blue = V4 0 0 255 255
-      redColours = Colours (Just red) Nothing
+  let redColours = Colours (Just red) Nothing
       blueColours = Colours (Just blue) Nothing
       messages = [[(redColours, "Red text"), (blueColours, "blue text")]]
       instructions = renderMessageLog messages 20 10

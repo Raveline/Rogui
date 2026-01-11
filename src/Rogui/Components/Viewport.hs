@@ -36,12 +36,11 @@ module Rogui.Components.Viewport
 where
 
 import Data.Bifunctor
+import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Components.Core (Component (..), emptyComponent, recordExtent)
 import Rogui.Graphics (Cell (..))
 import Rogui.Graphics.DSL.Instructions (pencilAt)
-import SDL (V2 (V2))
-import qualified SDL
 
 -- | This is an optimized viewport where the child component receives the scroll
 -- offset as a parameter, allowing it to efficiently render only the visible
@@ -126,14 +125,14 @@ data ViewportState = ViewportState
 -- horizontal pages are not supported.
 data ViewportAction = OneDown | OneUp | OneLeft | OneRight | PageDown | PageUp
 
-defaultViewportKeys :: [(KeyDetailsMatch, ViewportAction)]
+defaultViewportKeys :: [(KeyMatch, ViewportAction)]
 defaultViewportKeys =
-  [ (isSC' SDL.ScancodeDown, OneDown),
-    (isSC' SDL.ScancodeUp, OneUp),
-    (isSC' SDL.ScancodeLeft, OneLeft),
-    (isSC' SDL.ScancodeRight, OneRight),
-    (isSC' SDL.ScancodePageDown, PageDown),
-    (isSC' SDL.ScancodePageUp, PageUp)
+  [ (IsNoMod KDown, OneDown),
+    (IsNoMod KUp, OneUp),
+    (IsNoMod KLeft, OneLeft),
+    (IsNoMod KRight, OneRight),
+    (IsNoMod KPageDown, PageDown),
+    (IsNoMod KPageUp, PageUp)
   ]
 
 -- | A helper to update the viewport state depending on the
@@ -188,7 +187,7 @@ handleViewportEvent = handleViewportEvent' defaultViewportKeys
 handleViewportEvent' ::
   (Monad m, Ord n) =>
   -- | Mapping of key to actions
-  [(KeyDetailsMatch, ViewportAction)] ->
+  [(KeyMatch, ViewportAction)] ->
   -- | Name of the viewport (to query visible extent for clamping)
   n ->
   -- | Name of the child content (to query content extent for updating state)

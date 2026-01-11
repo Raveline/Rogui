@@ -9,11 +9,11 @@ import qualified Data.Map.Strict as M
 import Linear (V2 (..))
 import Rogui.Application
 import Rogui.Application.Event.Handlers (focusRingHandler)
+import Rogui.Backend.SDL
 import Rogui.Components
 import Rogui.FocusRing
 import Rogui.Graphics
 import Rogui.Types (ConsoleDrawers)
-import qualified SDL
 
 data Consoles = Root
   deriving (Show, Eq, Ord)
@@ -51,6 +51,7 @@ main = do
             eventFunction = baseEventHandler <||> mouseHandler <||> focusHandler <||> customEventHandler
           }
   bootAndPrintError
+    sdlBackend
     config
     $ State 0 (focusRing [ButtonInc, ButtonDec])
 
@@ -82,8 +83,8 @@ focusHandler =
   -- could still want to use the up and down arrow, we'll simply
   -- add to the default map.
   let movementMap =
-        [ (isSC' SDL.ScancodeLeft, ButtonFocusPrev),
-          (isSC' SDL.ScancodeRight, ButtonFocusNext)
+        [ (IsNoMod KLeft, ButtonFocusPrev),
+          (IsNoMod KRight, ButtonFocusNext)
         ]
           <> defaultButtonKeys
       focused =

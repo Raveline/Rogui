@@ -1,4 +1,4 @@
-module Rogui.Graphics.Primitives
+module Rogui.Backend.SDL.Primitives
   ( printCharAt,
     fillConsoleWith,
     clipToConsole,
@@ -13,14 +13,11 @@ where
 import Control.Monad.IO.Class
 import Data.Foldable (traverse_)
 import Data.Maybe (fromMaybe, mapMaybe)
-import Data.Word
 import Foreign.C
-import Rogui.Graphics.Types
+import Rogui.Graphics
 import SDL (Rectangle (..), Renderer, Texture, V2 (..), V3 (..), V4 (..))
 import qualified SDL
 import SDL.Vect (Point (..))
-
-type RGBA = V4 Word8
 
 setFrontColour :: (MonadIO m) => Texture -> RGBA -> m ()
 setFrontColour texture (V4 r g b a) = do
@@ -45,28 +42,6 @@ charIdToPosition Brush {..} tileId =
       y = tileId `div` numberOfColumns
    in fromIntegral <$> Rectangle (P $ V2 (x * getPixel tileWidth) (y * getPixel tileHeight)) (fromIntegral <$> V2 tileWidth tileHeight)
 
--- | Transformations that can be applied to glyphs during rendering.
--- Multiple transformations can be combined - rotations are summed
--- (e.g., [Rotate R90, Rotate R90] = 180°) and flips are deduplicated.
--- The order of transformation doesn't matter.
---
--- Rotation is always performed from the center of the glyph.
---
--- Note that using `RArbitrary` might break the "grid" feeling,
--- it's mostly there for animation support.
---
--- Also note that rotations will clip for non square tilesets !
--- Since rotations are implemented mostly with tileset in mind,
--- we won't support rotating non square tilesets.
-data Transformation
-  = FlipX
-  | FlipY
-  | Rotate Rotation
-  deriving (Eq)
-
-data Rotation = R90 | R180 | R270 | RArbitrary Double
-  deriving (Eq)
-
 toDegree :: Transformation -> Maybe CDouble
 toDegree (Rotate R90) = Just 90
 toDegree (Rotate R180) = Just 180
@@ -90,6 +65,7 @@ printCharAt ::
   Console ->
   -- | With what you are painting
   Brush ->
+  Texture ->
   -- | Series of transformation to perform on the glyph
   [Transformation] ->
   -- | Backcolour of the sprite.
@@ -100,14 +76,14 @@ printCharAt ::
   -- | Logical position in the console (in brush size cells)
   V2 Cell ->
   m ()
-printCharAt renderer console b@Brush {..} trans backColour n at = do
+printCharAt renderer console b@Brush {..} brush' trans backColour n at = do
   let realRectangle = getScreenRectAt console b (V2 tileWidth tileHeight) at
       flip' = V2 (FlipX `elem` trans) (FlipY `elem` trans)
       rotate = sum $ mapMaybe toDegree trans
   traverse_ (setBackColour renderer realRectangle) backColour
   SDL.copyEx
     renderer
-    brush
+    brush'
     (pure $ charIdToPosition b n)
     (pure realRectangle)
     rotate

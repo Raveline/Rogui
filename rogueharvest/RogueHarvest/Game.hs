@@ -41,7 +41,6 @@ import Rogui.Components
 import Rogui.FocusRing
 import Rogui.Graphics
 import Rogui.Types
-import qualified SDL
 
 -- A new game will start with this state
 baseState :: RogueHarvest
@@ -131,7 +130,7 @@ handleGameEvents s@RogueHarvest {..} e = case _currentMode of
 -- follow track.
 handleRHEvents :: (MonadRandom m) => EventHandler m RogueHarvest RHEvents Names
 handleRHEvents RogueHarvest {_farm, _currentMode, _playerPos, _wielding, _entities} = \case
-  (KeyDown (KeyDownDetails _ (KeyDetails SDL.KeycodeEscape _ _))) -> leaveMode _currentMode
+  (KeyDown (KeyDownDetails _ (KeyDetails KEsc _))) -> leaveMode _currentMode
   (AppEvent (SwitchMode m)) -> modifyState (\s -> s {_currentMode = m})
   (AppEvent (FinalisePurchase pdt bill')) -> modifyState (applyPurchase pdt bill') >> fireAppEvent (SwitchMode (Playing Walking))
   (AppEvent (FinaliseSale sdt bill')) -> modifyState (applySale sdt bill') >> fireAppEvent (SwitchMode (Playing Walking))

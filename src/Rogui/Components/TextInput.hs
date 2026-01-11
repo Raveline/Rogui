@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
 module Rogui.Components.TextInput
   ( textInput,
@@ -14,13 +13,12 @@ where
 import Control.Monad (unless, when)
 import Control.Monad.State.Strict
 import Data.Bifunctor
-import Data.Maybe (fromMaybe)
-import qualified Data.Text as T
+import Data.Char (toUpper)
+import Data.Maybe (fromMaybe, listToMaybe)
+import qualified Data.Set as S
 import Rogui.Application.Event
 import Rogui.Components.Core (Component (..), DrawingContext (..), contextCellWidth, emptyComponent, recordExtent)
 import Rogui.Graphics
-import SDL (TextInputEventData (textInputEventText))
-import qualified SDL
 import SDL.Vect (V2 (..))
 
 -- | A single line text input component. It assumes you are using a CCSID 437
@@ -56,12 +54,12 @@ data TextInputAction
   | TextInputFocusPrev
   | TextInputValidate
 
-defaultTextInputKeys :: [(KeyDetailsMatch, TextInputAction)]
+defaultTextInputKeys :: [(KeyMatch, TextInputAction)]
 defaultTextInputKeys =
-  [ (isSC' SDL.ScancodeBackspace, TextInputEraseLast),
-    (isSC' SDL.ScancodeUp, TextInputFocusPrev),
-    (isSC' SDL.ScancodeDown, TextInputFocusNext),
-    (isSC' SDL.ScancodeReturn, TextInputFocusNext)
+  [ (IsNoMod KBackspace, TextInputEraseLast),
+    (IsNoMod KUp, TextInputFocusPrev),
+    (IsNoMod KDown, TextInputFocusNext),
+    (IsNoMod KEnter, TextInputFocusNext)
   ]
 
 -- | Default implementation for text input events, with support
@@ -96,7 +94,7 @@ handleFilteredTextInputEvent validator =
 handleTextInputEvent' ::
   (Monad m) =>
   -- | Mapping between keys and actions
-  [(KeyDetailsMatch, TextInputAction)] ->
+  [(KeyMatch, TextInputAction)] ->
   -- Key input validator: only input passing this filter will be retained
   Maybe (Char -> Bool) ->
   -- | Current text
@@ -113,6 +111,13 @@ handleTextInputEvent' keyMap validator txt modifier =
         TextInputValidate -> \_ _ -> fireEvent $ Focus FocusNext
    in keyPressHandler (second toEvents <$> keyMap) <||> textInputEventHandler validator txt modifier
 
+keyEventToChar :: KeyDetails -> Maybe Char
+keyEventToChar (KeyDetails key modifier) =
+  case key of
+    KChar c -> Just $ if modifier == S.singleton Shift then toUpper c else c
+    KPNum n -> listToMaybe $ show n
+    _ -> Nothing
+
 textInputEventHandler ::
   (Monad m) =>
   -- | Potential validator for text addition
@@ -125,6 +130,5 @@ textInputEventHandler ::
 textInputEventHandler validator txt modifier _ =
   let validChar = fromMaybe (const True) validator
    in \case
-        OtherSDLEvent (SDL.TextInputEvent SDL.TextInputEventData {textInputEventText}) ->
-          redraw $ modifyState (modifier $ txt <> filter validChar (T.unpack textInputEventText))
+        (KeyDown (KeyDownDetails _ k)) -> maybe unhandled (\c -> redraw $ modifyState (modifier $ txt <> filter validChar [c])) $ keyEventToChar k
         _ -> unhandled

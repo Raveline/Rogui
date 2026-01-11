@@ -7,6 +7,7 @@ module Main where
 import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.System
+import Rogui.Backend.SDL
 import Rogui.Components.Core
 import Rogui.Components.MessageLog (LogMessage, handleMessageLogEvent, messageLog)
 import Rogui.Components.Viewport (ViewportState (..))
@@ -45,7 +46,9 @@ main = do
             brushesSpecs = [],
             allowResize = True
           }
-  bootAndPrintError config
+  bootAndPrintError
+    sdlBackend
+    config
     . State
     -- Content size is calculated dynamically, so we just initialize with zeros
     $ ViewportState (V2 0 0) (V2 0 0)

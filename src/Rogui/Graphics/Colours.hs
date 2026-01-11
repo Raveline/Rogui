@@ -1,5 +1,6 @@
 module Rogui.Graphics.Colours
   ( Colours (..),
+    RGBA,
     invert,
     gradient,
     setAlpha,

@@ -72,10 +72,16 @@ library
         Rogui.Application.Error
         Rogui.Application.Event
         Rogui.Application.Event.Handlers
+        Rogui.Application.Event.Keyboard
         Rogui.Application.Event.Monad
         Rogui.Application.Event.Types
         Rogui.Application.System
         Rogui.Application.Types
+        Rogui.Backend.SDL
+        Rogui.Backend.SDL.Eval
+        Rogui.Backend.SDL.Events
+        Rogui.Backend.SDL.Primitives
+        Rogui.Backend.Types
         Rogui.Components
         Rogui.Components.Button
         Rogui.Components.Core
@@ -97,11 +103,8 @@ library
         Rogui.FocusRing
         Rogui.Graphics
         Rogui.Graphics.Colours
-        Rogui.Graphics.Console
         Rogui.Graphics.Constants
-        Rogui.Graphics.DSL.Eval
         Rogui.Graphics.DSL.Instructions
-        Rogui.Graphics.Primitives
         Rogui.Graphics.Types
         Rogui.Types
 
@@ -118,6 +121,7 @@ library
         , containers
         , data-clist
         , dlist
+        , linear
         , monad-control
         , monad-logger
         , MonadRandom
@@ -157,7 +161,6 @@ executable rogui-button-demo
         , containers
         , linear
         , rogui
-        , sdl2
 
 executable rogui-colour-demo
     import:           warnings
@@ -184,7 +187,6 @@ executable rogui-gamegrid-demo
         , monad-logger
         , mtl
         , rogui
-        , sdl2
 
 executable rogui-grid-demo
     import:           warnings
@@ -241,7 +243,6 @@ executable rogui-progressbar-demo
         , containers
         , linear
         , rogui
-        , sdl2
 
 executable rogui-rotation-demo
     import:           warnings
@@ -302,7 +303,6 @@ executable RogueHarvest
         , MonadRandom
         , mtl
         , rogui
-        , sdl2
 
 test-suite rogui-test
     -- Import common warning flags.

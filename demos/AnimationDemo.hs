@@ -13,6 +13,7 @@ import Data.Word (Word8)
 import Linear (V2 (..), V4 (..), distance)
 import Rogui.Animation (AnimationSequence, animateCycle)
 import Rogui.Application
+import Rogui.Backend.SDL
 import Rogui.Components.Core
 import Rogui.Components.Game (GlyphInfo (..))
 import Rogui.Components.Game.GridOverlay (gridOverlay)
@@ -187,6 +188,7 @@ main = do
             allowResize = False
           }
   bootAndPrintError
+    sdlBackend
     config
     ()
 

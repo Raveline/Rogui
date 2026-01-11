@@ -25,7 +25,7 @@ where
 
 import Control.Monad.Random
 import Data.Ix (Ix)
-import SDL (Texture, V2 (..))
+import Linear (V2 (..))
 
 newtype Pixel = Pixel {getPixel :: Int}
   deriving newtype (Num, Integral, Real, Ord, Eq, Enum, Show, Random)
@@ -70,9 +70,11 @@ data Brush = Brush
     textureWidth :: Pixel,
     -- | Total texture height
     textureHeight :: Pixel,
-    -- | Texture itself
-    brush :: Texture
+    -- | Brush name, used mostly for Show and to distinguish
+    -- between brushes with the same height
+    name :: String
   }
+  deriving (Eq, Ord, Show)
 
 data TileSize = TileSize
   { pixelWidth :: Pixel,

@@ -90,6 +90,7 @@ module Rogui.Application.Event
     KeyDownDetails (..),
     KeyDetails (..),
     Modifier (..),
+    MouseButton (..),
 
     -- * Event handling monad
     EventHandlingState (..),
@@ -97,14 +98,9 @@ module Rogui.Application.Event
     ClickHandler,
 
     -- * Key matching utilities
-    isSC,
-    isSC',
-    isKC,
-    isKC',
+    Key (..),
     KeyMatch (..),
-    KeyDetailsMatch (..),
     matchKey,
-    matchKeyDetails,
 
     -- * Convenience default handlers
     baseEventHandler,
@@ -132,5 +128,6 @@ module Rogui.Application.Event
 where
 
 import Rogui.Application.Event.Handlers
+import Rogui.Application.Event.Keyboard
 import Rogui.Application.Event.Monad
 import Rogui.Application.Event.Types

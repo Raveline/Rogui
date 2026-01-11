@@ -8,11 +8,11 @@ import qualified Data.Set as S
 import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.System (RoguiConfig (..), bootAndPrintError)
+import Rogui.Backend.SDL
 import Rogui.Components.Core
 import qualified Rogui.Components.ProgressBar as PB
 import Rogui.Graphics
 import Rogui.Types (ConsoleDrawers)
-import qualified SDL
 
 data Consoles = Root
   deriving (Show, Eq, Ord)
@@ -44,6 +44,7 @@ main = do
             allowResize = True
           }
   bootAndPrintError
+    sdlBackend
     config
     $ DemoState 500
 
@@ -64,12 +65,12 @@ handleEvent =
   let withShift = S.fromList [Shift]
       withCtrl = S.fromList [Ctrl]
       keyMap =
-        [ (isSC SDL.ScancodeLeft mempty, changeValue (subtract 1)),
-          (isSC SDL.ScancodeLeft withShift, changeValue (\x -> x - 5)),
-          (isSC SDL.ScancodeLeft withCtrl, changeValue (\x -> x - 50)),
-          (isSC SDL.ScancodeRight mempty, changeValue (+ 1)),
-          (isSC SDL.ScancodeRight withShift, changeValue (+ 5)),
-          (isSC SDL.ScancodeRight withCtrl, changeValue (+ 50))
+        [ (Is KLeft mempty, changeValue (subtract 1)),
+          (Is KLeft withShift, changeValue (\x -> x - 5)),
+          (Is KLeft withCtrl, changeValue (\x -> x - 50)),
+          (Is KRight mempty, changeValue (+ 1)),
+          (Is KRight withShift, changeValue (+ 5)),
+          (Is KRight withCtrl, changeValue (+ 50))
         ]
    in keyPressHandler keyMap
 

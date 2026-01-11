@@ -17,8 +17,7 @@ import Data.Foldable
 import Data.List (intersperse)
 import qualified Data.Sequence as Seq
 import Rogui.Components.Core (DrawM)
-import Rogui.Graphics (Colours, setColours, str)
-import Rogui.Graphics.Console (TextAlign (TLeft))
+import Rogui.Graphics (Colours, TextAlign (..), setColours, str)
 
 -- | A chunk of text with associated colors.
 type TextChunk = (Colours, String)

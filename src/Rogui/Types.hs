@@ -10,13 +10,15 @@
 --
 -- == Rogui type parameters
 --
--- `Rogui` is parametric over 6 types, which you are all expected to provide:
+-- `Rogui` is parametric over 8 types, which you are all expected to provide:
 --
 -- * The `rc` type `references consoles`: typically an enumerated tile, with an `Ord` instance.
 -- * The `rb` type `references brushes`: similar to the previous one, but for brushes.
 -- * The `n` type for `Name`: it lets you name some components, which is used for focus management and some events management.
 -- * The `s` type for `State`: your application state.
 -- * The `e` type for `Event`: your custom events types.
+-- * The `r` type for `Renderer`: this one is defined by the backend you are using;
+-- * The `t` type for `Texture`: again, defined by the backend in use;
 -- * The `m` type: your monadic stack. If you don't need any effect, you can leave it as `m`.
 --
 -- Here are a few typical examples for these:
@@ -175,7 +177,6 @@ import Data.Word (Word32)
 import Rogui.Application.Event (EventHandler)
 import Rogui.Components.Core (Component, ExtentMap)
 import Rogui.Graphics
-import SDL (Renderer)
 
 -- | Instructions on how to build a console. Expects:
 -- * A reference to store the console;
@@ -218,7 +219,7 @@ type ToDraw rc rb n = [(Maybe rc, Maybe rb, Component n)]
 --
 -- Clients are not expected to build this manually. `boot` will handle it for
 -- the users, and will fill (and handle) all the internal fields.
-data Rogui rc rb n s e m
+data Rogui rc rb names state event renderer textures m
   = Rogui
   { -- | All known consoles. This gets reconstructed when window is resized.
     consoles :: M.Map rc Console,
@@ -231,11 +232,11 @@ data Rogui rc rb n s e m
     -- | The default brush, useful as fallback or for games where only one brush is used
     defaultBrush :: Brush,
     -- | Inner storage for the SDL renderer
-    renderer :: Renderer,
+    renderer :: renderer,
     -- | Function to draw
-    draw :: ConsoleDrawers rc rb n s,
+    draw :: ConsoleDrawers rc rb names state,
     -- | Main game logic is stored as reactions to events
-    onEvent :: EventHandler m s e n,
+    onEvent :: EventHandler m state event names,
     -- | Constant evaluating the amount of milliseconds since initialisation, taken from SDL.
     lastTicks :: Word32,
     -- | Step timer constant used for basic animations, expressed in milliseconds.
@@ -248,13 +249,14 @@ data Rogui rc rb n s e m
     -- | Internal, milliseconds per frame
     targetFrameTime :: Word32,
     -- | List of known extents
-    extentsMap :: ExtentMap n,
+    extentsMap :: ExtentMap names,
     -- | Rolling window of recent frame durations (in milliseconds) for FPS tracking
     recentFrameTimes :: Seq Word32,
     -- | Timestamp of last FPS warning (for rate limiting)
     lastFPSWarning :: Word32,
     -- | Console specs, kept around when resizing needs them
-    roguiConsoleSpecs :: [ConsoleSpec rc]
+    roguiConsoleSpecs :: [ConsoleSpec rc],
+    textures :: M.Map Brush textures
   }
 
 -- | How to size a console.

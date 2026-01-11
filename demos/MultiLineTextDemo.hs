@@ -6,6 +6,7 @@ module Main where
 import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.System (RoguiConfig (..), bootAndPrintError)
+import Rogui.Backend.SDL (sdlBackend)
 import Rogui.Components.Core (bordered, vBox)
 import Rogui.Components.MultilineText
 import Rogui.Components.Viewport
@@ -43,6 +44,7 @@ main = do
             allowResize = True
           }
   bootAndPrintError
+    sdlBackend
     config
     (DemoState $ ViewportState (V2 0 0) (V2 0 0))
 

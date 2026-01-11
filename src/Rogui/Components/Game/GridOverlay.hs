@@ -7,9 +7,7 @@ import Data.Foldable (traverse_)
 import Rogui.Components.Core (DrawM)
 import Rogui.Components.Game.Utils (MapViewport, cellsInMapViewport)
 import Rogui.Components.Types (Component (..), emptyComponent)
-import Rogui.Graphics.DSL.Instructions (overlayAt)
-import Rogui.Graphics.Primitives (RGBA)
-import Rogui.Graphics.Types (Cell)
+import Rogui.Graphics
 import SDL (BlendMode, V2)
 
 -- | A grid containing only overlay instructions, typically

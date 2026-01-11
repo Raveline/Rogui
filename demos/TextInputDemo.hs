@@ -9,6 +9,7 @@ import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.Event.Handlers (focusRingHandler)
 import Rogui.Application.System (RoguiConfig (..), bootAndPrintError)
+import Rogui.Backend.SDL (sdlBackend)
 import Rogui.Components (label)
 import Rogui.Components.Core
 import Rogui.Components.TextInput
@@ -51,6 +52,7 @@ main = do
             allowResize = True
           }
   bootAndPrintError
+    sdlBackend
     config
     . DemoState "" ""
     $ focusRing [FirstName, LastName]

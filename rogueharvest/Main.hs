@@ -25,6 +25,7 @@ import RogueHarvest.Types
 import Rogui.Application.Error
 import Rogui.Application.Event (baseEventHandler, (<||>))
 import Rogui.Application.System
+import Rogui.Backend.SDL
 import Rogui.Components
 import Rogui.Graphics
 import Rogui.Types
@@ -69,6 +70,7 @@ main = do
     runExceptT
       . withLogging LogStdout
       $ boot
+        sdlBackend
         config
         baseState
 

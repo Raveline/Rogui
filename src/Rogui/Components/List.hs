@@ -54,13 +54,12 @@ where
 
 import Data.Bifunctor
 import Data.List ((!?))
+import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Components.Core
 import Rogui.Components.Label
 import Rogui.Graphics (Colours, TextAlign)
 import Rogui.Graphics.Types (Cell (..))
-import SDL (V2 (..))
-import qualified SDL
 
 -- | A list state, storing the index of the current selection
 -- and the offset for scrolling.
@@ -217,8 +216,8 @@ handleClickOnList ::
   -- The details of the click event
   MouseClickDetails ->
   EventHandlerM m s e n ()
-handleClickOnList ListDefinition {name, items, itemHeight} onSelectedClick ls@ListState {..} modifier (MouseClickDetails _ (SDL.V2 mcx mcy) SDL.ButtonLeft) = do
-  (SDL.V2 px py) <- getExtentPosition name
+handleClickOnList ListDefinition {name, items, itemHeight} onSelectedClick ls@ListState {..} modifier (MouseClickDetails _ (V2 mcx mcy) LeftButton) = do
+  (V2 px py) <- getExtentPosition name
   let clickedCellY = getCell $ mcy - py
       clickedItemIndex = scrollOffset + (clickedCellY `div` getCell itemHeight)
       listLength = length items
@@ -255,10 +254,10 @@ data ListAction
   = ListFocusNext
   | ListFocusPrev
 
-defaultListAction :: [(KeyDetailsMatch, ListAction)]
+defaultListAction :: [(KeyMatch, ListAction)]
 defaultListAction =
-  [ (isSC' SDL.ScancodeUp, ListFocusPrev),
-    (isSC' SDL.ScancodeDown, ListFocusNext)
+  [ (IsNoMod KUp, ListFocusPrev),
+    (IsNoMod KDown, ListFocusNext)
   ]
 
 -- | A default event handler for list. Up and down move selection and
@@ -275,7 +274,7 @@ handleListEvent = handleListEvent' defaultListAction
 -- sets `wrapAround` to `True`.
 -- If you want other interactions (e.g., something should happen when user
 -- press enter), you should chain this eventHandler with another, custom one.
-handleListEvent' :: (Monad m, Ord n) => [(KeyDetailsMatch, ListAction)] -> ListDefinition n a -> ListState -> (ListState -> s -> s) -> EventHandler m s e n
+handleListEvent' :: (Monad m, Ord n) => [(KeyMatch, ListAction)] -> ListDefinition n a -> ListState -> (ListState -> s -> s) -> EventHandler m s e n
 handleListEvent' keyMap ListDefinition {items, name, itemHeight, wrapAround} state@ListState {scrollOffset} modifier s e = do
   V2 _ visibleHeight <- getExtentSize name
   let listLength = length items

@@ -8,6 +8,7 @@ module Main where
 import qualified Data.List.NonEmpty as NE
 import Linear (V2 (..))
 import Rogui.Application
+import Rogui.Backend.SDL
 import Rogui.Components.Core
 import Rogui.Components.Grid
 import Rogui.Components.Label (label)
@@ -49,6 +50,7 @@ main = do
             allowResize = False
           }
   bootAndPrintError
+    sdlBackend
     config
     $ DemoState {gridState = mkGridState, picked = Nothing}
 

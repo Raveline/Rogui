@@ -24,7 +24,6 @@ import Rogui.Application.Event
 import Rogui.Components
 import Rogui.Components.List
 import Rogui.Graphics
-import qualified SDL
 
 -- Lists need a ListDefinition, and it's convenient to have
 -- a function to produce it from state, since you're going
@@ -69,8 +68,7 @@ handleInventoryEvents ls rh e =
 wieldOnEnter :: (Monad m) => ListState -> EventHandler m RogueHarvest RHEvents Names
 wieldOnEnter ls rh e =
   let keyMap item =
-        [ (isSC' SDL.ScancodeKPEnter, \_ _ -> fireAppEvent (Wield item)),
-          (isSC' SDL.ScancodeReturn, \_ _ -> fireAppEvent (Wield item))
+        [ (IsNoMod KEnter, \_ _ -> fireAppEvent (Wield item))
         ]
       withItem item = keyPressHandler (keyMap item) rh e
    in withItem . fmap fst . getCurrentSelection (inventoryDefinition rh) $ ls

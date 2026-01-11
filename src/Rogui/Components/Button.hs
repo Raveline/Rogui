@@ -14,7 +14,6 @@ import Rogui.Application.Event
 import Rogui.Components.Core (Component (..), recordExtent)
 import Rogui.Components.Label (label)
 import Rogui.Graphics (Colours, TextAlign)
-import qualified SDL
 
 -- | A simple button with some text, and some options when focused.
 -- N.B.: this expects a `Name`, as we will record the extent, to support
@@ -66,11 +65,11 @@ data ButtonAction
 -- * Enter to activate the button;
 -- * Up to focus previous;
 -- * Down to focus next;
-defaultButtonKeys :: [(KeyDetailsMatch, ButtonAction)]
+defaultButtonKeys :: [(KeyMatch, ButtonAction)]
 defaultButtonKeys =
-  [ (isSC' SDL.ScancodeReturn, ButtonFire),
-    (isSC' SDL.ScancodeDown, ButtonFocusNext),
-    (isSC' SDL.ScancodeUp, ButtonFocusPrev)
+  [ (IsNoMod KEnter, ButtonFire),
+    (IsNoMod KDown, ButtonFocusNext),
+    (IsNoMod KUp, ButtonFocusPrev)
   ]
 
 -- | A sensible default implementation for the button component.
@@ -81,7 +80,7 @@ handleButtonEvent = handleButtonEvent' defaultButtonKeys
 
 -- | A version of handle button event that lets you override the
 -- default keys.
-handleButtonEvent' :: (Monad m) => [(KeyDetailsMatch, ButtonAction)] -> Event e -> EventHandler m state e n
+handleButtonEvent' :: (Monad m) => [(KeyMatch, ButtonAction)] -> Event e -> EventHandler m state e n
 handleButtonEvent' keysToActions toFire =
   let toEvents = \case
         ButtonFire -> \_ _ -> fireEvent toFire

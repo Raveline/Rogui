@@ -1,5 +1,4 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
 module Rogui.Application.Event.Types
   ( Event (..),
@@ -9,6 +8,7 @@ module Rogui.Application.Event.Types
     EventHandlerM (..),
     EventHandlingState (..),
     FocusDestination (..),
+    MouseButton (..),
     KeyDetails (..),
     Modifier (..),
     KeyDownDetails (..),
@@ -16,19 +16,11 @@ module Rogui.Application.Event.Types
     MouseClickDetails (..),
     MouseMoveDetails (..),
     ClickHandler,
+    KeyMatch (..),
+    matchKey,
     (<||>),
     liftEH,
     liftApp,
-
-    -- * Utility for matching keys
-    KeyMatch (..),
-    KeyDetailsMatch (..),
-    isKC,
-    isKC',
-    isSC,
-    isSC',
-    matchKey,
-    matchKeyDetails,
   )
 where
 
@@ -37,10 +29,11 @@ import Control.Monad.IO.Class
 import Control.Monad.State.Strict (MonadTrans (lift), StateT)
 import Data.Sequence (Seq)
 import qualified Data.Set as S
+import Linear (V2)
+import Rogui.Application.Event.Keyboard
 import Rogui.Components.Types (ExtentMap)
 import Rogui.Graphics (Cell)
 import Rogui.Graphics.Types (Pixel)
-import SDL (EventPayload, Keycode, MouseButton, Scancode, V2)
 
 data Event e
   = -- | Simple adaptation of SDL key down event
@@ -49,8 +42,6 @@ data Event e
     KeyUp KeyDetails
   | -- | Simple adaption of SDL mouse events
     MouseEvent MouseEventDetails
-  | -- | Store every other SDL events
-    OtherSDLEvent EventPayload
   | -- | Focus request
     Focus FocusDestination
   | -- | Quit signal (equivalent to SDL.Quit event)
@@ -59,6 +50,10 @@ data Event e
     Step
   | -- | Fired when the window was resized. Provides the new dimension (in cells)
     WindowResized (V2 Cell)
+  | -- | Window became visible
+    WindowVisible
+  | -- Unhandled event
+    UnknownEvent
   | -- | Any custom event defined by the roguelike
     AppEvent e
 
@@ -69,16 +64,9 @@ data FocusDestination
     FocusNext
 
 data KeyDetails = KeyDetails
-  { keycode :: Keycode,
-    scancode :: Scancode,
-    modifiers :: S.Set Modifier
+  { key :: Key,
+    modifier :: S.Set Modifier
   }
-
-data Modifier
-  = Shift
-  | Ctrl
-  | Alt
-  deriving (Eq, Ord)
 
 data KeyDownDetails = KeyDownDetails
   { -- | Is this a continuous key down
@@ -99,6 +87,11 @@ data MouseClickDetails = MouseClickDetails
     -- | What button was clicked (SDL constant)
     buttonClicked :: MouseButton
   }
+
+data MouseButton
+  = LeftButton
+  | RightButton
+  | MiddleButton
 
 data MouseMoveDetails = MouseMoveDetails
   { -- | Mouse move between the previous position (taken from SDL)
@@ -247,40 +240,21 @@ liftEH a = EventHandlerM (Handled <$> a)
 liftApp :: (Monad m) => m a -> EventHandlerM m s e n a
 liftApp ma = EventHandlerM $ lift $ Handled <$> ma
 
--- | Match a key, either through its keycode or its scancode.
--- Constructors are kept short because key matching code
--- tends to be verbose.
-data KeyMatch = KC Keycode | SC Scancode
-  deriving (Eq, Ord)
-
 -- | Match a key, through a `Keymatch` and  a set of modifiers.
-data KeyDetailsMatch = Is KeyMatch (S.Set Modifier)
+-- IsNoMod matches whatever the modifiers (useful for char that
+-- cannot be entered without modifier)
+data KeyMatch
+  = -- Is the given key and the given modifiers
+    Is Key (S.Set Modifier)
+  | -- Is the given key and NO modifiers
+    IsNoMod Key
+  | -- Is the given key and ANY modifiers (or none)
+    IsAbsolute Key
   deriving (Eq, Ord)
 
--- | Shortcut to match a keycode
-isKC :: Keycode -> S.Set Modifier -> KeyDetailsMatch
-isKC k = Is (KC k)
-
--- | Shortcut to match a keycode without any modifier
-isKC' :: Keycode -> KeyDetailsMatch
-isKC' k = isKC k mempty
-
--- | Shortcut to match a scancode
-isSC :: Scancode -> S.Set Modifier -> KeyDetailsMatch
-isSC s = Is (SC s)
-
-isSC' :: Scancode -> KeyDetailsMatch
-isSC' s = isSC s mempty
-
--- | Check if a key is a match with the provided key match
+-- | Check if a key is a match
 matchKey :: KeyMatch -> KeyDetails -> Bool
-matchKey match KeyDetails {keycode, scancode} = case match of
-  KC kc -> keycode == kc
-  SC sc -> scancode == sc
-
--- | Check if keyDetails match the provided `KeyDetailsMatch`.
--- This is expected to be the bread and butter of key
--- mapping.
-matchKeyDetails :: KeyDetailsMatch -> KeyDetails -> Bool
-matchKeyDetails (Is km ms) k@KeyDetails {modifiers} =
-  matchKey km k && modifiers == ms
+matchKey match (KeyDetails k mods) = case match of
+  Is kc m -> kc == k && mods == m
+  IsNoMod kc -> kc == k && S.null mods
+  IsAbsolute kc -> kc == k

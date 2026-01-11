@@ -18,6 +18,9 @@
 module Rogui.Graphics.DSL.Instructions
   ( Instruction (..),
     Instructions,
+    Transformation (..),
+    Rotation (..),
+    TextAlign (..),
     drawHorizontalLine,
     drawVerticalLine,
     drawGlyphAts,
@@ -40,11 +43,36 @@ where
 
 import Control.Monad.Writer (MonadWriter (tell))
 import Data.DList
-import Rogui.Graphics.Colours (Colours)
-import Rogui.Graphics.Console (TextAlign (..))
-import Rogui.Graphics.Primitives (RGBA, Transformation)
+import Rogui.Graphics.Colours
 import Rogui.Graphics.Types (Brush, Cell (..), Console)
 import SDL (BlendMode, V2 (..))
+
+-- | Transformations that can be applied to glyphs during rendering.
+-- Multiple transformations can be combined - rotations are summed
+-- (e.g., [Rotate R90, Rotate R90] = 180°) and flips are deduplicated.
+-- The order of transformation doesn't matter.
+--
+-- Rotation is always performed from the center of the glyph.
+--
+-- Note that using `RArbitrary` might break the "grid" feeling,
+-- it's mostly there for animation support.
+--
+-- Also note that rotations will clip for non square tilesets !
+-- Since rotations are implemented mostly with tileset in mind,
+-- we won't support rotating non square tilesets.
+data Transformation
+  = FlipX
+  | FlipY
+  | Rotate Rotation
+  deriving (Eq)
+
+data Rotation = R90 | R180 | R270 | RArbitrary Double
+  deriving (Eq)
+
+data TextAlign
+  = TLeft
+  | TRight
+  | TCenter
 
 -- | The set of stateful, graphical instructions that can be
 -- interpreted.

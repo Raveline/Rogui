@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedLists #-}
 
@@ -132,25 +131,18 @@ import Data.Bifunctor
 import Data.ByteString (ByteString)
 import Data.Foldable (traverse_)
 import Data.Map qualified as M
-import Data.Maybe (catMaybes)
 import Data.Sequence qualified as Seq
-import Data.Set qualified as S
-import Data.String
 import Data.Text (pack)
 import Data.Word
+import Linear (V2 (..))
 import Rogui.Application.ConsoleSpecs
 import Rogui.Application.Error (RoguiError (..), TileSizeMismatch (..))
 import Rogui.Application.Event
 import Rogui.Application.Types (ConsoleSpec, RoguiConfig (..))
+import Rogui.Backend.Types
 import Rogui.Components.Types
 import Rogui.Graphics
 import Rogui.Types (BrushSpec, PositionSpec (..), Rogui (..), SizeSpec (..))
-import SDL (MouseMotionEventData (MouseMotionEventData))
-import SDL qualified
-import SDL.Event (MouseButtonEventData (..))
-import SDL.Image qualified as SDL
-import SDL.Internal.Numbered qualified as Numbered
-import SDL.Raw qualified as Raw
 
 -- | How to output the logs: either directly to console or to
 -- a filepath.
@@ -167,34 +159,11 @@ withLogging ls f = case ls of
 withoutLogging :: (MonadIO m) => NoLoggingT m a -> m a
 withoutLogging = runNoLoggingT
 
-convertSurface :: (MonadIO m) => SDL.Surface -> SDL.PixelFormat -> m SDL.Surface
-convertSurface (SDL.Surface s _) pixFmt = do
-  fmt <- Raw.allocFormat (Numbered.toNumber pixFmt)
-  surface <- SDL.Surface <$> Raw.convertSurface s fmt 0 <*> pure Nothing
-  surface <$ Raw.freeFormat fmt
-
-loadBrush :: (MonadIO m, MonadLogger m) => SDL.Renderer -> Maybe RGBA -> Either ByteString FilePath -> TileSize -> m Brush
-loadBrush renderer transparency method TileSize {..} = do
-  fontSurface <- case method of
-    Left bs -> SDL.decode bs
-    Right fp -> logDebugNS "Rogui.System" ("Loading brush at " <> fromString fp) >> SDL.load fp
-
-  surface <- convertSurface fontSurface SDL.RGBA8888
-  void $ SDL.surfaceColorKey surface SDL.$= transparency
-  brush <- SDL.createTextureFromSurface renderer surface
-  textInfo <- SDL.queryTexture brush
-  pure $
-    Brush
-      { tileWidth = pixelWidth,
-        tileHeight = pixelHeight,
-        textureWidth = fromIntegral (SDL.textureWidth textInfo),
-        textureHeight = fromIntegral (SDL.textureHeight textInfo),
-        brush
-      }
-
 -- Load and store a brush into a `Rogui` datatype.
 addBrush ::
   (MonadIO m, MonadLogger m, Ord rb) =>
+  Backend renderer texture events ->
+  renderer ->
   -- | Brush reference constructor
   rb ->
   -- | Transparency colour used in this brush, if any
@@ -204,16 +173,16 @@ addBrush ::
   -- | Expected Tilesize for the brush
   TileSize ->
   -- | Rogui object where the brush will be loaded
-  Rogui rc rb n s e m' ->
-  m (Rogui rc rb n s e m')
-addBrush ref transparency path tileSize rogui@Rogui {..} = do
-  brush <- loadBrush renderer transparency path tileSize
-  pure $ rogui {brushes = M.insert ref brush brushes}
+  Rogui rc rb n s e renderer texture m' ->
+  m (Rogui rc rb n s e renderer texture m')
+addBrush backend renderer' ref transparency path tileSize rogui@Rogui {..} = do
+  (brush, texture) <- loadBrush backend renderer' tileSize path transparency
+  pure $ rogui {brushes = M.insert ref brush brushes, textures = M.insert brush texture textures}
 
 -- | Store a console to be reused later on. Each console are registered with a
 -- given `rc` type (for References Console). You should typically prefer
 -- `addConsoleWithSpecs` (see `ConsoleSpecs` module).
-addConsole :: (Ord rc) => rc -> Console -> Rogui rc rb n s e m -> Rogui rc rb n s e m
+addConsole :: (Ord rc) => rc -> Console -> Rogui rc rb n s e r t m -> Rogui rc rb n s e r t m
 addConsole ref console rogui@Rogui {..} =
   rogui {consoles = M.insert ref console consoles}
 
@@ -243,7 +212,7 @@ buildConsoleFromSpecs ::
   -- | Where should this console be positioned ?
   PositionSpec rc ->
   -- | The rogui datatype that will store this Console
-  Rogui rc rb n s e m' ->
+  Rogui rc rb n s e r t m' ->
   m Console
 buildConsoleFromSpecs consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
   let Console {..} = rootConsole
@@ -253,34 +222,36 @@ buildConsoleFromSpecs consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
         TilesSize tw th -> (pixelWidth consoleTS .*=. tw, pixelHeight consoleTS .*=. th)
         PixelsSize pw ph -> (pw, ph)
       pos = case posSpec of
-        TopLeft -> pure $ SDL.V2 0 0
-        TopRight -> pure $ SDL.V2 (width - w) 0
-        BottomLeft -> pure $ SDL.V2 0 (height - h)
-        BottomRight -> pure $ SDL.V2 (width - w) (height - h)
-        Center -> pure $ SDL.V2 ((width - w) `div` 2) ((height - h) `div` 2)
-        PosWindowPct xp yp -> pure $ SDL.V2 (width * Pixel xp `div` 100) (height * Pixel yp `div` 100)
-        TilesPos tx ty -> pure $ SDL.V2 (pixelWidth consoleTS .*=. tx) (pixelHeight consoleTS .*=. ty)
-        PixelsPos px py -> pure $ SDL.V2 px py
+        TopLeft -> pure $ V2 0 0
+        TopRight -> pure $ V2 (width - w) 0
+        BottomLeft -> pure $ V2 0 (height - h)
+        BottomRight -> pure $ V2 (width - w) (height - h)
+        Center -> pure $ V2 ((width - w) `div` 2) ((height - h) `div` 2)
+        PosWindowPct xp yp -> pure $ V2 (width * Pixel xp `div` 100) (height * Pixel yp `div` 100)
+        TilesPos tx ty -> pure $ V2 (pixelWidth consoleTS .*=. tx) (pixelHeight consoleTS .*=. ty)
+        PixelsPos px py -> pure $ V2 px py
         Below rc -> consoleBelow rc rogui
         RightOf rc -> consoleRight rc rogui
   (Console w h <$> pos) <*> pure consoleTS
 
 applyBrushSpecs ::
   (MonadLogger m, MonadIO m, MonadError (RoguiError err rc rb) m, Ord rb) =>
+  Backend renderer event textures ->
+  renderer ->
   [BrushSpec rb] ->
-  Rogui rc rb n s e m ->
-  m (Rogui rc rb n s e m)
-applyBrushSpecs specs rogui =
+  Rogui rc rb n s e renderer event m ->
+  m (Rogui rc rb n s e renderer event m)
+applyBrushSpecs backend renderer' specs rogui =
   let foldSpecs rogui' (ref, tpColour, tileSize, loadingMethod) =
-        addBrush ref tpColour loadingMethod tileSize rogui'
+        addBrush backend renderer' ref tpColour loadingMethod tileSize rogui'
    in foldM foldSpecs rogui specs
 
 applyConsoleSpecs ::
   (MonadError (RoguiError err rc rb) m, Ord rc) =>
   Console ->
   [ConsoleSpec rc] ->
-  Rogui rc rb n s e m ->
-  m (Rogui rc rb n s e m)
+  Rogui rc rb n s e renderer event m ->
+  m (Rogui rc rb n s e renderer event m)
 applyConsoleSpecs root specs rogui@Rogui {..} =
   let foldSpecs rogui' (ref, consoleTS, sizeSpec, posSpec) = do
         newConsole <- buildConsoleFromSpecs consoleTS sizeSpec posSpec rogui'
@@ -295,13 +266,14 @@ applyConsoleSpecs root specs rogui@Rogui {..} =
 -- however.
 bootAndPrintError ::
   (Show rc, Show rb, Ord rb, Ord rc, Ord n, MonadIO m) =>
+  Backend renderer textures e ->
   -- | A Configuration that will be used to make a Rogui datatype
   RoguiConfig rc rb n s e (ExceptT (RoguiError () rc rb) (LoggingT m)) ->
   -- | Initial state
   s ->
   m ()
-bootAndPrintError c i = runStdoutLoggingT $ do
-  result <- runExceptT (boot c i)
+bootAndPrintError backend c i = runStdoutLoggingT $ do
+  result <- runExceptT (boot backend c i)
   either (liftIO . print) pure result
 
 -- | This function uses the `RoguiConfig` provided to initialise a `Rogui` datatype,
@@ -309,56 +281,45 @@ bootAndPrintError c i = runStdoutLoggingT $ do
 -- Boot will return once a `Halt` EventResult has been processed in the event handler.
 boot ::
   (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLogger m) =>
+  Backend renderer textures e ->
   -- | A Configuration that will be used to make a Rogui datatype
   RoguiConfig rc rb n s e m ->
   -- | Initial state
   s ->
   m ()
-boot RoguiConfig {..} initialState = do
-  SDL.initializeAll
+boot backend RoguiConfig {..} initialState = do
   let TileSize {..} = brushTilesize
-      (SDL.V2 widthInTiles heightInTiles) = consoleCellSize
-  let windowSize@(SDL.V2 w h) = SDL.V2 (pixelWidth .*=. widthInTiles) (pixelHeight .*=. heightInTiles)
-  window <-
-    SDL.createWindow
-      appName
-      SDL.defaultWindow
-        { SDL.windowInitialSize = fromIntegral <$> windowSize,
-          SDL.windowResizable = allowResize
-        }
-  when allowResize
-    . void
-    $ SDL.windowMinimumSize window SDL.$= (fromIntegral <$> windowSize)
-  renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
-  baseBrush <- loadBrush renderer defaultBrushTransparencyColour defaultBrushPath brushTilesize
-  let baseConsole = Console {width = w, height = h, position = SDL.V2 0 0, tileSize = brushTilesize}
-      frameTime = 1000 `div` fromIntegral targetFPS -- milliseconds per frame
-      baseRogui =
-        Rogui
-          { consoles = M.singleton rootConsoleReference baseConsole,
-            brushes = M.singleton defaultBrushReference baseBrush,
-            rootConsoleRef = rootConsoleReference,
-            rootConsole = baseConsole,
-            defaultBrush = baseBrush,
-            renderer = renderer,
-            draw = drawingFunction,
-            onEvent = eventFunction,
-            lastTicks = 0,
-            timerStep = stepMs,
-            lastStep = 0,
-            numberOfSteps = 0,
-            targetFrameTime = frameTime,
-            extentsMap = mempty,
-            recentFrameTimes = mempty,
-            lastFPSWarning = 0,
-            roguiConsoleSpecs = consoleSpecs
-          }
-  withConsoles <- applyConsoleSpecs baseConsole consoleSpecs baseRogui
-  withBrushes <- applyBrushSpecs brushesSpecs withConsoles
+      (V2 widthInTiles heightInTiles) = consoleCellSize
+  let windowSize@(V2 w h) = V2 (pixelWidth .*=. widthInTiles) (pixelHeight .*=. heightInTiles)
+  initBackend backend appName windowSize allowResize $ \renderer -> do
+    (baseBrush, initialTexture) <- loadBrush backend renderer brushTilesize defaultBrushPath defaultBrushTransparencyColour
+    let baseConsole = Console {width = w, height = h, position = V2 0 0, tileSize = brushTilesize}
+        frameTime = 1000 `div` fromIntegral targetFPS -- milliseconds per frame
+        baseRogui =
+          Rogui
+            { consoles = M.singleton rootConsoleReference baseConsole,
+              brushes = M.singleton defaultBrushReference baseBrush,
+              rootConsoleRef = rootConsoleReference,
+              rootConsole = baseConsole,
+              defaultBrush = baseBrush,
+              draw = drawingFunction,
+              onEvent = eventFunction,
+              lastTicks = 0,
+              renderer = renderer,
+              timerStep = stepMs,
+              lastStep = 0,
+              numberOfSteps = 0,
+              targetFrameTime = frameTime,
+              extentsMap = mempty,
+              recentFrameTimes = mempty,
+              lastFPSWarning = 0,
+              roguiConsoleSpecs = consoleSpecs,
+              textures = M.singleton baseBrush initialTexture
+            }
+    withConsoles <- applyConsoleSpecs baseConsole consoleSpecs baseRogui
+    withBrushes <- applyBrushSpecs backend renderer brushesSpecs withConsoles
 
-  appLoop withBrushes initialState
-
-  SDL.destroyWindow window
+    appLoop backend withBrushes initialState
 
 -- | Lookup a brush by its reference. Throw an error if not found.
 brushLookup :: (Ord rb, Show rb, MonadError (RoguiError err rc rb) m) => M.Map rb Brush -> rb -> m Brush
@@ -375,8 +336,8 @@ calculateFPS frameTimes minSamples
           avgFrameTime = fromIntegral totalTime / fromIntegral (Seq.length frameTimes) :: Double
        in Just (1000.0 / avgFrameTime)
 
-applyResize :: (Ord rc, MonadError (RoguiError err rc rb) m) => SDL.V2 Cell -> Rogui rc rb n s e m -> m (Rogui rc rb n s e m)
-applyResize (SDL.V2 newW newH) r@Rogui {..} =
+applyResize :: (Ord rc, MonadError (RoguiError err rc rb) m) => V2 Cell -> Rogui rc rb n s e r t m -> m (Rogui rc rb n s e r t m)
+applyResize (V2 newW newH) r@Rogui {..} =
   let Console {..} = rootConsole
       newRoot =
         rootConsole
@@ -389,18 +350,18 @@ applyResize (SDL.V2 newW newH) r@Rogui {..} =
 -- so we can rebuild a Rogui datatype properly to react to this particular event.
 -- This also removes duplicated input events, so they don't build up faster
 -- than rendering.
-preEventLoop :: (Ord rc, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLogger m) => Rogui rc rb n s e m -> m (Rogui rc rb n s e m, [Event e])
-preEventLoop initialRogui@Rogui {..} = do
-  sdlEventsWithResize <- getSDLEvents defaultBrush
+preEventLoop :: (Ord rc, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLogger m) => Backend r t e -> Rogui rc rb n s e r t m -> m (Rogui rc rb n s e r t m, [Event e])
+preEventLoop backend initialRogui@Rogui {..} = do
+  sdlEventsWithResize <- pollEvents backend defaultBrush
   let eventFolder (r, evs) ev@(WindowResized newSize) = (,) <$> applyResize newSize r <*> pure (ev : evs)
       eventFolder (r, evs) other = pure (r, other : evs)
   (finalRogui, processedEvents) <- foldM eventFolder (initialRogui, []) sdlEventsWithResize
   pure (finalRogui, reverse processedEvents)
 
-appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLogger m) => Rogui rc rb n s e m -> s -> m ()
-appLoop initialGui state = do
-  frameStart <- SDL.ticks
-  (roGUI@Rogui {..}, sdlEvents) <- preEventLoop initialGui
+appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLogger m) => Backend r t e -> Rogui rc rb n s e r t m -> s -> m ()
+appLoop backend initialGui state = do
+  frameStart <- getTicks backend
+  (roGUI@Rogui {..}, sdlEvents) <- preEventLoop backend initialGui
   let reachedStep = frameStart - lastStep > timerStep
       baseEvents = if reachedStep then Step : sdlEvents else sdlEvents
       baseEventState = EventHandlingState {events = Seq.fromList baseEvents, currentState = state, result = ContinueNoRedraw, knownExtents = extentsMap}
@@ -408,17 +369,17 @@ appLoop initialGui state = do
   newExtents <-
     if result == Continue
       then do
-        SDL.clear renderer
+        clearFrame backend renderer
         let drawConsole (console, brush, components) = do
               let onConsole = maybe rootConsole (consoles M.!) console
               usingBrush <- maybe (pure defaultBrush) (brushLookup brushes) brush
-              renderComponents roGUI usingBrush onConsole components
+              renderComponents backend roGUI usingBrush onConsole components
         extents <- traverse drawConsole (draw brushes currentState)
-        SDL.present renderer
+        presentFrame backend renderer
         pure $ M.unions extents
       else pure extentsMap
   unless (result == Halt) $ do
-    frameEnd <- SDL.ticks
+    frameEnd <- getTicks backend
     let frameDuration = frameEnd - frameStart
         elapsed = frameStart - frameEnd
         sleepMs =
@@ -460,9 +421,9 @@ appLoop initialGui state = do
               recentFrameTimes = newFrameTimes,
               lastFPSWarning = newLastFPSWarning
             }
-    appLoop newRogui currentState
+    appLoop backend newRogui currentState
 
-processWithLimit :: (Monad m) => Int -> Rogui rc rb n s e m -> EventHandlingM m s e n ()
+processWithLimit :: (Monad m) => Int -> Rogui rc rb n s e r t m -> EventHandlingM m s e n ()
 processWithLimit 0 _ = pure ()
 processWithLimit n roGUI = do
   evs <- gets events
@@ -479,54 +440,15 @@ popEvent = do
       modify $ \ehs -> ehs {events = rest}
       pure $ Just firstEvent
 
-processEvent :: (Monad m) => Rogui rc rb n s e m -> Event e -> EventHandlingM m s e n ()
+processEvent :: (Monad m) => Rogui rc rb n s e r t m -> Event e -> EventHandlingM m s e n ()
 processEvent Rogui {..} event = do
   _ <- popEvent -- This will remove the event from the queue
   currentState <- gets currentState
   void . runEventHandler . onEvent currentState $ event
   pure ()
 
-getSDLEvents :: (MonadIO m) => Brush -> m [Event e]
-getSDLEvents Brush {..} =
-  let toRoguiEvent = \case
-        SDL.KeyboardEvent ke -> case SDL.keyboardEventKeyMotion ke of
-          SDL.Pressed -> KeyDown $ KeyDownDetails (SDL.keyboardEventRepeat ke) (keysymToKeyDetails $ SDL.keyboardEventKeysym ke)
-          SDL.Released -> KeyUp . keysymToKeyDetails $ SDL.keyboardEventKeysym ke
-        SDL.WindowSizeChangedEvent (SDL.WindowSizeChangedEventData _ (SDL.V2 w h)) ->
-          WindowResized (SDL.V2 (fromIntegral w ./.= tileWidth) (fromIntegral h ./.= tileHeight))
-        SDL.MouseMotionEvent MouseMotionEventData {..} ->
-          let (SDL.P mousePos) = mouseMotionEventPos
-              absoluteMousePosition@(SDL.V2 x y) = fromIntegral <$> mousePos
-              defaultTileSizePosition = SDL.V2 (x ./.= tileWidth) (y ./.= tileHeight)
-              relativeMouseMotion = fromIntegral <$> mouseMotionEventRelMotion
-           in MouseEvent . MouseMove $ MouseMoveDetails {..}
-        SDL.MouseButtonEvent MouseButtonEventData {..} ->
-          let (SDL.P mousePos) = mouseButtonEventPos
-              absoluteMousePosition@(SDL.V2 x y) = fromIntegral <$> mousePos
-              defaultTileSizePosition = SDL.V2 (x ./.= tileWidth) (y ./.= tileHeight)
-              buttonClicked = mouseButtonEventButton
-              constructor = if mouseButtonEventMotion == SDL.Released then MouseClickReleased else MouseClickPressed
-           in MouseEvent . constructor $ MouseClickDetails {..}
-        e -> OtherSDLEvent e
-      deduplicatedPayload es = S.toList . S.fromList $ fmap SDL.eventPayload es
-   in fmap (fmap toRoguiEvent) (deduplicatedPayload <$> SDL.pollEvents)
-
-keysymToKeyDetails :: SDL.Keysym -> KeyDetails
-keysymToKeyDetails SDL.Keysym {..} =
-  let toModifier SDL.KeyModifier {..} =
-        S.fromList . catMaybes $
-          [ if keyModifierLeftShift then Just Shift else Nothing,
-            if keyModifierRightShift then Just Shift else Nothing,
-            if keyModifierLeftCtrl then Just Ctrl else Nothing,
-            if keyModifierRightCtrl then Just Ctrl else Nothing,
-            if keyModifierLeftAlt then Just Alt else Nothing,
-            if keyModifierRightAlt then Just Alt else Nothing,
-            if keyModifierAltGr then Just Alt else Nothing
-          ]
-   in KeyDetails keysymKeycode keysymScancode (toModifier keysymModifier)
-
-renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError err rc rb) m) => Rogui rc rb n s e m' -> Brush -> Console -> Component n -> m (ExtentMap n)
-renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usingBrush usingConsole@Console {tileSize = consoleTileSize} Component {..} = do
+renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError err rc rb) m) => Backend r t event -> Rogui rc rb n s e r t m' -> Brush -> Console -> Component n -> m (ExtentMap n)
+renderComponents backend Rogui {defaultBrush, rootConsole, numberOfSteps, renderer, textures} usingBrush usingConsole@Console {tileSize = consoleTileSize} Component {..} = do
   let brushTileSize = fromBrush usingBrush
   when (brushTileSize /= consoleTileSize) $
     throwError $
@@ -541,4 +463,4 @@ renderComponents Rogui {defaultBrush, rootConsole, numberOfSteps, renderer} usin
         withConsole usingConsole
         withBrush usingBrush
         draw
-  evalInstructions renderer rootConsole defaultBrush instructions >> pure extents
+  evalInstructions backend renderer textures rootConsole defaultBrush instructions >> pure extents

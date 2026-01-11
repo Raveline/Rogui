@@ -18,10 +18,10 @@ where
 
 import Data.Foldable (find, traverse_)
 import qualified Data.Map as M
+import Rogui.Application.Event.Keyboard (Key (..))
 import Rogui.Application.Event.Monad (halt, modifyState, redraw, unhandled)
-import Rogui.Application.Event.Types (Event (..), EventHandler, EventHandlerM, FocusDestination (..), KeyDetailsMatch (Is), KeyDownDetails (..), KeyMatch (..), Modifier (..), MouseEventDetails, matchKeyDetails)
+import Rogui.Application.Event.Types (Event (..), EventHandler, EventHandlerM, FocusDestination (..), KeyDownDetails (..), KeyMatch (..), Modifier (..), MouseEventDetails, matchKey)
 import Rogui.FocusRing
-import qualified SDL
 
 -- | A default event handler that will:
 --
@@ -37,12 +37,11 @@ import qualified SDL
 -- shortcuts.
 baseEventHandler :: (Monad m) => EventHandler m state e n
 baseEventHandler _ event =
-  let ctrlC = matchKeyDetails (Is (KC SDL.KeycodeC) [Ctrl])
+  let ctrlC = matchKey (Is (KChar 'c') [Ctrl])
    in case event of
         KeyDown KeyDownDetails {key} -> if ctrlC key then halt (pure ()) else unhandled
-        OtherSDLEvent SDL.QuitEvent -> halt . pure $ ()
         Quit -> halt . pure $ ()
-        OtherSDLEvent (SDL.WindowShownEvent _) -> redraw (pure ()) >> unhandled
+        WindowVisible -> redraw (pure ()) >> unhandled
         Step -> redraw (pure ()) >> unhandled
         _ -> unhandled
 
@@ -55,12 +54,12 @@ baseEventHandler _ event =
 keyPressHandler ::
   (Monad m, Foldable f) =>
   -- | A list of expected key codes and the actions to perform if this key was pressed
-  f (KeyDetailsMatch, EventHandler m state e n) ->
+  f (KeyMatch, EventHandler m state e n) ->
   EventHandler m state e n
 keyPressHandler keyMatches state event =
   case event of
     KeyDown KeyDownDetails {key} ->
-      let handler = (snd <$> find ((`matchKeyDetails` key) . fst) keyMatches)
+      let handler = (snd <$> find ((`matchKey` key) . fst) keyMatches)
        in maybe unhandled (\h -> h state event) handler
     _ -> unhandled
 

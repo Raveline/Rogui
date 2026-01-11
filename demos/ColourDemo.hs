@@ -6,6 +6,7 @@ module Main where
 import Data.Foldable (traverse_)
 import Linear (V2 (..))
 import Rogui.Application
+import Rogui.Backend.SDL
 import Rogui.Components.Core
 import Rogui.Graphics
 import Rogui.Types (ConsoleDrawers)
@@ -36,6 +37,7 @@ main = do
             allowResize = False
           }
   bootAndPrintError
+    sdlBackend
     config
     ()
 

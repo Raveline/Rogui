@@ -8,7 +8,7 @@ import Data.ByteString (ByteString)
 import Data.Text (Text)
 import Data.Word (Word32)
 import Rogui.Graphics (Cell, TileSize)
-import Rogui.Graphics.Primitives (RGBA)
+import Rogui.Graphics.Colours
 import Rogui.Types (BrushSpec, ConsoleDrawers, ConsoleSpec, EventHandler)
 import SDL (V2)
 

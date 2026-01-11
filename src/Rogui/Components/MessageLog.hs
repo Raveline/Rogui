@@ -139,7 +139,7 @@ handleMessageLogEvent = do
 
 handleMessageLogEvent' ::
   (Monad m, Ord n, Foldable f, Functor f) =>
-  [(KeyDetailsMatch, ViewportAction)] ->
+  [(KeyMatch, ViewportAction)] ->
   -- | Name of the component, needed to retrieve its extent
   n ->
   -- | Current messages to calculate content height
