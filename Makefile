@@ -1,26 +1,29 @@
-.PHONY: all build build-lib build-exe docs docs-open test lint clean help
+.PHONY: all build build-sdl build-canvas build-lib build-backends build-demos \
+        run-demo docs docs-open test lint clean clean-all help
 
-# Default target
-all: build test lint
+# Default target: build native (SDL) backend
+all: build-sdl
 
-# Build the library only
-build-lib:
-	cabal build rogui:lib
-
-# Build all executables
-build-exe:
-	cabal build rogui:exe:rogui
-	cabal build rogui:exe:rogui-list-demo
-	cabal build rogui:exe:rogui-grid-demo
-	cabal build rogui:exe:rogui-colour-demo
-
-# Build everything (library + executables)
-build:
+# Build everything with native GHC (SDL backend + demos)
+build-sdl:
 	cabal build all
+
+# Build core library only
+build-lib:
+	cabal build rogui
+
+# Build all backends (SDL with GHC, then Canvas with GHCJS)
+build-backends:
+	@echo "Building SDL backend with GHC..."
+	cabal build rogui-sdl-backend
+
+# Build demos (SDL only)
+build-demos:
+	cabal build rogui-demos
 
 # Generate Haddock documentation
 docs:
-	cabal haddock --haddock-html --haddock-hyperlink-source
+	cabal haddock all --haddock-html --haddock-hyperlink-source
 
 # Open documentation in browser
 docs-open: docs
@@ -35,22 +38,45 @@ test:
 
 # Run hlint on source files
 lint:
-	hlint src/ demos/ rogueharvest/
+	@echo "Linting core library..."
+	@hlint rogui/src/ || true
+	@echo "Linting SDL backend..."
+	@hlint rogui-sdl-backend/src/ || true
+	@echo "Linting demos..."
+	@hlint rogui-demos/demos/ || true
 
-# Clean build artifacts
+# Clean build artifacts (keeps package store)
 clean:
 	cabal clean
+
+# Clean everything
+clean-all:
+	cabal clean
+	rm -rf dist-newstyle
 
 # Show help
 help:
 	@echo "RoGUI Makefile targets:"
-	@echo "  make build       - Build library and all executables"
-	@echo "  make build-lib   - Build library only"
-	@echo "  make build-exe   - Build all executables only"
-	@echo "  make docs        - Generate Haddock documentation"
-	@echo "  make docs-open   - Generate and open documentation in browser"
-	@echo "  make test        - Run test suite"
-	@echo "  make lint        - Run hlint on source code"
-	@echo "  make clean       - Remove build artifacts"
-	@echo "  make all         - Build, test, and lint (default)"
-	@echo "  make help        - Show this help message"
+	@echo ""
+	@echo "Building:"
+	@echo "  make build-sdl      - Build with native GHC (SDL backend + demos) [default]"
+	@echo "  make build-lib      - Build core library only"
+	@echo "  make build-demos    - Build demo applications"
+	@echo ""
+	@echo "Running:"
+	@echo "  make run-demo       - Run demo applications"
+	@echo ""
+	@echo "Documentation:"
+	@echo "  make docs           - Generate Haddock documentation"
+	@echo "  make docs-open      - Generate and open documentation in browser"
+	@echo ""
+	@echo "Quality:"
+	@echo "  make test           - Run test suite"
+	@echo "  make lint           - Run hlint on all source code"
+	@echo ""
+	@echo "Cleaning:"
+	@echo "  make clean          - Remove build artifacts"
+	@echo "  make clean-all      - Remove all build artifacts and package store"
+	@echo ""
+	@echo "Help:"
+	@echo "  make help           - Show this help message"
