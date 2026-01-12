@@ -60,7 +60,8 @@ main = do
                 (ModalShop, ts10x16, SizeWindowPct 90 90, Center),
                 (ModalLayer, ts10x16, FullWindow, TopLeft)
               ],
-            brushesSpecs = [(SmallCharset, pure black, ts10x16, Right "rogueharvest/assets/terminal_10x16.png")]
+            brushesSpecs = [(SmallCharset, pure black, ts10x16, Right "rogueharvest/assets/terminal_10x16.png")],
+            maxEventDepth = 100
           }
 
   -- Then we boot. Since we're using the actual `boot`, unlike the

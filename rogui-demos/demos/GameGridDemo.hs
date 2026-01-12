@@ -67,7 +67,8 @@ main = do
                 (SmallCharset, pure black, ts10x16, Right "terminal_10x16.png")
               ],
             eventFunction = baseEventHandler <||> eventHandler,
-            allowResize = True
+            allowResize = True,
+            maxEventDepth = 100
           }
   bootAndPrintError
     sdlBackend

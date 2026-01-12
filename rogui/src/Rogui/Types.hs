@@ -237,6 +237,8 @@ data Rogui rc rb names state event renderer textures m
     draw :: ConsoleDrawers rc rb names state,
     -- | Main game logic is stored as reactions to events
     onEvent :: EventHandler m state event names,
+    -- | Maximum amount of iteration to process events in a single frame
+    maxEventDepth :: Int,
     -- | Constant evaluating the amount of milliseconds since initialisation, taken from SDL.
     lastTicks :: Word32,
     -- | Step timer constant used for basic animations, expressed in milliseconds.

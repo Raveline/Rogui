@@ -185,7 +185,8 @@ main = do
             eventFunction = baseEventHandler,
             consoleSpecs = [],
             brushesSpecs = [],
-            allowResize = False
+            allowResize = False,
+            maxEventDepth = 100
           }
   bootAndPrintError
     sdlBackend

@@ -44,7 +44,8 @@ main = do
             eventFunction = baseEventHandler <||> logEventHandler,
             consoleSpecs = [],
             brushesSpecs = [],
-            allowResize = True
+            allowResize = True,
+            maxEventDepth = 100
           }
   bootAndPrintError
     sdlBackend

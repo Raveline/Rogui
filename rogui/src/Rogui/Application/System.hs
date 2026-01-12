@@ -307,6 +307,7 @@ boot backend RoguiConfig {..} initialState = do
               lastTicks = 0,
               renderer = renderer,
               timerStep = stepMs,
+              maxEventDepth = maxEventDepth,
               lastStep = 0,
               numberOfSteps = 0,
               targetFrameTime = frameTime,
@@ -365,7 +366,7 @@ appLoop backend initialGui state = do
   let reachedStep = frameStart - lastStep > timerStep
       baseEvents = if reachedStep then Step : sdlEvents else sdlEvents
       baseEventState = EventHandlingState {events = Seq.fromList baseEvents, currentState = state, result = ContinueNoRedraw, knownExtents = extentsMap}
-  EventHandlingState {result, currentState} <- execStateT (processWithLimit 30 roGUI) baseEventState
+  EventHandlingState {result, currentState} <- execStateT (processWithLimit maxEventDepth roGUI) baseEventState
   newExtents <-
     if result == Continue
       then do
@@ -423,8 +424,8 @@ appLoop backend initialGui state = do
             }
     appLoop backend newRogui currentState
 
-processWithLimit :: (Monad m) => Int -> Rogui rc rb n s e r t m -> EventHandlingM m s e n ()
-processWithLimit 0 _ = pure ()
+processWithLimit :: (Monad m, MonadError (RoguiError err rc rb) m) => Int -> Rogui rc rb n s e r t m -> EventHandlingM m s e n ()
+processWithLimit 0 _ = throwError NonEndingEventLoop
 processWithLimit n roGUI = do
   evs <- gets events
   if null evs

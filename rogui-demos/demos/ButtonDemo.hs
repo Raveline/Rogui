@@ -48,7 +48,8 @@ main = do
             consoleSpecs = [],
             brushesSpecs = [],
             allowResize = True,
-            eventFunction = baseEventHandler <||> mouseHandler <||> focusHandler <||> customEventHandler
+            eventFunction = baseEventHandler <||> mouseHandler <||> focusHandler <||> customEventHandler,
+            maxEventDepth = 100
           }
   bootAndPrintError
     sdlBackend

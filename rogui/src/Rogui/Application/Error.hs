@@ -20,6 +20,7 @@ data RoguiError err rc rb
     -- expected tilesize.
     BrushConsoleMismatch TileSizeMismatch
   | ApplicationError err
+  | NonEndingEventLoop
   deriving (Eq, Show, Exception)
 
 data TileSizeMismatch = TileSizeMismatch

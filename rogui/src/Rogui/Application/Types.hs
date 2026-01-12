@@ -41,5 +41,7 @@ data RoguiConfig rc rb name state event m = RoguiConfig
     -- | Console building instructions
     consoleSpecs :: [ConsoleSpec rc],
     -- | Brush loading instructions
-    brushesSpecs :: [BrushSpec rb]
+    brushesSpecs :: [BrushSpec rb],
+    -- | Maximum turn of the event handling loop before throwing an exception
+    maxEventDepth :: Int
   }
