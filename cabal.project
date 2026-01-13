@@ -1,0 +1,4 @@
+packages:
+  rogui/rogui.cabal
+  rogui-demos/rogui-demos.cabal
+  rogui-sdl-backend/rogui-sdl-backend.cabal
