@@ -58,28 +58,33 @@ data Event e
     UnknownEvent
   | -- | Any custom event defined by the roguelike
     AppEvent e
+  deriving (Eq, Show)
 
 data FocusDestination
   = -- | Request focus on the previous element
     FocusPrev
   | -- | Request focus on the next element
     FocusNext
+  deriving (Eq, Show)
 
 data KeyDetails = KeyDetails
   { key :: Key,
     modifier :: S.Set Modifier
   }
+  deriving (Eq, Show)
 
 data KeyDownDetails = KeyDownDetails
   { -- | Is this a continuous key down
     repeat :: Bool,
     key :: KeyDetails
   }
+  deriving (Eq, Show)
 
 data MouseEventDetails
   = MouseMove MouseMoveDetails
   | MouseClickPressed MouseClickDetails
   | MouseClickReleased MouseClickDetails
+  deriving (Eq, Show)
 
 data MouseClickDetails = MouseClickDetails
   { -- | Mouse position in pixel on the window
@@ -89,11 +94,13 @@ data MouseClickDetails = MouseClickDetails
     -- | What button was clicked (SDL constant)
     buttonClicked :: MouseButton
   }
+  deriving (Eq, Show)
 
 data MouseButton
   = LeftButton
   | RightButton
   | MiddleButton
+  deriving (Eq, Show)
 
 data MouseMoveDetails = MouseMoveDetails
   { -- | Mouse move between the previous position (taken from SDL)
@@ -103,6 +110,7 @@ data MouseMoveDetails = MouseMoveDetails
     -- | Mouse position in cells on the window (computed using the default brush tilesize)
     defaultTileSizePosition :: V2 Cell
   }
+  deriving (Eq, Show)
 
 -- | Type used to drive the behaviour of the app loop after collection events.
 -- Default is `ContinueNoRedraw`. If a component (or a custom event) demands a

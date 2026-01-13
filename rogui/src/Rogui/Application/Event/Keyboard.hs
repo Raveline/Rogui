@@ -21,10 +21,10 @@ data Key
   | KEnd
   | KPageDown
   | KUnknown
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Show)
 
 data Modifier
   = Shift
   | Ctrl
   | Alt
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Show)
