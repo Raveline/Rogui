@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Rogui.Application.Event.Types
@@ -29,6 +30,7 @@ import Control.Monad.IO.Class
 import Control.Monad.State.Strict (MonadTrans (lift), StateT)
 import Data.Sequence (Seq)
 import qualified Data.Set as S
+import GHC.Generics (Generic)
 import Linear (V2)
 import Rogui.Application.Event.Keyboard
 import Rogui.Components.Types (ExtentMap)
@@ -202,6 +204,7 @@ data EventHandlingState s e n = EventHandlingState
     -- | Map of all named components which record their extents at rendering
     knownExtents :: ExtentMap n
   }
+  deriving (Generic)
 
 -- | Alternative specialized over event handler.
 -- This is particularly convenient when you don't want to pass through
