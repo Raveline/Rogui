@@ -13,6 +13,9 @@ cabal-version:   3.0
 --
 -- The name of the package.
 name:            rogui
+synopsis:        A framework for Roguelike games
+description:
+    Rogui is a basic framework that offer UI utilities and event management for roguelikes.
 
 -- The package version.
 -- See the Haskell package versioning policy (PVP) for standards
@@ -48,12 +51,18 @@ build-type:      Simple
 
 -- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
 extra-doc-files: CHANGELOG.md
+tested-with:     GHC ==9.6 || ==9.8 || ==9.12.2
 
--- Extra source files to be distributed with the package, such as examples, or a tutorial module.
--- extra-source-files:
+flag devel
+    description: enable development mode (i.e. disable -Werror)
+    default:     False
 
 common warnings
-    ghc-options:        -Wall -Werror
+    ghc-options:        -Wall
+
+    if !flag(devel)
+        ghc-options: -Wall -Werror
+
     default-extensions:
         FlexibleContexts
         OverloadedStrings
@@ -112,17 +121,17 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:
-        , base
-        , bytestring
-        , containers
-        , data-clist
-        , dlist
-        , linear
-        , monad-control
-        , monad-logger
-        , MonadRandom
-        , mtl
-        , text
+        , base           >=4.21.0 && <4.22
+        , bytestring     >=0.12.2 && <0.13
+        , containers     >=0.7    && <0.8
+        , data-clist     >=0.2    && <0.3
+        , dlist          >=1.0    && <1.1
+        , linear         >=1.23.3 && <1.24
+        , monad-control  >=1.0.3  && <1.1
+        , monad-logger   >=0.3.42 && <0.4
+        , MonadRandom    >=0.6.2  && <0.7
+        , mtl            >=2.3.1  && <2.4
+        , text           >=2.1.2  && <2.2
 
     -- Directories containing source files.
     hs-source-dirs:   src
