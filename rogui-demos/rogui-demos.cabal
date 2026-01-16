@@ -12,7 +12,8 @@ cabal-version:   3.0
 --   http://haskell.org/cabal/users-guide/
 --
 -- The name of the package.
-name:            rogui-demo
+name:            rogui-demos
+synopsis:        Demos of various rogui component and capabilities
 
 -- The package version.
 -- See the Haskell package versioning policy (PVP) for standards
@@ -48,12 +49,20 @@ build-type:      Simple
 
 -- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
 extra-doc-files: CHANGELOG.md
+tested-with:     GHC ==9.6 || ==9.8 || ==9.12.2
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
+flag devel
+    description: enable development mode (i.e. disable -Werror)
+    default:     False
 
 common warnings
-    ghc-options:        -Wall -Werror
+    ghc-options:        -Wall
+
+    if !flag(devel)
+        ghc-options: -Wall -Werror
+
     default-extensions:
         FlexibleContexts
         OverloadedStrings
@@ -67,13 +76,13 @@ executable rogui-animation-demo
     default-language: Haskell2010
     main-is:          AnimationDemo.hs
     build-depends:
-        , base
-        , containers
-        , linear
-        , mtl
-        , rogui
-        , rogui-sdl-backend
-        , vector
+        , base               >=4.21.0 && <4.22
+        , containers         >=0.7    && <0.8
+        , linear             >=1.23.3 && <1.24
+        , mtl                >=2.3.1  && <2.4
+        , rogui              >=0.1.0  && <0.2
+        , rogui-sdl-backend  >=0.1.0  && <0.2
+        , vector             >=0.13.2 && <0.14
 
 executable rogui-button-demo
     import:           warnings
@@ -82,11 +91,11 @@ executable rogui-button-demo
     default-language: Haskell2010
     main-is:          ButtonDemo.hs
     build-depends:
-        , base
-        , containers
-        , linear
-        , rogui
-        , rogui-sdl-backend
+        , base               >=4.21.0 && <4.22
+        , containers         >=0.7    && <0.8
+        , linear             >=1.23.3 && <1.24
+        , rogui              >=0.1.0  && <0.2
+        , rogui-sdl-backend  >=0.1.0  && <0.2
 
 executable rogui-colour-demo
     import:           warnings
@@ -95,10 +104,10 @@ executable rogui-colour-demo
     default-language: Haskell2010
     main-is:          ColourDemo.hs
     build-depends:
-        , base
-        , linear
-        , rogui
-        , rogui-sdl-backend
+        , base               >=4.21.0 && <4.22
+        , linear             >=1.23.3 && <1.24
+        , rogui              >=0.1.0  && <0.2
+        , rogui-sdl-backend  >=0.1.0  && <0.2
 
 executable rogui-gamegrid-demo
     import:           warnings
@@ -107,14 +116,12 @@ executable rogui-gamegrid-demo
     default-language: Haskell2010
     main-is:          GameGridDemo.hs
     build-depends:
-        , array
-        , base
-        , containers
-        , linear
-        , monad-logger
-        , mtl
-        , rogui
-        , rogui-sdl-backend
+        , array              >=0.5.8  && <0.6
+        , base               >=4.21.0 && <4.22
+        , containers         >=0.7    && <0.8
+        , linear             >=1.23.3 && <1.24
+        , rogui              >=0.1.0  && <0.2
+        , rogui-sdl-backend  >=0.1.0  && <0.2
 
 executable rogui-grid-demo
     import:           warnings
@@ -123,10 +130,10 @@ executable rogui-grid-demo
     default-language: Haskell2010
     main-is:          GridDemo.hs
     build-depends:
-        , base
-        , linear
-        , rogui
-        , rogui-sdl-backend
+        , base               >=4.21.0 && <4.22
+        , linear             >=1.23.3 && <1.24
+        , rogui              >=0.1.0  && <0.2
+        , rogui-sdl-backend  >=0.1.0  && <0.2
 
 executable rogui-list-demo
     import:           warnings
@@ -135,10 +142,10 @@ executable rogui-list-demo
     default-language: Haskell2010
     main-is:          ListDemo.hs
     build-depends:
-        , base
-        , linear
-        , rogui
-        , rogui-sdl-backend
+        , base               >=4.21.0 && <4.22
+        , linear             >=1.23.3 && <1.24
+        , rogui              >=0.1.0  && <0.2
+        , rogui-sdl-backend  >=0.1.0  && <0.2
 
 executable rogui-messagelogs-demo
     import:           warnings
@@ -147,10 +154,10 @@ executable rogui-messagelogs-demo
     default-language: Haskell2010
     main-is:          MessageLogsDemo.hs
     build-depends:
-        , base
-        , linear
-        , rogui
-        , rogui-sdl-backend
+        , base               >=4.21.0 && <4.22
+        , linear             >=1.23.3 && <1.24
+        , rogui              >=0.1.0  && <0.2
+        , rogui-sdl-backend  >=0.1.0  && <0.2
 
 executable rogui-multilinetext-demo
     import:           warnings
@@ -159,10 +166,10 @@ executable rogui-multilinetext-demo
     default-language: Haskell2010
     main-is:          MultiLineTextDemo.hs
     build-depends:
-        , base
-        , linear
-        , rogui
-        , rogui-sdl-backend
+        , base               >=4.21.0 && <4.22
+        , linear             >=1.23.3 && <1.24
+        , rogui              >=0.1.0  && <0.2
+        , rogui-sdl-backend  >=0.1.0  && <0.2
 
 executable rogui-progressbar-demo
     import:           warnings
@@ -171,11 +178,11 @@ executable rogui-progressbar-demo
     default-language: Haskell2010
     main-is:          ProgressBarDemo.hs
     build-depends:
-        , base
-        , containers
-        , linear
-        , rogui
-        , rogui-sdl-backend
+        , base               >=4.21.0 && <4.22
+        , containers         >=0.7    && <0.8
+        , linear             >=1.23.3 && <1.24
+        , rogui              >=0.1.0  && <0.2
+        , rogui-sdl-backend  >=0.1.0  && <0.2
 
 executable rogui-rotation-demo
     import:           warnings
@@ -184,10 +191,10 @@ executable rogui-rotation-demo
     default-language: Haskell2010
     main-is:          RotationDemo.hs
     build-depends:
-        , base
-        , linear
-        , rogui
-        , rogui-sdl-backend
+        , base               >=4.21.0 && <4.22
+        , linear             >=1.23.3 && <1.24
+        , rogui              >=0.1.0  && <0.2
+        , rogui-sdl-backend  >=0.1.0  && <0.2
 
 executable rogui-textinput-demo
     import:           warnings
@@ -196,10 +203,10 @@ executable rogui-textinput-demo
     default-language: Haskell2010
     main-is:          TextInputDemo.hs
     build-depends:
-        , base
-        , linear
-        , rogui
-        , rogui-sdl-backend
+        , base               >=4.21.0 && <4.22
+        , linear             >=1.23.3 && <1.24
+        , rogui              >=0.1.0  && <0.2
+        , rogui-sdl-backend  >=0.1.0  && <0.2
 
 executable RogueHarvest
     import:           warnings
@@ -227,15 +234,15 @@ executable RogueHarvest
         RogueHarvest.Utils
 
     build-depends:
-        , array
-        , base
-        , containers
-        , linear
-        , microlens-platform
-        , microlens-pro
-        , microlens-th
-        , monad-logger
-        , MonadRandom
-        , mtl
-        , rogui
-        , rogui-sdl-backend
+        , array               >=0.5.8  && <0.6
+        , base                >=4.21.0 && <4.22
+        , containers          >=0.7    && <0.8
+        , linear              >=1.23.3 && <1.24
+        , microlens-platform  >=0.4.4  && <0.5
+        , microlens-pro       >=0.2.0  && <0.3
+        , microlens-th        >=0.4.3  && <0.5
+        , monad-logger        >=0.3.42 && <0.4
+        , MonadRandom         >=0.6.2  && <0.7
+        , mtl                 >=2.3.1  && <2.4
+        , rogui               >=0.1.0  && <0.2
+        , rogui-sdl-backend   >=0.1.0  && <0.2
