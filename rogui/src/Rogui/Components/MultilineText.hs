@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- | A simple multiline text component with word wrapping support.
 --
@@ -31,10 +32,11 @@ module Rogui.Components.MultilineText
   ( multilineText,
     TextChunk,
     splitChunksByNewlines,
+    splitTextHeight,
+    chunksToSplitText
   )
 where
 
-import Control.Monad (foldM)
 import Control.Monad.State.Strict (get, modify)
 import qualified Data.Map as M
 import Linear (V2 (..))
@@ -43,6 +45,15 @@ import Rogui.Components.TextWrap
 import Rogui.Components.Types (DrawingContext (..), Extent (..), extentSize)
 import Rogui.Graphics (Cell (..))
 import Rogui.Graphics.DSL.Instructions (newLine)
+import Data.List
+
+data SplitText =
+  Line [TextChunk]
+  | NewLine
+  deriving (Eq)
+
+splitTextHeight :: [SplitText] -> Int
+splitTextHeight stxt = 1 + length (filter (== NewLine) stxt)
 
 -- | Split a text chunk by newline characters, preserving colors.
 -- Returns a list of lines, where each line is a list of chunks.
@@ -61,45 +72,42 @@ splitChunksByNewlines chunks = go chunks []
               remainingChunks = (colour, after) : rest
            in currentLine : go remainingChunks []
 
+chunksToSplitText :: Cell -> [TextChunk] -> [SplitText]
+chunksToSplitText w chunks =
+  let splitByNewline = splitChunksByNewlines chunks
+  in intercalate [NewLine] $ chunksToSplitText' w <$> splitByNewline
+
+chunksToSplitText' :: Cell -> [TextChunk] -> [SplitText]
+chunksToSplitText' _ [] = [NewLine]
+chunksToSplitText' width chunks =
+  let nonEmptyChunks = filter (not . null . snd) chunks
+  in case nonEmptyChunks of
+       [] -> [NewLine]
+       _ ->
+        let totalLength = Cell . sum . fmap (length . snd) $ nonEmptyChunks
+        in if totalLength > width
+          then splitSingleLine width nonEmptyChunks
+          else [Line nonEmptyChunks]
+
+splitSingleLine :: Cell -> [TextChunk] -> [SplitText]
+splitSingleLine w@(Cell width) chunks =
+  let (onLine, nextLines) = getTextLikeUntil width (length . snd) splitChunk chunks
+  in [Line onLine, NewLine] <> chunksToSplitText w nextLines
+
 -- | Draw a single line (list of chunks) with wrapping.
 -- Returns the number of lines drawn (can be > 1 if wrapping occurs).
-drawLine :: Cell -> [TextChunk] -> DrawM n Cell
-drawLine _ [] = do
-  -- Empty line, just draw a newline
-  newLine
-  pure 1
-drawLine width chunks = do
-  -- Filter out empty chunks to avoid spurious spaces
-  let nonEmptyChunks = filter (not . null . snd) chunks
-  case nonEmptyChunks of
-    [] -> do
-      -- All chunks were empty, just a blank line
-      newLine
-      pure 1
-    _ -> do
-      let totalLength = Cell $ sum $ fmap (length . snd) nonEmptyChunks
-      if totalLength > width
-        then do
-          -- Text is too long, need to wrap
-          let (onLine, nextLines) =
-                getTextLikeUntil (getCell width) (length . snd) splitChunk nonEmptyChunks
-          drawChunksWithSpaces onLine
-          newLine
-          linesDrawn <- drawLine width nextLines
-          pure (1 + linesDrawn)
-        else do
-          -- Text fits on one line
-          drawChunksWithSpaces nonEmptyChunks
-          newLine
-          pure 1
+drawLine :: SplitText -> DrawM n Cell
+drawLine = \case
+  Line ts -> drawChunksWithSpaces ts >> pure 1
+  NewLine -> newLine >> pure 1
 
 -- | Draw multiline text without a line limit, handling explicit newlines.
 -- Returns the number of lines drawn.
-drawMultilineText :: Cell -> [TextChunk] -> DrawM n Cell
-drawMultilineText _ [] = pure 0
-drawMultilineText width chunks = do
-  let textLines = splitChunksByNewlines chunks
-  foldM (\count line -> (count +) <$> drawLine width line) 0 textLines
+drawMultilineText :: [SplitText] -> DrawM n Cell
+drawMultilineText [] = pure 0
+drawMultilineText chunks = do
+  count <- traverse drawLine chunks
+  pure $ sum count
 
 -- | Record an extent with a custom height based on actual rendered lines,
 -- while preserving the console's width.
@@ -138,6 +146,7 @@ multilineText :: (Ord n) => n -> [TextChunk] -> Component n
 multilineText name chunks =
   let draw' = do
         width <- contextCellWidth
-        linesDrawn <- drawMultilineText width chunks
+        let asSplitText = chunksToSplitText width chunks
+        linesDrawn <- drawMultilineText asSplitText
         recordExtentWithHeight name linesDrawn
    in emptyComponent {draw = draw'}
