@@ -47,7 +47,7 @@ renderMessageLog messages widthInCells heightInCells =
           }
       brush' = Brush {tileWidth = 16, tileHeight = 16, textureWidth = 256, textureHeight = 256, name = ""}
       dc :: DrawingContext Int
-      dc = DrawingContext {brush = brush', console = console, steps = 0, currentExtents = mempty}
+      dc = DrawingContext {brush = brush', console = console, steps = 0, currentExtents = mempty, totalElapsedTime = 0, deltaTime = 0}
       viewportState = ViewportState (V2 0 0) (V2 0 0) -- Content size calculated dynamically
       component = messageLog (0 :: Int) (Just viewportState) messages
       instructions = execWriter . runStateT (draw component) $ dc

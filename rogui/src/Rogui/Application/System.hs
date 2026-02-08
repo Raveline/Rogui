@@ -310,6 +310,8 @@ boot backend RoguiConfig {..} initialState = do
               maxEventDepth = maxEventDepth,
               lastStep = 0,
               numberOfSteps = 0,
+              totalElapsedTime = 0.0,
+              deltaTime = 0.0,
               targetFrameTime = frameTime,
               extentsMap = mempty,
               recentFrameTimes = mempty,
@@ -413,11 +415,15 @@ appLoop backend initialGui state = do
             <> ")"
       Nothing -> pure ()
 
-    let newRogui =
+    let newTotalElapsedTime = fromIntegral frameStart / 1000.0
+        newDeltaTime = fromIntegral (frameStart - lastTicks) / 1000.0
+        newRogui =
           roGUI
             { lastTicks = frameStart,
               lastStep = if reachedStep then frameStart else lastStep,
               numberOfSteps = if reachedStep then numberOfSteps + 1 else numberOfSteps,
+              totalElapsedTime = newTotalElapsedTime,
+              deltaTime = newDeltaTime,
               extentsMap = newExtents,
               recentFrameTimes = newFrameTimes,
               lastFPSWarning = newLastFPSWarning
@@ -449,7 +455,7 @@ processEvent Rogui {..} event = do
   pure ()
 
 renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError err rc rb) m) => Backend r t event -> Rogui rc rb n s e r t m' -> Brush -> Console -> Component n -> m (ExtentMap n)
-renderComponents backend Rogui {defaultBrush, rootConsole, numberOfSteps, renderer, textures} usingBrush usingConsole@Console {tileSize = consoleTileSize} Component {..} = do
+renderComponents backend Rogui {defaultBrush, rootConsole, numberOfSteps, totalElapsedTime, deltaTime, renderer, textures} usingBrush usingConsole@Console {tileSize = consoleTileSize} Component {..} = do
   let brushTileSize = fromBrush usingBrush
   when (brushTileSize /= consoleTileSize) $
     throwError $
@@ -457,7 +463,7 @@ renderComponents backend Rogui {defaultBrush, rootConsole, numberOfSteps, render
   let afterRendering =
         execStateT
           rendering
-          DrawingContext {brush = usingBrush, console = usingConsole, steps = numberOfSteps, currentExtents = mempty}
+          DrawingContext {brush = usingBrush, console = usingConsole, steps = numberOfSteps, totalElapsedTime = totalElapsedTime, deltaTime = deltaTime, currentExtents = mempty}
       (extents, instructions) =
         first currentExtents $ runWriter afterRendering
       rendering = do

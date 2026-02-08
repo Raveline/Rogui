@@ -91,6 +91,10 @@ data DrawingContext n = DrawingContext
     -- | The number of steps events emitted by the application. Can be
     -- used for simple animations.
     steps :: !Int,
+    -- | Total elapsed time since application start, in seconds.
+    totalElapsedTime :: !Double,
+    -- | Time since last frame, in seconds.
+    deltaTime :: !Double,
     -- | The size of named components after rendering them if `recordExtent` was used.
     currentExtents :: !(ExtentMap n)
   }

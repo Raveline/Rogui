@@ -248,6 +248,10 @@ data Rogui rc rb names state event renderer textures m
     lastStep :: Word32,
     -- | Number of steps taken since the beginning of the application.
     numberOfSteps :: Int,
+    -- | Total elapsed time since application start, in seconds.
+    totalElapsedTime :: Double,
+    -- | Time since last frame, in seconds.
+    deltaTime :: Double,
     -- | Internal, milliseconds per frame
     targetFrameTime :: Word32,
     -- | List of known extents
