@@ -41,10 +41,11 @@ textInput n txt colours focused =
         recordExtent n
         setColours colours
         width <- contextCellWidth
-        steps' <- gets steps
+        t <- gets totalElapsedTime
         drawHorizontalLine (V2 0 0) (width - 1) lightShade
         str TLeft txt
-        when (focused && steps' `mod` 10 < 7) $
+        let phase = t - fromIntegral (floor t :: Int)
+        when (focused && phase < 0.7) $
           glyph fullBlock []
    in emptyComponent {draw = draw'}
 

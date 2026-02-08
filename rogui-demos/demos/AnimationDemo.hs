@@ -88,20 +88,20 @@ focal =
 torchRadiusFlicker :: AnimationSequence Float
 torchRadiusFlicker =
   Seq.fromList
-    [ (10.0, 6), -- Bright: radius 8 cells
-      (9.5, 4), -- Dimmer
-      (9.8, 3), -- Medium
-      (9.2, 5), -- Dim
-      (9.6, 4) -- Medium-bright
+    [ (10.0, 0.48), -- Bright: radius 8 cells
+      (9.5, 0.32), -- Dimmer
+      (9.8, 0.24), -- Medium
+      (9.2, 0.40), -- Dim
+      (9.6, 0.32) -- Medium-bright
     ]
 
 torchIntensityFlicker :: AnimationSequence Word8
 torchIntensityFlicker =
   Seq.fromList
-    [ (240, 6), -- Almost full darkness at edge
-      (220, 4), -- Slightly brighter
-      (230, 3), -- Darker
-      (210, 5) -- Brighter
+    [ (240, 0.48), -- Almost full darkness at edge
+      (220, 0.32), -- Slightly brighter
+      (230, 0.24), -- Darker
+      (210, 0.40) -- Brighter
     ]
 
 euclideanDistance :: V2 Cell -> V2 Cell -> Float
@@ -154,10 +154,10 @@ torchLighting ::
   V2 Cell -> -- Cell position to compute overlay for
   DrawM n (Maybe RGBA)
 torchLighting torchPos cellPos = do
-  steps' <- gets steps
+  t <- gets totalElapsedTime
   let distance' = euclideanDistance torchPos cellPos
-      maybeRadius = animateCycle torchRadiusFlicker steps'
-      maybeIntensity = animateCycle torchIntensityFlicker steps'
+      maybeRadius = animateCycle torchRadiusFlicker t
+      maybeIntensity = animateCycle torchIntensityFlicker t
   pure $ case (maybeRadius, maybeIntensity) of
     (Just radius, Just intensity) ->
       computeDarkness distance' radius intensity
