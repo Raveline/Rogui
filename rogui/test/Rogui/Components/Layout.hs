@@ -48,6 +48,6 @@ testHBoxGreedySplit =
 extractExtents :: Console -> Component TestComponent -> ExtentMap TestComponent
 extractExtents root component =
   let brush = Brush {tileWidth = 16, tileHeight = 16, textureWidth = 256, textureHeight = 256, name = ""}
-      dc = DrawingContext {brush = brush, console = root, steps = 0, currentExtents = mempty}
+      dc = DrawingContext {brush = brush, console = root, steps = 0, currentExtents = mempty, totalElapsedTime = 0, deltaTime = 0}
       (finalDC, _instructions) = runWriter (runStateT (draw component) dc)
    in currentExtents (snd finalDC)
