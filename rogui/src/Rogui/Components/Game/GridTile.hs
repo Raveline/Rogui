@@ -4,6 +4,7 @@
 module Rogui.Components.Game.GridTile
   ( gridTile,
     discreteGridTile,
+    discreteAnimatedGridTile,
     multiLayeredGrid,
     mouseEventToWorldPos,
   )
@@ -51,17 +52,33 @@ discreteGridTile ::
   -- The map viewport (typically passed through `mutilLayeredGrid`)
   MapViewport ->
   Component n
-discreteGridTile getMaybeTile getTileDisplay viewport@(topLeft, _) =
+discreteGridTile getMaybeTile getTileDisplay =
+  discreteAnimatedGridTile getMaybeTile (const getTileDisplay)
+
+-- | Like `discreteGridTile`, but the rendering function also receives
+-- `totalElapsedTime` (in seconds) so it can drive time-based animations
+-- (e.g. via `animateCycle`).
+discreteAnimatedGridTile ::
+  -- | A way to obtain an arbitrary tile type from a position.
+  (V2 Cell -> Maybe t) ->
+  -- | How should an arbitrary tile type be rendered, given the elapsed time
+  (Double -> t -> GlyphInfo) ->
+  -- The map viewport (typically passed through `mutilLayeredGrid`)
+  MapViewport ->
+  Component n
+discreteAnimatedGridTile getMaybeTile getTileDisplay viewport@(topLeft, _) =
   let tilesToPrint = cellsInMapViewport viewport
-      renderAt coords = do
-        let mGlyphInfo = getTileDisplay <$> getMaybeTile coords
+      renderAt elapsed coords = do
+        let mGlyphInfo = getTileDisplay elapsed <$> getMaybeTile coords
         traverse_
           ( \GlyphInfo {..} -> do
               setColours colours
               glyphAt (coords - topLeft) glyphId transformations
           )
           mGlyphInfo
-      draw = traverse_ renderAt tilesToPrint
+      draw = do
+        elapsed <- gets totalElapsedTime
+        traverse_ (renderAt elapsed) tilesToPrint
    in emptyComponent {draw = draw}
 
 -- | A multi layered grid for worlds with cell-based coordinates.
