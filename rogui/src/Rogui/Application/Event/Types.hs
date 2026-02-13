@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Rogui.Application.Event.Types
   ( Event (..),
@@ -22,12 +24,13 @@ module Rogui.Application.Event.Types
     (<||>),
     liftEH,
     liftApp,
+    squeeze,
   )
 where
 
 import Control.Applicative (Alternative (..))
 import Control.Monad.IO.Class
-import Control.Monad.State.Strict (MonadTrans (lift), StateT)
+import Control.Monad.State.Strict (MonadTrans (lift), StateT (..))
 import Data.Sequence (Seq)
 import qualified Data.Set as S
 import GHC.Generics (Generic)
@@ -269,3 +272,21 @@ matchKey match (KeyDetails k mods) = case match of
   Is kc m -> kc == k && mods == m
   IsNoMod kc -> kc == k && S.null mods
   IsAbsolute kc -> kc == k
+
+hoistStateT :: (forall x. m x -> n x) -> StateT s m a -> StateT s n a
+hoistStateT f (StateT g) = StateT $ \s -> f (g s)
+
+-- | Squeeze temporarily a transformer inside the base monadic stack of EventHandler
+-- Typical use-case: adding a temporary ReaderT monad for complex event handlers.
+--
+-- E.g.:
+--
+-- withReader r = squeeze (`runReaderT` r)
+--
+-- Note that you must still lift (typically using `liftEH`) when using the squeezed monad.
+squeeze ::
+  (Monad m) =>
+  (forall x. t m x -> m x) ->
+  EventHandlerM (t m) s e n a ->
+  EventHandlerM m s e n a
+squeeze nat (EventHandlerM action) = EventHandlerM $ hoistStateT nat action
