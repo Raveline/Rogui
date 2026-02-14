@@ -64,6 +64,7 @@ module Rogui.Components.Game
 
     -- * Entity rendering
     entitiesLayer,
+    animatedEntitiesLayer,
 
     -- * Utilities
     GlyphInfo (..),
@@ -72,6 +73,6 @@ module Rogui.Components.Game
   )
 where
 
-import Rogui.Components.Game.EntitiesLayer (entitiesLayer)
+import Rogui.Components.Game.EntitiesLayer (animatedEntitiesLayer, entitiesLayer)
 import Rogui.Components.Game.GridTile (gridTile, multiLayeredGrid)
 import Rogui.Components.Game.Utils (GlyphInfo (..), MapViewport, computeMapViewport)
