@@ -14,7 +14,7 @@ import Control.Monad.State.Strict
 import Data.Foldable (traverse_)
 import qualified Data.Map.Strict as M
 import Linear (V2 (..))
-import Rogui.Application
+import Rogui.Application hiding (totalElapsedTime)
 import Rogui.Components (Component (..), Size (..), emptyComponent, layered)
 import Rogui.Components.Core (DrawingContext (..), Extent (..), TileSize, hSize, vSize)
 import Rogui.Components.Game.Utils (GlyphInfo (..), MapViewport, cellsInMapViewport, computeMapViewport)
