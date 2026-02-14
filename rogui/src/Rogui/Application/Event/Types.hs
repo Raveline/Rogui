@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE ExplicitForAll #-}
 {-# LANGUAGE RankNTypes #-}
 
 module Rogui.Application.Event.Types
@@ -212,6 +211,8 @@ data EventHandlingState s e n = EventHandlingState
     result :: EventResult,
     -- | Application state
     currentState :: s,
+    -- | Current ellapsed time (in seconds)
+    totalElapsedTime :: Double,
     -- | Map of all named components which record their extents at rendering
     knownExtents :: ExtentMap n
   }

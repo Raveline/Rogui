@@ -17,7 +17,7 @@ import Data.Char (toUpper)
 import Data.Maybe (fromMaybe, listToMaybe)
 import qualified Data.Set as S
 import Linear (V2 (..))
-import Rogui.Application.Event
+import Rogui.Application.Event hiding (totalElapsedTime)
 import Rogui.Components.Core (Component (..), DrawingContext (..), contextCellWidth, emptyComponent, recordExtent)
 import Rogui.Graphics
 

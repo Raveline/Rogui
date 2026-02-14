@@ -367,7 +367,14 @@ appLoop backend initialGui state = do
   (roGUI@Rogui {..}, sdlEvents) <- preEventLoop backend initialGui
   let reachedStep = frameStart - lastStep > timerStep
       baseEvents = if reachedStep then Step : sdlEvents else sdlEvents
-      baseEventState = EventHandlingState {events = Seq.fromList baseEvents, currentState = state, result = ContinueNoRedraw, knownExtents = extentsMap}
+      baseEventState =
+        EventHandlingState
+          { events = Seq.fromList baseEvents,
+            currentState = state,
+            result = ContinueNoRedraw,
+            totalElapsedTime = realToFrac frameStart,
+            knownExtents = extentsMap
+          }
   EventHandlingState {result, currentState} <- execStateT (processWithLimit maxEventDepth roGUI) baseEventState
   newExtents <-
     if result == Continue

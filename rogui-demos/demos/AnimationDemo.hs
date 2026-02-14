@@ -12,7 +12,7 @@ import qualified Data.Vector.Strict as V
 import Data.Word (Word8)
 import Linear (V2 (..), V4 (..), distance)
 import Rogui.Animation (AnimationSequence, animateCycle)
-import Rogui.Application
+import Rogui.Application hiding (totalElapsedTime)
 import Rogui.Backend.SDL
 import Rogui.Components.Core
 import Rogui.Components.Game (GlyphInfo (..))
