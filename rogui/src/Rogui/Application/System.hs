@@ -372,7 +372,7 @@ appLoop backend initialGui state = do
           { events = Seq.fromList baseEvents,
             currentState = state,
             result = ContinueNoRedraw,
-            totalElapsedTime = realToFrac frameStart,
+            totalElapsedTime = realToFrac frameStart / 1000.0,
             knownExtents = extentsMap
           }
   EventHandlingState {result, currentState} <- execStateT (processWithLimit maxEventDepth roGUI) baseEventState
