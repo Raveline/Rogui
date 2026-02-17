@@ -105,6 +105,11 @@ module Rogui.Application.System
     boot,
     bootAndPrintError,
 
+    -- * Decomposed entry points
+    appInit,
+    appTick,
+    TickResult (..),
+
     -- * Log wrapper
     LogOutput (..),
     withLogging,
@@ -294,7 +299,25 @@ boot ::
   -- | Initial state
   s ->
   m ()
-boot backend RoguiConfig {..} initialState = do
+boot backend config initialState =
+  appInit backend config $ \rogui ->
+    appLoop backend rogui initialState
+
+-- | Initialise the backend and build the initial `Rogui` datatype from a
+-- `RoguiConfig`. The resulting `Rogui` is passed to a continuation because
+-- the backend's renderer lifetime is scoped by `initBackend`.
+--
+-- Use this together with `appTick` when you need to control the game loop
+-- yourself (e.g. in a callback-driven environment like a browser).
+appInit ::
+  (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLog m) =>
+  Backend renderer textures e ->
+  -- | A Configuration that will be used to make a Rogui datatype
+  RoguiConfig rc rb n s e m ->
+  -- | Continuation that receives the initialised Rogui
+  (Rogui rc rb n s e renderer textures m -> m ()) ->
+  m ()
+appInit backend RoguiConfig {..} cont = do
   let TileSize {..} = brushTilesize
       (V2 widthInTiles heightInTiles) = consoleCellSize
   let windowSize@(V2 w h) = V2 (pixelWidth .*=. widthInTiles) (pixelHeight .*=. heightInTiles)
@@ -328,8 +351,7 @@ boot backend RoguiConfig {..} initialState = do
             }
     withConsoles <- applyConsoleSpecs baseConsole consoleSpecs baseRogui
     withBrushes <- applyBrushSpecs backend renderer brushesSpecs withConsoles
-
-    appLoop backend withBrushes initialState
+    cont withBrushes
 
 -- | Lookup a brush by its reference. Throw an error if not found.
 brushLookup :: (Ord rb, Show rb, MonadError (RoguiError err rc rb) m) => M.Map rb Brush -> rb -> m Brush
@@ -368,8 +390,28 @@ preEventLoop backend initialRogui@Rogui {..} = do
   (finalRogui, processedEvents) <- foldM eventFolder (initialRogui, []) sdlEventsWithResize
   pure (finalRogui, reverse processedEvents)
 
-appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLog m) => Backend r t e -> Rogui rc rb n s e r t m -> s -> m ()
-appLoop backend initialGui state = do
+-- | The result of a single frame tick. Contains everything needed to either
+-- continue the loop or stop.
+data TickResult rc rb n s e r t m
+  = -- | The application should continue. Carries the updated Rogui and
+    -- application state.
+    TickContinue (Rogui rc rb n s e r t m) s
+  | -- | The application should halt.
+    TickHalt
+
+-- | Run a single frame: poll events, process them, render if needed, and
+-- update timing/FPS tracking. Returns a `TickResult` indicating whether the
+-- application should continue or halt.
+--
+-- This is the building block for custom game loops. For the standard blocking
+-- loop, use `appLoop` instead.
+appTick ::
+  (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLog m) =>
+  Backend r t e ->
+  Rogui rc rb n s e r t m ->
+  s ->
+  m (TickResult rc rb n s e r t m)
+appTick backend initialGui state = do
   frameStart <- getTicks backend
   (roGUI@Rogui {..}, sdlEvents) <- preEventLoop backend initialGui
   let reachedStep = frameStart - lastStep > timerStep
@@ -395,54 +437,65 @@ appLoop backend initialGui state = do
         presentFrame backend renderer
         pure $ M.unions extents
       else pure extentsMap
-  unless (result == Halt) $ do
-    frameEnd <- getTicks backend
-    let frameDuration = frameEnd - frameStart
-        elapsed = frameStart - frameEnd
-        sleepMs =
-          if elapsed < targetFrameTime
-            then targetFrameTime - elapsed
-            else 0
-    liftIO $ threadDelay (fromIntegral sleepMs * 1000)
+  if result == Halt
+    then pure TickHalt
+    else do
+      frameEnd <- getTicks backend
+      let frameDuration = frameEnd - frameStart
+          elapsed = frameStart - frameEnd
+          sleepMs =
+            if elapsed < targetFrameTime
+              then targetFrameTime - elapsed
+              else 0
+      liftIO $ threadDelay (fromIntegral sleepMs * 1000)
 
-    -- FPS tracking and logging
-    let maxFrameSamples = 60
-        newFrameTimes = Seq.take maxFrameSamples (frameDuration Seq.<| recentFrameTimes)
-        targetFPS' = fromIntegral (1000 `div` targetFrameTime) :: Double
-        threshold = targetFPS' * 0.8
-        fpsWarningCooldown = 5000 :: Word32 -- 5 seconds between warnings
-        shouldWarn = do
-          currentFPS <- calculateFPS newFrameTimes maxFrameSamples
-          if currentFPS < threshold && (frameEnd - lastFPSWarning) > fpsWarningCooldown
-            then Just currentFPS
-            else Nothing
-        newLastFPSWarning = case shouldWarn of
-          Just _ -> frameEnd
-          Nothing -> lastFPSWarning
-    case shouldWarn of
-      Just currentFPS ->
-        logAttention_ $
-          "Low FPS detected: "
-            <> pack (show (round currentFPS :: Int))
-            <> " (target: "
-            <> pack (show (round targetFPS' :: Int))
-            <> ")"
-      Nothing -> pure ()
+      -- FPS tracking and logging
+      let maxFrameSamples = 60
+          newFrameTimes = Seq.take maxFrameSamples (frameDuration Seq.<| recentFrameTimes)
+          targetFPS' = fromIntegral (1000 `div` targetFrameTime) :: Double
+          threshold = targetFPS' * 0.8
+          fpsWarningCooldown = 5000 :: Word32 -- 5 seconds between warnings
+          shouldWarn = do
+            currentFPS <- calculateFPS newFrameTimes maxFrameSamples
+            if currentFPS < threshold && (frameEnd - lastFPSWarning) > fpsWarningCooldown
+              then Just currentFPS
+              else Nothing
+          newLastFPSWarning = case shouldWarn of
+            Just _ -> frameEnd
+            Nothing -> lastFPSWarning
+      case shouldWarn of
+        Just currentFPS ->
+          logAttention_ $
+            "Low FPS detected: "
+              <> pack (show (round currentFPS :: Int))
+              <> " (target: "
+              <> pack (show (round targetFPS' :: Int))
+              <> ")"
+        Nothing -> pure ()
 
-    let newTotalElapsedTime = fromIntegral frameStart / 1000.0
-        newDeltaTime = fromIntegral (frameStart - lastTicks) / 1000.0
-        newRogui =
-          roGUI
-            { lastTicks = frameStart,
-              lastStep = if reachedStep then frameStart else lastStep,
-              numberOfSteps = if reachedStep then numberOfSteps + 1 else numberOfSteps,
-              totalElapsedTime = newTotalElapsedTime,
-              deltaTime = newDeltaTime,
-              extentsMap = newExtents,
-              recentFrameTimes = newFrameTimes,
-              lastFPSWarning = newLastFPSWarning
-            }
-    appLoop backend newRogui currentState
+      let newTotalElapsedTime = fromIntegral frameStart / 1000.0
+          newDeltaTime = fromIntegral (frameStart - lastTicks) / 1000.0
+          newRogui =
+            roGUI
+              { lastTicks = frameStart,
+                lastStep = if reachedStep then frameStart else lastStep,
+                numberOfSteps = if reachedStep then numberOfSteps + 1 else numberOfSteps,
+                totalElapsedTime = newTotalElapsedTime,
+                deltaTime = newDeltaTime,
+                extentsMap = newExtents,
+                recentFrameTimes = newFrameTimes,
+                lastFPSWarning = newLastFPSWarning
+              }
+      pure $ TickContinue newRogui currentState
+
+-- | The standard blocking game loop. Calls `appTick` repeatedly until a
+-- `Halt` event result is produced.
+appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLog m) => Backend r t e -> Rogui rc rb n s e r t m -> s -> m ()
+appLoop backend rogui state = do
+  tickResult <- appTick backend rogui state
+  case tickResult of
+    TickHalt -> pure ()
+    TickContinue newRogui newState -> appLoop backend newRogui newState
 
 processWithLimit :: (Monad m, MonadError (RoguiError err rc rb) m) => Int -> Rogui rc rb n s e r t m -> EventHandlingM m s e n ()
 processWithLimit 0 _ = throwError NonEndingEventLoop
