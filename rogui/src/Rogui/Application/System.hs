@@ -123,9 +123,10 @@ import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.IO.Class
-import Control.Monad.Logger
+import Control.Monad.Base (MonadBase)
 import Control.Monad.State.Strict hiding (state)
-import Control.Monad.Trans.Control (MonadBaseControl)
+import Data.Text.IO qualified as TIO
+import Log
 import Control.Monad.Writer.Strict
 import Data.Bifunctor
 import Data.ByteString (ByteString)
@@ -149,19 +150,23 @@ import Rogui.Types (BrushSpec, PositionSpec (..), Rogui (..), SizeSpec (..))
 data LogOutput = LogStdout | LogFile FilePath
 
 -- | Run an action with the specified logging output.
--- This unwraps the LoggingT transformer based on the LogOutput choice.
-withLogging :: (MonadBaseControl IO m, MonadIO m) => LogOutput -> LoggingT m a -> m a
-withLogging ls f = case ls of
-  LogStdout -> runStdoutLoggingT f
-  LogFile filepath -> runFileLoggingT filepath f
+-- This unwraps the LogT transformer based on the LogOutput choice.
+withLogging :: (MonadIO m) => LogOutput -> LogT m a -> m a
+withLogging ls f = do
+  logger <- liftIO $ case ls of
+    LogStdout -> mkLogger "stdout" $ \msg -> TIO.putStrLn (showLogMessage Nothing msg)
+    LogFile filepath -> mkLogger "file" $ \msg -> TIO.appendFile filepath (showLogMessage Nothing msg <> "\n")
+  runLogT "rogui" logger defaultLogLevel f
 
 -- | Run an action without logging (discards all log messages).
-withoutLogging :: (MonadIO m) => NoLoggingT m a -> m a
-withoutLogging = runNoLoggingT
+withoutLogging :: (MonadIO m) => LogT m a -> m a
+withoutLogging f = do
+  logger <- liftIO $ mkLogger "null" (const $ pure ())
+  runLogT "rogui" logger defaultLogLevel f
 
 -- Load and store a brush into a `Rogui` datatype.
 addBrush ::
-  (MonadIO m, MonadLogger m, Ord rb) =>
+  (MonadIO m, MonadLog m, Ord rb) =>
   Backend renderer texture events ->
   renderer ->
   -- | Brush reference constructor
@@ -235,7 +240,7 @@ buildConsoleFromSpecs consoleTS sizeSpec posSpec rogui@Rogui {rootConsole} = do
   (Console w h <$> pos) <*> pure consoleTS
 
 applyBrushSpecs ::
-  (MonadLogger m, MonadIO m, MonadError (RoguiError err rc rb) m, Ord rb) =>
+  (MonadLog m, MonadIO m, MonadError (RoguiError err rc rb) m, Ord rb) =>
   Backend renderer event textures ->
   renderer ->
   [BrushSpec rb] ->
@@ -265,22 +270,24 @@ applyConsoleSpecs root specs rogui@Rogui {..} =
 -- custom behaviour designed. It will not work if you need a custom error type
 -- however.
 bootAndPrintError ::
-  (Show rc, Show rb, Ord rb, Ord rc, Ord n, MonadIO m) =>
+  (Show rc, Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadBase IO m) =>
   Backend renderer textures e ->
   -- | A Configuration that will be used to make a Rogui datatype
-  RoguiConfig rc rb n s e (ExceptT (RoguiError () rc rb) (LoggingT m)) ->
+  RoguiConfig rc rb n s e (ExceptT (RoguiError () rc rb) (LogT m)) ->
   -- | Initial state
   s ->
   m ()
-bootAndPrintError backend c i = runStdoutLoggingT $ do
-  result <- runExceptT (boot backend c i)
-  either (liftIO . print) pure result
+bootAndPrintError backend c i = do
+  logger <- liftIO $ mkLogger "stdout" $ \msg -> TIO.putStrLn (showLogMessage Nothing msg)
+  runLogT "rogui" logger defaultLogLevel $ do
+    result <- runExceptT (boot backend c i)
+    either (liftIO . print) pure result
 
 -- | This function uses the `RoguiConfig` provided to initialise a `Rogui` datatype,
 -- and start the main loop.
 -- Boot will return once a `Halt` EventResult has been processed in the event handler.
 boot ::
-  (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLogger m) =>
+  (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLog m) =>
   Backend renderer textures e ->
   -- | A Configuration that will be used to make a Rogui datatype
   RoguiConfig rc rb n s e m ->
@@ -353,7 +360,7 @@ applyResize (V2 newW newH) r@Rogui {..} =
 -- so we can rebuild a Rogui datatype properly to react to this particular event.
 -- This also removes duplicated input events, so they don't build up faster
 -- than rendering.
-preEventLoop :: (Ord rc, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLogger m) => Backend r t e -> Rogui rc rb n s e r t m -> m (Rogui rc rb n s e r t m, [Event e])
+preEventLoop :: (Ord rc, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLog m) => Backend r t e -> Rogui rc rb n s e r t m -> m (Rogui rc rb n s e r t m, [Event e])
 preEventLoop backend initialRogui@Rogui {..} = do
   sdlEventsWithResize <- pollEvents backend defaultBrush
   let eventFolder (r, evs) ev@(WindowResized newSize) = (,) <$> applyResize newSize r <*> pure (ev : evs)
@@ -361,7 +368,7 @@ preEventLoop backend initialRogui@Rogui {..} = do
   (finalRogui, processedEvents) <- foldM eventFolder (initialRogui, []) sdlEventsWithResize
   pure (finalRogui, reverse processedEvents)
 
-appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLogger m) => Backend r t e -> Rogui rc rb n s e r t m -> s -> m ()
+appLoop :: (Show rb, Ord rb, Ord rc, Ord n, MonadIO m, MonadError (RoguiError err rc rb) m, MonadLog m) => Backend r t e -> Rogui rc rb n s e r t m -> s -> m ()
 appLoop backend initialGui state = do
   frameStart <- getTicks backend
   (roGUI@Rogui {..}, sdlEvents) <- preEventLoop backend initialGui
@@ -414,7 +421,7 @@ appLoop backend initialGui state = do
           Nothing -> lastFPSWarning
     case shouldWarn of
       Just currentFPS ->
-        logWarnN $
+        logAttention_ $
           "Low FPS detected: "
             <> pack (show (round currentFPS :: Int))
             <> " (target: "

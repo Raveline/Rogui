@@ -86,8 +86,7 @@ library
         , dlist
         , ghcjs-base
         , linear
-        , monad-control
-        , monad-logger
+        , log-base
         , MonadRandom
         , mtl
         , rogui

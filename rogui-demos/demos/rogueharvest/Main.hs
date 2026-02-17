@@ -17,7 +17,7 @@
 module Main (main) where
 
 import Control.Monad.Except
-import Control.Monad.Logger
+import Log
 import Control.Monad.Random
 import Linear (V2 (..))
 import RogueHarvest.Game
@@ -66,7 +66,7 @@ main = do
 
   -- Then we boot. Since we're using the actual `boot`, unlike the
   -- demos, we need to satisfy some constraints: MonadError (through ExcepT)
-  -- and MonadLogger (using `withLogging` provided by Rogui).
+  -- and MonadLog (using `withLogging` provided by Rogui).
   result <-
     runExceptT
       . withLogging LogStdout
@@ -81,7 +81,7 @@ main = do
     Right _ -> pure ()
     Left (e :: RoguiError () Consoles Brushes) -> putStrLn ("Unexpected error: " <> show e)
 
--- | Since LoggingT doesn't know anything about MonadRandom,
+-- | Since LogT doesn't know anything about MonadRandom,
 -- we are sadly going to need an orphan instance. In real life,
 -- we would define this in an "Orphan" module, but this is just
 -- a demo, so we'll put this here.
@@ -91,7 +91,7 @@ main = do
 -- will be just a bunch of lifts).
 -- Or you can wait till we come up with an "Effectful" version
 -- of rogui.
-instance (MonadRandom m) => MonadRandom (LoggingT m) where
+instance (MonadRandom m) => MonadRandom (LogT m) where
   getRandomR = lift . getRandomR
   getRandom = lift getRandom
   getRandomRs = lift . getRandomRs

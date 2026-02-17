@@ -127,9 +127,9 @@ library
         , data-clist     >=0.2    && <0.3
         , dlist          >=1.0    && <1.1
         , linear         >=1.23.3 && <1.24
-        , monad-control  >=1.0.3  && <1.1
-        , monad-logger   >=0.3.42 && <0.4
-        , MonadRandom    >=0.6.2  && <0.7
+        , log-base          >=0.12   && <0.13
+        , MonadRandom      >=0.6.2  && <0.7
+        , transformers-base >=0.4.6  && <0.5
         , mtl            >=2.3.1  && <2.4
         , text           >=2.1.2  && <2.2
 
