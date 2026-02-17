@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -447,7 +448,9 @@ appTick backend initialGui state = do
             if elapsed < targetFrameTime
               then targetFrameTime - elapsed
               else 0
+#if !defined(wasm32_HOST_ARCH)
       liftIO $ threadDelay (fromIntegral sleepMs * 1000)
+#endif
 
       -- FPS tracking and logging
       let maxFrameSamples = 60
