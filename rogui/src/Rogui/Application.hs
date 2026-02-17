@@ -78,6 +78,11 @@ module Rogui.Application
     boot,
     bootAndPrintError,
 
+    -- * Decomposed entry points
+    appInit,
+    appTick,
+    TickResult (..),
+
     -- * Log wrapper
     LogOutput (..),
     withLogging,
