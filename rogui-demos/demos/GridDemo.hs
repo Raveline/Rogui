@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -8,7 +9,11 @@ module Main where
 import qualified Data.List.NonEmpty as NE
 import Linear (V2 (..))
 import Rogui.Application
+#ifdef USE_OPENGL
+import Rogui.Backend.SDLOpenGL
+#else
 import Rogui.Backend.SDL
+#endif
 import Rogui.Components.Core
 import Rogui.Components.Grid
 import Rogui.Components.Label (label)
@@ -51,7 +56,11 @@ main = do
             maxEventDepth = 100
           }
   bootAndPrintError
+#ifdef USE_OPENGL
+    sdlOpenGLBackend
+#else
     sdlBackend
+#endif
     config
     $ DemoState {gridState = mkGridState, picked = Nothing}
 

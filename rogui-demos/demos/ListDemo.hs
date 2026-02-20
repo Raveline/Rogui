@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -17,7 +18,11 @@ import Rogui.Application.Event
     (<||>),
   )
 import Rogui.Application.System (RoguiConfig (..), bootAndPrintError)
+#ifdef USE_OPENGL
+import Rogui.Backend.SDLOpenGL
+#else
 import Rogui.Backend.SDL
+#endif
 import Rogui.Components.Core (Component (..), bordered, emptyComponent, vBox)
 import Rogui.Components.List
 import Rogui.Graphics
@@ -55,7 +60,11 @@ main = do
             maxEventDepth = 100
           }
   bootAndPrintError
+#ifdef USE_OPENGL
+    sdlOpenGLBackend
+#else
     sdlBackend
+#endif
     config
     $ DemoState {listState = mkListState}
 

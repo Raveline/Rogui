@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -8,7 +9,11 @@ import qualified Data.Set as S
 import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.System (RoguiConfig (..), bootAndPrintError)
+#ifdef USE_OPENGL
+import Rogui.Backend.SDLOpenGL
+#else
 import Rogui.Backend.SDL
+#endif
 import Rogui.Components.Core
 import qualified Rogui.Components.ProgressBar as PB
 import Rogui.Graphics
@@ -45,7 +50,11 @@ main = do
             maxEventDepth = 100
           }
   bootAndPrintError
+#ifdef USE_OPENGL
+    sdlOpenGLBackend
+#else
     sdlBackend
+#endif
     config
     $ DemoState 500
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLists #-}
@@ -13,7 +14,11 @@ import Data.Word (Word8)
 import Linear (V2 (..), V4 (..), distance)
 import Rogui.Animation (AnimationSequence, animateCycle)
 import Rogui.Application hiding (totalElapsedTime)
+#ifdef USE_OPENGL
+import Rogui.Backend.SDLOpenGL
+#else
 import Rogui.Backend.SDL
+#endif
 import Rogui.Components.Core
 import Rogui.Components.Game (GlyphInfo (..))
 import Rogui.Components.Game.GridOverlay (gridOverlay)
@@ -189,7 +194,11 @@ main = do
             maxEventDepth = 100
           }
   bootAndPrintError
+#ifdef USE_OPENGL
+    sdlOpenGLBackend
+#else
     sdlBackend
+#endif
     config
     ()
 

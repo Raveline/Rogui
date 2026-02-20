@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -25,7 +26,11 @@ import RogueHarvest.Types
 import Rogui.Application.Error
 import Rogui.Application.Event (baseEventHandler, (<||>))
 import Rogui.Application.System
+#ifdef USE_OPENGL
+import Rogui.Backend.SDLOpenGL
+#else
 import Rogui.Backend.SDL
+#endif
 import Rogui.Components
 import Rogui.Graphics
 import Rogui.Types
@@ -71,7 +76,11 @@ main = do
     runExceptT
       . withLogging LogStdout
       $ boot
+#ifdef USE_OPENGL
+        sdlOpenGLBackend
+#else
         sdlBackend
+#endif
         config
         baseState
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -9,7 +10,11 @@ import qualified Data.Map.Strict as M
 import Linear (V2 (..))
 import Rogui.Application
 import Rogui.Application.Event.Handlers (focusRingHandler)
+#ifdef USE_OPENGL
+import Rogui.Backend.SDLOpenGL
+#else
 import Rogui.Backend.SDL
+#endif
 import Rogui.Components
 import Rogui.FocusRing
 import Rogui.Graphics
@@ -52,7 +57,11 @@ main = do
             maxEventDepth = 100
           }
   bootAndPrintError
+#ifdef USE_OPENGL
+    sdlOpenGLBackend
+#else
     sdlBackend
+#endif
     config
     $ State 0 (focusRing [ButtonInc, ButtonDec])
 

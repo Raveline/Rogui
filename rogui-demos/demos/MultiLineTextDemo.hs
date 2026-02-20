@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -6,7 +7,11 @@ module Main where
 import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.System (RoguiConfig (..), bootAndPrintError)
+#ifdef USE_OPENGL
+import Rogui.Backend.SDLOpenGL
+#else
 import Rogui.Backend.SDL (sdlBackend)
+#endif
 import Rogui.Components.Core (bordered, vBox)
 import Rogui.Components.MultilineText
 import Rogui.Components.Viewport
@@ -45,7 +50,11 @@ main = do
             maxEventDepth = 100
           }
   bootAndPrintError
+#ifdef USE_OPENGL
+    sdlOpenGLBackend
+#else
     sdlBackend
+#endif
     config
     (DemoState $ ViewportState (V2 0 0) (V2 0 0))
 
