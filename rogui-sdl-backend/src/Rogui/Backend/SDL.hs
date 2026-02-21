@@ -10,8 +10,8 @@ import Control.Monad.IO.Class
 import Data.ByteString
 import Data.Text (Text)
 import Linear
+import Rogui.Backend.Events
 import Rogui.Backend.SDL.Eval
-import Rogui.Backend.SDL.Events
 import Rogui.Backend.Types
 import Rogui.Graphics
 import SDL qualified

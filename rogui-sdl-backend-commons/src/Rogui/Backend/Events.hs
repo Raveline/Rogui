@@ -1,7 +1,7 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Rogui.Backend.OpenGL.Events
+module Rogui.Backend.Events
   ( getSDLEvents,
   )
 where

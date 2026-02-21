@@ -3,28 +3,28 @@ module Rogui.Backend.SDLOpenGL
   )
 where
 
-import Rogui.Backend.Types
+import Control.Monad
 import Control.Monad.IO.Class
+import Data.ByteString (ByteString)
+import Data.Foldable
+import Data.IORef
 import Data.Text (Text)
+import Data.Word (Word8)
+import Foreign (Storable (..), alloca, with)
+import Foreign.C (CInt, withCString)
+import Foreign.Ptr
+import Graphics.GL
 import Linear
-import Rogui.Graphics
-import Rogui.Backend.OpenGL.Types
+import Rogui.Backend.Events
 import Rogui.Backend.OpenGL.Eval
 import Rogui.Backend.OpenGL.Shader
+import Rogui.Backend.OpenGL.Types
+import Rogui.Backend.Types
+import Rogui.Graphics
 import qualified SDL
-import Control.Monad
-import Graphics.GL
-import Rogui.Backend.OpenGL.Events
-import Data.ByteString (ByteString)
 import qualified SDL.Image as SDL
 import qualified SDL.Internal.Numbered as Numbered
 import qualified SDL.Raw as Raw
-import Foreign (Storable (..), alloca, with)
-import Data.Word (Word8)
-import Foreign.Ptr
-import Foreign.C (CInt, withCString)
-import Data.Foldable
-import Data.IORef
 
 sdlOpenGLBackend :: Backend GLRenderer GLTexture e
 sdlOpenGLBackend =
@@ -42,9 +42,10 @@ initGLBackend :: (MonadIO m) => Text -> V2 Pixel -> Bool -> (GLRenderer -> m a) 
 initGLBackend appName windowSize allowResize withRenderer = do
   SDL.initializeAll
   refWindowSize <- liftIO $ newIORef (fromIntegral <$> windowSize)
-  let glConfig = SDL.defaultOpenGL
-        { SDL.glProfile = SDL.Core SDL.Normal 3 3
-        }
+  let glConfig =
+        SDL.defaultOpenGL
+          { SDL.glProfile = SDL.Core SDL.Normal 3 3
+          }
 
   window <-
     SDL.createWindow
@@ -106,21 +107,21 @@ initGLBackend appName windowSize allowResize withRenderer = do
     glUniformMatrix4fv projLoc 1 GL_TRUE (castPtr ptr)
 
   let glRenderer =
-       GLRenderer
-         { glWindow = window
-         , glContext = glContext
-         , glProgram = program
-         , glVAO = vao
-         , glVBO = vbo
-         , glProjection = proj
-         , glWindowSize = refWindowSize
-         }
+        GLRenderer
+          { glWindow = window,
+            glContext = glContext,
+            glProgram = program,
+            glVAO = vao,
+            glVBO = vbo,
+            glProjection = proj,
+            glWindowSize = refWindowSize
+          }
 
   void $ withRenderer glRenderer
   SDL.glDeleteContext glContext
   SDL.destroyWindow window
 
-genObject :: MonadIO m => (GLsizei -> Ptr GLuint -> IO ()) -> m GLuint
+genObject :: (MonadIO m) => (GLsizei -> Ptr GLuint -> IO ()) -> m GLuint
 genObject gen = liftIO $ alloca $ \ptr -> do
   gen 1 ptr
   peek ptr
@@ -130,11 +131,12 @@ orthoProjection (V2 w h) = ortho 0 (fromIntegral w) (fromIntegral h) 0 (-1) 1
 
 glClearFrame :: (MonadIO m) => GLRenderer -> m ()
 glClearFrame _ = do
+  glDisable GL_SCISSOR_TEST
   glClearColor 0 0 0 1
   glClear GL_COLOR_BUFFER_BIT
 
 glPresentFrame :: (MonadIO m) => GLRenderer -> m ()
-glPresentFrame GLRenderer{..} = do
+glPresentFrame GLRenderer {..} = do
   SDL.glSwapWindow glWindow
 
 convertSurface :: (MonadIO m) => SDL.Surface -> SDL.PixelFormat -> m SDL.Surface
@@ -143,17 +145,17 @@ convertSurface (SDL.Surface s _) pixFmt = do
   surface <- SDL.Surface <$> Raw.convertSurface s fmt 0 <*> pure Nothing
   surface <$ Raw.freeFormat fmt
 
-applyTransparency :: MonadIO m => Ptr () -> V2 CInt -> RGBA -> m ()
+applyTransparency :: (MonadIO m) => Ptr () -> V2 CInt -> RGBA -> m ()
 applyTransparency pixels (V2 w h) (V4 tr tg tb _) = liftIO $ do
   let ptr = castPtr pixels :: Ptr Word8
       count = fromIntegral w * fromIntegral h
   for_ [0 .. count - 1] $ \i -> do
-    let offset = i * 4  -- 4 bytes per pixel (RGBA8888)
-    r <- peekByteOff ptr offset       :: IO Word8
+    let offset = i * 4 -- 4 bytes per pixel (RGBA8888)
+    r <- peekByteOff ptr offset :: IO Word8
     g <- peekByteOff ptr (offset + 1) :: IO Word8
     b <- peekByteOff ptr (offset + 2) :: IO Word8
     when (r == tr && g == tg && b == tb) $
-      pokeByteOff ptr (offset + 3) (0 :: Word8)  -- set alpha to 0
+      pokeByteOff ptr (offset + 3) (0 :: Word8) -- set alpha to 0
 
 glLoadBrush :: (MonadIO m) => GLRenderer -> TileSize -> Either ByteString FilePath -> Maybe RGBA -> m (Brush, GLTexture)
 glLoadBrush _renderer TileSize {..} method transparency = do
@@ -168,9 +170,9 @@ glLoadBrush _renderer TileSize {..} method transparency = do
   dim@(V2 w h) <- SDL.surfaceDimensions surface
   traverse_ (applyTransparency pixels dim) transparency
 
-  texId <- liftIO $ alloca $ \texPtr -> do          
-    glGenTextures 1 texPtr   -- writes 1 texture name into texPtr
-    tex <- peek texPtr        -- read it out as a GLuint
+  texId <- liftIO $ alloca $ \texPtr -> do
+    glGenTextures 1 texPtr -- writes 1 texture name into texPtr
+    tex <- peek texPtr -- read it out as a GLuint
     glBindTexture GL_TEXTURE_2D tex
     glTexImage2D GL_TEXTURE_2D 0 GL_RGBA (fromIntegral w) (fromIntegral h) 0 GL_RGBA GL_UNSIGNED_BYTE pixels
     glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST
@@ -180,12 +182,12 @@ glLoadBrush _renderer TileSize {..} method transparency = do
   SDL.freeSurface surface
   SDL.freeSurface fontSurface
 
-  let texture = GLTexture
-       {
-         texId = texId,
-         texWidth = fromIntegral w,
-         texHeight = fromIntegral h
-       }
+  let texture =
+        GLTexture
+          { texId = texId,
+            texWidth = fromIntegral w,
+            texHeight = fromIntegral h
+          }
 
   pure
     ( Brush
