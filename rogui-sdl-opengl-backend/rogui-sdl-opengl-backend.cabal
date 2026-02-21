@@ -52,6 +52,5 @@ library
     sdl2 >=2.5.5 && <2.6,
     sdl2-image >=2.1.0 && <2.2,
     text >=2.1.2 && <2.2,
-    vector >=0.13 && <0.14,
 
   hs-source-dirs: src

@@ -8,15 +8,16 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.19.20260104
+# version: 0.19.20260209
 #
-# REGENDATA ("0.19.20260104",["github","--apt","libsdl2-dev","--apt","libsdl2-image-dev","--apt","pkg-config","cabal.project"])
+# REGENDATA ("0.19.20260209",["github","--apt","libsdl2-dev","--apt","libsdl2-image-dev","--apt","pkg-config","cabal.project"])
 #
 name: Haskell-CI
 on:
   - push
   - pull_request
   - merge_group
+  - workflow_dispatch
 jobs:
   linux:
     name: Haskell-CI - Linux - ${{ matrix.compiler }}
@@ -133,7 +134,9 @@ jobs:
           touch cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/rogui" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/rogui-demos" >> cabal.project
+          echo "packages: $GITHUB_WORKSPACE/source/rogui-sdl-backend-commons" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/rogui-sdl-backend" >> cabal.project
+          echo "packages: $GITHUB_WORKSPACE/source/rogui-sdl-opengl-backend" >> cabal.project
           cat cabal.project
       - name: sdist
         run: |
@@ -149,35 +152,53 @@ jobs:
           echo "PKGDIR_rogui=${PKGDIR_rogui}" >> "$GITHUB_ENV"
           PKGDIR_rogui_demos="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/rogui-demos-[0-9.]*')"
           echo "PKGDIR_rogui_demos=${PKGDIR_rogui_demos}" >> "$GITHUB_ENV"
+          PKGDIR_rogui_sdl_backend_commons="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/rogui-sdl-backend-commons-[0-9.]*')"
+          echo "PKGDIR_rogui_sdl_backend_commons=${PKGDIR_rogui_sdl_backend_commons}" >> "$GITHUB_ENV"
           PKGDIR_rogui_sdl_backend="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/rogui-sdl-backend-[0-9.]*')"
           echo "PKGDIR_rogui_sdl_backend=${PKGDIR_rogui_sdl_backend}" >> "$GITHUB_ENV"
+          PKGDIR_rogui_sdl_opengl_backend="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/rogui-sdl-opengl-backend-[0-9.]*')"
+          echo "PKGDIR_rogui_sdl_opengl_backend=${PKGDIR_rogui_sdl_opengl_backend}" >> "$GITHUB_ENV"
           rm -f cabal.project cabal.project.local
           touch cabal.project
           touch cabal.project.local
           echo "packages: ${PKGDIR_rogui}" >> cabal.project
           echo "packages: ${PKGDIR_rogui_demos}" >> cabal.project
+          echo "packages: ${PKGDIR_rogui_sdl_backend_commons}" >> cabal.project
           echo "packages: ${PKGDIR_rogui_sdl_backend}" >> cabal.project
+          echo "packages: ${PKGDIR_rogui_sdl_opengl_backend}" >> cabal.project
           echo "package rogui" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods -Werror=missing-fields" >> cabal.project
           echo "package rogui-demos" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods -Werror=missing-fields" >> cabal.project
+          echo "package rogui-sdl-backend-commons" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods -Werror=missing-fields" >> cabal.project
           echo "package rogui-sdl-backend" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods -Werror=missing-fields" >> cabal.project
+          echo "package rogui-sdl-opengl-backend" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods -Werror=missing-fields" >> cabal.project
           echo "package rogui" >> cabal.project
           echo "    ghc-options: -Werror=unused-packages" >> cabal.project
           echo "package rogui-demos" >> cabal.project
           echo "    ghc-options: -Werror=unused-packages" >> cabal.project
+          echo "package rogui-sdl-backend-commons" >> cabal.project
+          echo "    ghc-options: -Werror=unused-packages" >> cabal.project
           echo "package rogui-sdl-backend" >> cabal.project
+          echo "    ghc-options: -Werror=unused-packages" >> cabal.project
+          echo "package rogui-sdl-opengl-backend" >> cabal.project
           echo "    ghc-options: -Werror=unused-packages" >> cabal.project
           echo "package rogui" >> cabal.project
           echo "    ghc-options: -Werror=incomplete-patterns -Werror=incomplete-uni-patterns" >> cabal.project
           echo "package rogui-demos" >> cabal.project
           echo "    ghc-options: -Werror=incomplete-patterns -Werror=incomplete-uni-patterns" >> cabal.project
+          echo "package rogui-sdl-backend-commons" >> cabal.project
+          echo "    ghc-options: -Werror=incomplete-patterns -Werror=incomplete-uni-patterns" >> cabal.project
           echo "package rogui-sdl-backend" >> cabal.project
+          echo "    ghc-options: -Werror=incomplete-patterns -Werror=incomplete-uni-patterns" >> cabal.project
+          echo "package rogui-sdl-opengl-backend" >> cabal.project
           echo "    ghc-options: -Werror=incomplete-patterns -Werror=incomplete-uni-patterns" >> cabal.project
           cat >> cabal.project <<EOF
           EOF
-          $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: any.$_ installed\n" unless /^(rogui|rogui-demos|rogui-sdl-backend)$/; }' >> cabal.project.local
+          $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: any.$_ installed\n" unless /^(rogui|rogui-demos|rogui-sdl-backend|rogui-sdl-backend-commons|rogui-sdl-opengl-backend)$/; }' >> cabal.project.local
           cat cabal.project
           cat cabal.project.local
       - name: dump install plan
@@ -209,7 +230,11 @@ jobs:
           ${CABAL} -vnormal check
           cd ${PKGDIR_rogui_demos} || false
           ${CABAL} -vnormal check
+          cd ${PKGDIR_rogui_sdl_backend_commons} || false
+          ${CABAL} -vnormal check
           cd ${PKGDIR_rogui_sdl_backend} || false
+          ${CABAL} -vnormal check
+          cd ${PKGDIR_rogui_sdl_opengl_backend} || false
           ${CABAL} -vnormal check
       - name: haddock
         run: |
