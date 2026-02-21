@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -9,7 +10,11 @@ import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.Event.Handlers (focusRingHandler)
 import Rogui.Application.System (RoguiConfig (..), bootAndPrintError)
+#ifdef USE_OPENGL
+import Rogui.Backend.SDLOpenGL
+#else
 import Rogui.Backend.SDL (sdlBackend)
+#endif
 import Rogui.Components (label)
 import Rogui.Components.Core
 import Rogui.Components.TextInput
@@ -53,7 +58,11 @@ main = do
             maxEventDepth = 100
           }
   bootAndPrintError
+#ifdef USE_OPENGL
+    sdlOpenGLBackend
+#else
     sdlBackend
+#endif
     config
     . DemoState "" ""
     $ focusRing [FirstName, LastName]

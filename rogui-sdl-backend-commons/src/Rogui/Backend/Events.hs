@@ -1,7 +1,7 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Rogui.Backend.SDL.Events
+module Rogui.Backend.Events
   ( getSDLEvents,
   )
 where

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -7,7 +8,11 @@ module Main where
 import Linear (V2 (..))
 import Rogui.Application.Event
 import Rogui.Application.System
+#ifdef USE_OPENGL
+import Rogui.Backend.SDLOpenGL
+#else
 import Rogui.Backend.SDL
+#endif
 import Rogui.Components.Core
 import Rogui.Components.MessageLog (LogMessage, handleMessageLogEvent, messageLog)
 import Rogui.Components.Viewport (ViewportState (..))
@@ -48,7 +53,11 @@ main = do
             maxEventDepth = 100
           }
   bootAndPrintError
+#ifdef USE_OPENGL
+    sdlOpenGLBackend
+#else
     sdlBackend
+#endif
     config
     . State
     -- Content size is calculated dynamically, so we just initialize with zeros

@@ -1,4 +1,6 @@
 packages:
   rogui/rogui.cabal
   rogui-demos/rogui-demos.cabal
+  rogui-sdl-backend-commons/rogui-sdl-backend-commons.cabal
   rogui-sdl-backend/rogui-sdl-backend.cabal
+  rogui-sdl-opengl-backend/rogui-sdl-opengl-backend.cabal

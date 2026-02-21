@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -15,7 +16,11 @@ import qualified Data.Map as M
 import Data.Maybe
 import Linear
 import Rogui.Application
+#ifdef USE_OPENGL
+import Rogui.Backend.SDLOpenGL
+#else
 import Rogui.Backend.SDL (sdlBackend)
+#endif
 import Rogui.Components
 import Rogui.Components.Game
 import Rogui.Components.Game.GridTile (mouseEventToWorldPos)
@@ -71,7 +76,11 @@ main = do
             maxEventDepth = 100
           }
   bootAndPrintError
+#ifdef USE_OPENGL
+    sdlOpenGLBackend
+#else
     sdlBackend
+#endif
     config
     $ State
       { mousePosition = V2 0 0,

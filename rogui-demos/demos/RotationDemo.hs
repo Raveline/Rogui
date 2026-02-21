@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -7,7 +8,11 @@ import Data.Char (ord)
 import Data.Foldable (traverse_)
 import Linear (V2 (..))
 import Rogui.Application
+#ifdef USE_OPENGL
+import Rogui.Backend.SDLOpenGL
+#else
 import Rogui.Backend.SDL
+#endif
 import Rogui.Components.Core
 import Rogui.Graphics
 import Rogui.Types (ConsoleDrawers)
@@ -39,7 +44,11 @@ main = do
             maxEventDepth = 100
           }
   bootAndPrintError
+#ifdef USE_OPENGL
+    sdlOpenGLBackend
+#else
     sdlBackend
+#endif
     config
     ()
 
