@@ -11,7 +11,9 @@ import Data.IORef
 import Data.Text (Text)
 import Data.Word (Word8)
 import Foreign (Storable (..), alloca, with)
-import Foreign.C (CInt, withCString)
+import Foreign.C (CChar, CInt (CInt), withCString)
+import Foreign.Marshal.Alloc (allocaBytes)
+import Foreign.Marshal.Utils (copyBytes)
 import Foreign.Ptr
 import Graphics.GL
 import Linear
@@ -26,6 +28,8 @@ import qualified SDL.Image as SDL
 import qualified SDL.Internal.Numbered as Numbered
 import qualified SDL.Raw as Raw
 
+foreign import ccall "IMG_SavePNG" imgSavePNG :: Ptr Raw.Surface -> Ptr CChar -> IO CInt
+
 sdlOpenGLBackend :: Backend GLRenderer GLTexture e
 sdlOpenGLBackend =
   Backend
@@ -35,7 +39,8 @@ sdlOpenGLBackend =
       initBackend = initGLBackend,
       evalInstructions = evalGLInstructions,
       getTicks = SDL.ticks,
-      pollEvents = getSDLEvents
+      pollEvents = getSDLEvents,
+      takeScreenshot = glTakeScreenshot
     }
 
 initGLBackend :: (MonadIO m) => Text -> V2 Pixel -> Bool -> (GLRenderer -> m a) -> m ()
@@ -199,3 +204,30 @@ glLoadBrush _renderer TileSize {..} method transparency = do
         },
       texture
     )
+
+glTakeScreenshot :: (MonadIO m) => GLRenderer -> V2 Int -> FilePath -> m ()
+glTakeScreenshot _ (V2 w h) fp = liftIO $ do
+  let rowBytes = w * 4
+      totalBytes = h * rowBytes
+  allocaBytes totalBytes $ \buf -> do
+    glReadPixels 0 0 (fromIntegral w) (fromIntegral h) GL_RGBA GL_UNSIGNED_BYTE (castPtr buf)
+    allocaBytes rowBytes $ \tmp ->
+      for_ [0 .. h `div` 2 - 1] $ \y -> do
+        let top = buf `plusPtr` (y * rowBytes)
+            bot = buf `plusPtr` ((h - 1 - y) * rowBytes)
+        copyBytes tmp top rowBytes
+        copyBytes top bot rowBytes
+        copyBytes bot tmp rowBytes
+    surfPtr <-
+      Raw.createRGBSurfaceFrom
+        (castPtr buf)
+        (fromIntegral w)
+        (fromIntegral h)
+        32
+        (fromIntegral rowBytes)
+        0xFF000000
+        0x00FF0000
+        0x0000FF00
+        0x000000FF
+    withCString fp $ \cFp -> void $ imgSavePNG surfPtr cFp
+    Raw.freeSurface surfPtr

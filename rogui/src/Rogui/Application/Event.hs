@@ -116,6 +116,7 @@ module Rogui.Application.Event
     fireAppEvent,
     setCurrentState,
     fireEvent,
+    screenshot,
     foundClickedExtents,
     getExtentSize,
     getExtentPosition,

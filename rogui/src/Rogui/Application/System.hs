@@ -127,21 +127,23 @@ where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad
+import Control.Monad.Base (MonadBase)
 import Control.Monad.Except
 import Control.Monad.IO.Class
-import Control.Monad.Base (MonadBase)
 import Control.Monad.State.Strict hiding (state)
-import Data.Text.IO qualified as TIO
-import Log
 import Control.Monad.Writer.Strict
+import Data.Aeson
 import Data.Bifunctor
 import Data.ByteString (ByteString)
+import Data.ByteString.Lazy.Char8 qualified as BSL
 import Data.Foldable (traverse_)
 import Data.Map qualified as M
 import Data.Sequence qualified as Seq
 import Data.Text (pack)
+import Data.Text.IO qualified as TIO
 import Data.Word
 import Linear (V2 (..))
+import Log
 import Rogui.Application.ConsoleSpecs
 import Rogui.Application.Error (RoguiError (..), TileSizeMismatch (..))
 import Rogui.Application.Event
@@ -150,6 +152,7 @@ import Rogui.Backend.Types
 import Rogui.Components.Types
 import Rogui.Graphics
 import Rogui.Types (BrushSpec, PositionSpec (..), Rogui (..), SizeSpec (..))
+import System.IO
 
 -- | How to output the logs: either directly to console or to
 -- a filepath.
@@ -160,7 +163,9 @@ data LogOutput = LogStdout | LogFile FilePath
 withLogging :: (MonadIO m) => LogOutput -> LogT m a -> m a
 withLogging ls f = do
   logger <- liftIO $ case ls of
-    LogStdout -> mkLogger "stdout" $ \msg -> TIO.putStrLn (showLogMessage Nothing msg)
+    LogStdout -> mkLogger "stdout-json" $ \msg -> do
+      BSL.putStrLn $ encode msg
+      hFlush stdout
     LogFile filepath -> mkLogger "file" $ \msg -> TIO.appendFile filepath (showLogMessage Nothing msg <> "\n")
   runLogT "rogui" logger defaultLogLevel f
 
@@ -319,6 +324,7 @@ appInit ::
   (Rogui rc rb n s e renderer textures m -> m ()) ->
   m ()
 appInit backend RoguiConfig {..} cont = do
+  logInfo_ "Starting application"
   let TileSize {..} = brushTilesize
       (V2 widthInTiles heightInTiles) = consoleCellSize
   let windowSize@(V2 w h) = V2 (pixelWidth .*=. widthInTiles) (pixelHeight .*=. heightInTiles)
@@ -425,9 +431,9 @@ appTick backend initialGui state = do
             totalElapsedTime = realToFrac frameStart / 1000.0,
             knownExtents = extentsMap
           }
-  EventHandlingState {result, currentState} <- execStateT (processWithLimit maxEventDepth roGUI) baseEventState
+  (screenshots, EventHandlingState {result, currentState}) <- runStateT (processWithLimit maxEventDepth roGUI) baseEventState
   newExtents <-
-    if result == Continue
+    if result == Continue || not (null screenshots)
       then do
         clearFrame backend renderer
         let drawConsole (console, brush, components) = do
@@ -435,6 +441,8 @@ appTick backend initialGui state = do
               usingBrush <- maybe (pure defaultBrush) (brushLookup brushes) brush
               renderComponents backend roGUI usingBrush onConsole components
         extents <- traverse drawConsole (draw brushes currentState)
+        let Console {width, height} = rootConsole
+        traverse_ (takeScreenshot backend renderer (V2 (getPixel width) (getPixel height))) screenshots
         presentFrame backend renderer
         pure $ M.unions extents
       else pure extentsMap
@@ -448,9 +456,8 @@ appTick backend initialGui state = do
             if elapsed < targetFrameTime
               then targetFrameTime - elapsed
               else 0
-#if !defined(wasm32_HOST_ARCH)
+
       liftIO $ threadDelay (fromIntegral sleepMs * 1000)
-#endif
 
       -- FPS tracking and logging
       let maxFrameSamples = 60
@@ -500,13 +507,21 @@ appLoop backend rogui state = do
     TickHalt -> pure ()
     TickContinue newRogui newState -> appLoop backend newRogui newState
 
-processWithLimit :: (Monad m, MonadError (RoguiError err rc rb) m) => Int -> Rogui rc rb n s e r t m -> EventHandlingM m s e n ()
+-- This [FilePath] return (to know if screenshots must be rendered)
+-- is not great, but it will do for now.
+-- If I come up with anything else that might need to be passed along, a
+-- sum type encompassing actions / behaviours to report when processing
+-- events would be clearer.
+processWithLimit :: (Monad m, MonadError (RoguiError err rc rb) m) => Int -> Rogui rc rb n s e r t m -> EventHandlingM m s e n [FilePath]
 processWithLimit 0 _ = throwError NonEndingEventLoop
 processWithLimit n roGUI = do
   evs <- gets events
   if null evs
-    then pure ()
-    else traverse_ (processEvent roGUI) evs >> processWithLimit (n - 1) roGUI
+    then pure []
+    else do
+      shots <- concat <$> traverse (processEvent roGUI) evs
+      moreShots <- processWithLimit (n - 1) roGUI
+      pure (shots <> moreShots)
 
 popEvent :: (Monad m) => EventHandlingM m state e n (Maybe (Event e))
 popEvent = do
@@ -517,12 +532,15 @@ popEvent = do
       modify $ \ehs -> ehs {events = rest}
       pure $ Just firstEvent
 
-processEvent :: (Monad m) => Rogui rc rb n s e r t m -> Event e -> EventHandlingM m s e n ()
+processEvent :: (Monad m) => Rogui rc rb n s e r t m -> Event e -> EventHandlingM m s e n [FilePath]
 processEvent Rogui {..} event = do
-  _ <- popEvent -- This will remove the event from the queue
-  currentState <- gets currentState
-  void . runEventHandler . onEvent currentState $ event
-  pure ()
+  _ <- popEvent
+  case event of
+    TakeScreenshot fp -> pure [fp]
+    _ -> do
+      currentState <- gets currentState
+      void . runEventHandler . onEvent currentState $ event
+      pure []
 
 renderComponents :: (Ord n, MonadIO m, MonadError (RoguiError err rc rb) m) => Backend r t event -> Rogui rc rb n s e r t m' -> Brush -> Console -> Component n -> m (ExtentMap n)
 renderComponents backend Rogui {defaultBrush, rootConsole, numberOfSteps, totalElapsedTime, deltaTime, renderer, textures} usingBrush usingConsole@Console {tileSize = consoleTileSize} Component {..} = do

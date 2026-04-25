@@ -1,6 +1,7 @@
 High priority:
 
 [ ] Add HTML5 backend
+[ ] Rework centering (start with a demo looking like Opt&Pos main menu, and find how to center the list)
 
 Medium priority:
 

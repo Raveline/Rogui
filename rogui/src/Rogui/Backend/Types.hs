@@ -21,5 +21,6 @@ data Backend renderer texture event = Backend
     presentFrame :: forall m. (MonadIO m) => renderer -> m (),
     evalInstructions :: forall m. (MonadIO m) => renderer -> M.Map Brush texture -> Console -> Brush -> Instructions -> m (),
     pollEvents :: forall m. (MonadIO m) => Brush -> m [Event event],
-    getTicks :: forall m. (MonadIO m) => m Word32
+    getTicks :: forall m. (MonadIO m) => m Word32,
+    takeScreenshot :: forall m. (MonadIO m) => renderer -> V2 Int -> FilePath -> m ()
   }
