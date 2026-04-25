@@ -10,6 +10,7 @@ module Rogui.Application.Event.Monad
     setCurrentState,
     fireEvent,
     fireAppEvent,
+    screenshot,
     getExtentSize,
     getExtentPosition,
     foundClickedExtents,
@@ -69,6 +70,10 @@ fireEvent e =
 -- | Convenience state modification wrapping a new event in `AppEvent`
 fireAppEvent :: (Monad m) => e -> EventHandlerM m state e n ()
 fireAppEvent e = fireEvent $ AppEvent e
+
+-- | Request a screenshot to be saved to the given path after the current frame renders
+screenshot :: (Monad m) => FilePath -> EventHandlerM m state e n ()
+screenshot fp = fireEvent $ TakeScreenshot fp
 
 -- | (Monad m) => Get the size of an extent. Note: this will return a zero vector
 -- if the extent is not known, which might happen before the first

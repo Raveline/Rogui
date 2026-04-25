@@ -1,4 +1,5 @@
 {-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Rogui.Backend.SDL
   ( sdlBackend,
@@ -9,6 +10,11 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Data.ByteString
 import Data.Text (Text)
+import Data.Word (Word8)
+import Foreign.C.String (withCString)
+import Foreign.C.Types (CChar, CInt (CInt))
+import Foreign.Marshal.Alloc (allocaBytes)
+import Foreign.Ptr (Ptr, castPtr, nullPtr)
 import Linear
 import Rogui.Backend.Events
 import Rogui.Backend.SDL.Eval
@@ -17,7 +23,10 @@ import Rogui.Graphics
 import SDL qualified
 import SDL.Image qualified as SDL
 import SDL.Internal.Numbered qualified as Numbered
+import SDL.Internal.Types (Renderer (..))
 import SDL.Raw qualified as Raw
+
+foreign import ccall "IMG_SavePNG" imgSavePNG :: Ptr Raw.Surface -> Ptr CChar -> IO CInt
 
 sdlBackend :: Backend SDL.Renderer SDL.Texture e
 sdlBackend =
@@ -28,7 +37,8 @@ sdlBackend =
       initBackend = initSDLBackend,
       evalInstructions = evalSDLInstructions,
       getTicks = SDL.ticks,
-      pollEvents = getSDLEvents
+      pollEvents = getSDLEvents,
+      takeScreenshot = takeSDLScreenshot
     }
 
 initSDLBackend :: (MonadIO m) => Text -> V2 Pixel -> Bool -> (SDL.Renderer -> m a) -> m ()
@@ -74,3 +84,22 @@ loadSDLBrush renderer TileSize {..} method transparency = do
         },
       texture
     )
+
+takeSDLScreenshot :: (MonadIO m) => SDL.Renderer -> V2 Int -> FilePath -> m ()
+takeSDLScreenshot (Renderer rawR) (V2 w h) fp = liftIO $ do
+  let pitch = fromIntegral w * (4 :: CInt)
+  allocaBytes (fromIntegral h * fromIntegral pitch) $ \(buf :: Ptr Word8) -> do
+    void $ Raw.renderReadPixels rawR nullPtr (Numbered.toNumber (SDL.ARGB8888 :: SDL.PixelFormat)) (castPtr buf) pitch
+    surfPtr <-
+      Raw.createRGBSurfaceFrom
+        (castPtr buf)
+        (fromIntegral w)
+        (fromIntegral h)
+        32
+        pitch
+        0x00FF0000
+        0x0000FF00
+        0x000000FF
+        0xFF000000
+    withCString fp $ \cFp -> void $ imgSavePNG surfPtr cFp
+    Raw.freeSurface surfPtr

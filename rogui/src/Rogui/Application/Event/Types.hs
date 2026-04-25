@@ -60,6 +60,8 @@ data Event e
     UnknownEvent
   | -- | Any custom event defined by the roguelike
     AppEvent e
+  | -- | Request a screenshot saved to the given path
+    TakeScreenshot FilePath
   deriving (Eq, Show)
 
 data FocusDestination
