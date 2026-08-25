@@ -6,6 +6,7 @@ module Rogui.Backend.SDL
   )
 where
 
+import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.ByteString
@@ -38,7 +39,8 @@ sdlBackend =
       evalInstructions = evalSDLInstructions,
       getTicks = SDL.ticks,
       pollEvents = getSDLEvents,
-      takeScreenshot = takeSDLScreenshot
+      takeScreenshot = takeSDLScreenshot,
+      frameSleep = liftIO . threadDelay . (* 1000) . fromIntegral
     }
 
 initSDLBackend :: (MonadIO m) => Text -> V2 Pixel -> Bool -> (SDL.Renderer -> m a) -> m ()

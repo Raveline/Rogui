@@ -125,7 +125,6 @@ module Rogui.Application.System
   )
 where
 
-import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.Base (MonadBase)
 import Control.Monad.Except
@@ -457,7 +456,7 @@ appTick backend initialGui state = do
               then targetFrameTime - elapsed
               else 0
 
-      liftIO $ threadDelay (fromIntegral sleepMs * 1000)
+      frameSleep backend sleepMs
 
       -- FPS tracking and logging
       let maxFrameSamples = 60

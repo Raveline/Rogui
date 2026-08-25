@@ -1,0 +1,118 @@
+cabal-version: 3.0
+name: rogui-wasm-backend
+synopsis: A browser backend rendering to a HTML5 canvas, targeting GHC's wasm32-wasi backend
+version: 0.1.0.0
+license: BSD-3-Clause
+license-file: LICENSE
+author: Raveline
+maintainer: eraveline@gmail.com
+category: Game
+build-type: Simple
+extra-doc-files: CHANGELOG.md
+tested-with: ghc ==9.12.2
+
+flag devel
+  description: enable development mode (i.e. disable -Werror)
+  default: False
+
+common warnings
+  ghc-options: -Wall
+
+  if !flag(devel)
+    ghc-options:
+      -Wall
+      -Werror
+  default-extensions:
+    FlexibleContexts
+    OverloadedStrings
+    RecordWildCards
+    TypeApplications
+
+library
+  import: warnings
+  default-language: Haskell2010
+
+  exposed-modules:
+    Rogui.Backend.WASM
+    Rogui.Backend.WASM.Eval
+    Rogui.Backend.WASM.Events
+    Rogui.Backend.WASM.FFI
+    Rogui.Backend.WASM.Primitives
+
+  build-depends:
+    base >=4.21.0 && <4.22,
+    bytestring >=0.12.2 && <0.13,
+    containers >=0.7 && <0.8,
+    linear >=1.23.3 && <1.24,
+    mtl >=2.3.1 && <2.4,
+    rogui >=0.1.0 && <0.2,
+    text >=2.1.2 && <2.2
+
+  -- The JavaScript FFI (`foreign import javascript`) and the `GHC.Wasm.Prim`
+  -- module (JSVal, JSString, ...) used by this backend are only available
+  -- when actually compiling with the wasm32-wasi cross GHC. This package is
+  -- meaningless to build with a native GHC.
+  if arch(wasm32)
+    build-depends: ghc-experimental
+  else
+    buildable: False
+
+  hs-source-dirs: src
+
+-- A minimal smoke-test/demo proving the backend end to end: `wasm32-wasi-cabal
+-- build rogui-wasm-demo`, then run the toolchain's `post-link.mjs` on the
+-- produced `.wasm` (see ../wasm.md) and open app/index.html through a local
+-- HTTP server (not `file://`, `fetch()` of the tileset PNG needs a real
+-- origin).
+executable rogui-wasm-demo
+  import: warnings
+  default-language: Haskell2010
+  main-is: Main.hs
+  hs-source-dirs: app
+  c-sources: app/cbits/wasm_main.c
+
+  build-depends:
+    base,
+    containers,
+    linear,
+    log-base,
+    mtl,
+    rogui,
+    rogui-wasm-backend
+
+  if arch(wasm32)
+    build-depends: ghc-experimental
+    -- Suppress GHC's auto-generated `main()` (which would call `hs_exit()`
+    -- and tear the RTS down right after `Main.main` returns) in favour of
+    -- app/cbits/wasm_main.c's, which leaves the RTS running so JS can call
+    -- the `foreign export javascript` functions afterwards.
+    ghc-options: -no-hs-main
+  else
+    buildable: False
+
+-- A second, interactive demo: a port of rogui-demos' ListDemo (keyboard
+-- navigation, mouse clicks, window resize) onto wasmBackend. Structurally
+-- identical to rogui-wasm-demo above (same wasmInit/wasmTick export split,
+-- same -no-hs-main + C shim, reused rather than duplicated); see
+-- app-list/Main.hs and ../howto.md.
+executable rogui-wasm-list-demo
+  import: warnings
+  default-language: Haskell2010
+  main-is: Main.hs
+  hs-source-dirs: app-list
+  c-sources: app/cbits/wasm_main.c
+
+  build-depends:
+    base,
+    containers,
+    linear,
+    log-base,
+    mtl,
+    rogui,
+    rogui-wasm-backend
+
+  if arch(wasm32)
+    build-depends: ghc-experimental
+    ghc-options: -no-hs-main
+  else
+    buildable: False

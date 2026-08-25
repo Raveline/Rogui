@@ -1,0 +1,10 @@
+{
+  "name": "rogui-wasm-demo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Browser harness for the rogui-wasm-demo executable (see ../../wasm.md).",
+  "type": "module",
+  "dependencies": {
+    "@bjorn3/browser_wasi_shim": "^0.4.2"
+  }
+}
