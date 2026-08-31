@@ -450,10 +450,9 @@ appTick backend initialGui state = do
     else do
       frameEnd <- getTicks backend
       let frameDuration = frameEnd - frameStart
-          elapsed = frameStart - frameEnd
           sleepMs =
-            if elapsed < targetFrameTime
-              then targetFrameTime - elapsed
+            if frameDuration < targetFrameTime
+              then targetFrameTime - frameDuration
               else 0
 
       frameSleep backend sleepMs
