@@ -136,10 +136,10 @@ foreign import javascript unsafe
 foreign import javascript unsafe "globalThis.RoguiRuntime.clearFrame($1)"
   js_clearRect :: JSVal -> IO ()
 
--- | Milliseconds, strictly increasing on every call. Deliberately *not*
--- just @performance.now()@ truncated to an integer -- see
--- `RoguiRuntime.monotonicTicks`'s comment for why that distinction matters
--- a lot more than it sounds like it should.
+-- | Whole milliseconds from @performance.now()@, a monotonic clock (never
+-- runs backwards). Backs `getTicks`; used by
+-- `Rogui.Application.System.appTick` for frame timing, the step timer, and
+-- @deltaTime@. See `RoguiRuntime.monotonicTicks`.
 foreign import javascript unsafe "globalThis.RoguiRuntime.monotonicTicks()"
   js_monotonicTicks :: IO Int
 

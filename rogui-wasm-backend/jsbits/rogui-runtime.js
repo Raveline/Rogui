@@ -36,43 +36,19 @@
     // Timing
     // ---------------------------------------------------------------
 
-    // Milliseconds, strictly increasing on every single call -- never
-    // returns the same value twice in a row, even if called twice within
-    // the same real millisecond (very likely for a fast frame: the two
-    // getTicks calls in a single Rogui.Application.System.appTick are
-    // often microseconds apart).
+    // The millisecond clock behind `getTicks` (Rogui.Backend.WASM.getWASMTicks),
+    // used by Rogui.Application.System.appTick for frame-duration measurement,
+    // the step timer, and `deltaTime`. `performance.now()` is a monotonic
+    // clock (never runs backwards, immune to system clock adjustments), so
+    // flooring it to whole milliseconds is a safe source for the Word32
+    // subtractions appTick does on these values -- `frameEnd - frameStart`
+    // and friends can be 0 on a fast frame but never underflow.
     //
-    // Why that matters, and isn't just pedantry: appTick paces itself with
-    // `threadDelay (sleepMs * 1000)` at the end of every frame, where
-    // `sleepMs` is computed from `frameStart - frameEnd` (both Word32) --
-    // backwards; it should be `frameEnd - frameStart`. When a frame
-    // finishes within the same millisecond it started, that subtraction
-    // is `0 - 0`, no unsigned underflow, and appTick asks to sleep the
-    // *full* target frame time (commonly ~16ms) instead of the ~0ms this
-    // was clearly meant to compute. On a native backend that's a wasted
-    // but harmless real sleep. Here it's much worse: WASI's poll_oneoff
-    // (what threadDelay compiles down to) is synchronous by spec, and the
-    // browser WASI shim used by index.html implements a clock-based wait
-    // with a real spin loop (`while (endTime > now()) {}`) -- so this bug
-    // was hard-freezing the tab's main thread for ~16ms on most frames,
-    // which is the actual tearing/flicker this was chased down from.
-    //
-    // Rather than patch core's frame-pacing math (shared by every
-    // backend, including ones where the bug is merely wasteful, not
-    // actively harmful) or reimplement WASI's poll_oneoff (fragile: it'd
-    // need to match browser_wasi_shim's exact struct layout), this makes
-    // getTicks itself strictly monotonic instead of just
-    // Math.floor(performance.now()). That guarantees frameEnd > frameStart
-    // on every frame, which guarantees the existing (buggy) subtraction
-    // underflows every time, which reliably lands in the `sleepMs = 0`
-    // branch -- by construction rather than by luck. requestAnimationFrame
-    // already paces frames to the display refresh rate regardless, so a
-    // real sleep on top of it was never buying anything here anyway.
-    _lastTick: 0,
+    // Frame pacing itself is not handled here: `requestAnimationFrame`
+    // (see startLoop) already paces to the display refresh rate, and
+    // `wasmBackend` sets `frameSleep` to a no-op so appTick never sleeps.
     monotonicTicks() {
-      const real = Math.floor(performance.now());
-      this._lastTick = real > this._lastTick ? real : this._lastTick + 1;
-      return this._lastTick;
+      return Math.floor(performance.now());
     },
 
     // ---------------------------------------------------------------
