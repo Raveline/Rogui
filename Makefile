@@ -11,6 +11,12 @@
 # if yours isn't at the default ghc-wasm-meta location.
 GHC_WASM_ENV ?= $(HOME)/.ghc-wasm/env
 
+# npm, used to vendor @bjorn3/browser_wasi_shim (the browsers-ship-no-WASI
+# shim that the demo index.html files import) into each demo directory's
+# node_modules. Override if npm isn't on PATH in make's non-interactive
+# shell, e.g. `make build-wasm-list-demo NPM=$(HOME)/.nvm/versions/node/vX/bin/npm`.
+NPM ?= npm
+
 # Default target: build native (SDL) backend
 all: build-sdl
 
@@ -37,12 +43,23 @@ build-wasm:
 	@test -f "$(GHC_WASM_ENV)" || { echo "GHC_WASM_ENV not found at $(GHC_WASM_ENV) -- install ghc-wasm-meta, or pass GHC_WASM_ENV=/path/to/env"; exit 1; }
 	. $(GHC_WASM_ENV) && wasm32-wasi-cabal build --project-file=cabal.project.wasm all
 
+# Vendor @bjorn3/browser_wasi_shim into a demo directory. Real file targets
+# (not .PHONY): npm runs only when node_modules is missing or package.json
+# is newer, so a normal build doesn't reinstall every time.
+rogui-wasm-backend/app/node_modules: rogui-wasm-backend/app/package.json
+	cd rogui-wasm-backend/app && $(NPM) install
+	@touch $@
+
+rogui-wasm-backend/app-list/node_modules: rogui-wasm-backend/app-list/package.json
+	cd rogui-wasm-backend/app-list && $(NPM) install
+	@touch $@
+
 # Build the WASM demo and stage it, ready to serve, next to app/index.html:
 # the compiled .wasm, its post-link.mjs JS FFI glue, and a copy of
-# jsbits/rogui-runtime.js. Requires `npm install` to have been run once in
-# rogui-wasm-backend/app (for @bjorn3/browser_wasi_shim, index.html's WASI
-# implementation -- browsers don't ship one).
-build-wasm-demo:
+# jsbits/rogui-runtime.js. The node_modules prerequisite vendors
+# @bjorn3/browser_wasi_shim (index.html's WASI implementation -- browsers
+# don't ship one); override NPM if npm isn't on make's PATH.
+build-wasm-demo: rogui-wasm-backend/app/node_modules
 	@test -f "$(GHC_WASM_ENV)" || { echo "GHC_WASM_ENV not found at $(GHC_WASM_ENV) -- install ghc-wasm-meta, or pass GHC_WASM_ENV=/path/to/env"; exit 1; }
 	. $(GHC_WASM_ENV) && wasm32-wasi-cabal build --project-file=cabal.project.wasm rogui-wasm-demo
 	. $(GHC_WASM_ENV) && cp "$$(wasm32-wasi-cabal list-bin --project-file=cabal.project.wasm rogui-wasm-demo)" \
@@ -54,14 +71,15 @@ build-wasm-demo:
 	@echo "Staged in rogui-wasm-backend/app/. Run 'make serve-wasm-demo' (or serve that directory yourself) and open index.html."
 
 # Serve the staged WASM demo directory over HTTP (fetch() of the tileset
-# PNG needs a real origin, file:// won't work).
-serve-wasm-demo:
+# PNG needs a real origin, file:// won't work). Depends on node_modules so
+# `make serve-wasm-demo` on a fresh checkout doesn't 404 on the WASI shim
+# import; it does NOT rebuild the .wasm (run build-wasm-demo for that).
+serve-wasm-demo: rogui-wasm-backend/app/node_modules
 	cd rogui-wasm-backend/app && python3 -m http.server 8000
 
 # Same as build-wasm-demo, for the second, interactive demo (keyboard
-# navigation, mouse clicks, window resize -- see app-list/Main.hs). Also
-# requires `npm install` once in rogui-wasm-backend/app-list.
-build-wasm-list-demo:
+# navigation, mouse clicks, window resize -- see app-list/Main.hs).
+build-wasm-list-demo: rogui-wasm-backend/app-list/node_modules
 	@test -f "$(GHC_WASM_ENV)" || { echo "GHC_WASM_ENV not found at $(GHC_WASM_ENV) -- install ghc-wasm-meta, or pass GHC_WASM_ENV=/path/to/env"; exit 1; }
 	. $(GHC_WASM_ENV) && wasm32-wasi-cabal build --project-file=cabal.project.wasm rogui-wasm-list-demo
 	. $(GHC_WASM_ENV) && cp "$$(wasm32-wasi-cabal list-bin --project-file=cabal.project.wasm rogui-wasm-list-demo)" \
@@ -72,8 +90,9 @@ build-wasm-list-demo:
 	cp rogui-wasm-backend/jsbits/rogui-runtime.js rogui-wasm-backend/app-list/rogui-runtime.js
 	@echo "Staged in rogui-wasm-backend/app-list/. Run 'make serve-wasm-list-demo' and open index.html."
 
-# Serve the staged interactive WASM demo directory over HTTP.
-serve-wasm-list-demo:
+# Serve the staged interactive WASM demo directory over HTTP. See
+# serve-wasm-demo above re: the node_modules prerequisite.
+serve-wasm-list-demo: rogui-wasm-backend/app-list/node_modules
 	cd rogui-wasm-backend/app-list && python3 -m http.server 8001
 
 # Generate Haddock documentation
@@ -104,10 +123,18 @@ lint:
 clean:
 	cabal clean
 
-# Clean everything
+# Clean everything, including staged WASM demo artifacts and vendored
+# node_modules.
 clean-all:
 	cabal clean
 	rm -rf dist-newstyle
+	rm -rf rogui-wasm-backend/app/node_modules rogui-wasm-backend/app-list/node_modules
+	rm -f rogui-wasm-backend/app/rogui-wasm-demo.wasm \
+	      rogui-wasm-backend/app/rogui-wasm-demo.jsffi.js \
+	      rogui-wasm-backend/app/rogui-runtime.js \
+	      rogui-wasm-backend/app-list/rogui-wasm-list-demo.wasm \
+	      rogui-wasm-backend/app-list/rogui-wasm-list-demo.jsffi.js \
+	      rogui-wasm-backend/app-list/rogui-runtime.js
 
 # Show help
 help:
