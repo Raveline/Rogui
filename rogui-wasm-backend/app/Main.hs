@@ -3,7 +3,7 @@
 
 -- | Minimal smoke-test/demo for the WASM backend: proves the whole pipeline
 -- (compile, link, `post-link.mjs`, instantiate in a browser, draw, take
--- input) end to end. See ../../wasm.md at the repo root.
+-- input) end to end.
 --
 -- Unlike the SDL demos (`rogui-demos`), this can't call `bootAndPrintError`:
 -- the browser owns the main thread, so there is no blocking game loop. The

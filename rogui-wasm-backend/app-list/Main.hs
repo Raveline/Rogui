@@ -12,8 +12,7 @@
 -- Structurally this is identical to `app/Main.hs` -- same `Rogui.Backend.WASM.Run`
 -- shim, same `-no-hs-main` + `app/cbits/wasm_main.c` (shared, not duplicated;
 -- see the cabal file) -- only `DemoState`/`RoguiConfig`/the drawing and event
--- functions differ, ported verbatim from the SDL original. See ../../wasm.md
--- and ../../howto.md.
+-- functions differ, ported verbatim from the SDL original.
 module Main (main) where
 
 import Control.Monad (when)
