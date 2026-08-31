@@ -86,11 +86,14 @@ step 5 below — they're not optional, so include them from the start.
 Your native `Main.hs` almost certainly calls `bootAndPrintError` (or
 `boot`), which blocks until the app quits — that model doesn't exist in a
 browser, since the browser owns the main thread. Instead, drive
-`Rogui.Application.System.appInit`/`appTick` directly through two
-`foreign export javascript` functions that JavaScript calls: one to set
-up, one to run a single frame. This template adapts directly from
-`rogui-wasm-backend/app/Main.hs` — swap in your own `Consoles`/`Brushes`/
-state/event types and `RoguiConfig`:
+`Rogui.Application.System.appInit`/`appTick` through two `foreign export
+javascript` functions that JavaScript calls: one to set up, one to run a
+single frame. `Rogui.Backend.WASM.Run.mkWasmApp` builds both for you (it
+owns the two-phase sequencing, the frame-loop state, re-entrancy
+guarding, and error propagation); your `Main.hs` supplies the config and
+the irreducible shim — one `NOINLINE` top-level binding and the two
+`foreign export` declarations, which have to stay in the executable.
+This template adapts directly from `rogui-wasm-backend/app/Main.hs`:
 
 ```haskell
 {-# LANGUAGE ImportQualifiedPost #-}
@@ -99,13 +102,10 @@ state/event types and `RoguiConfig`:
 module Main (main) where
 
 import Control.Monad.Except (ExceptT, runExceptT)
-import Control.Monad.IO.Class (liftIO)
-import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Log (LogT)
 import Rogui.Application
 import Rogui.Backend.WASM (wasmBackend)
-import Rogui.Backend.WASM.FFI (CanvasContext, WASMTexture)
-import Rogui.Types (Rogui)
+import Rogui.Backend.WASM.Run (WasmApp (..), mkWasmApp)
 import System.IO.Unsafe (unsafePerformIO)
 
 -- Your own types, and your own initial application state:
@@ -116,43 +116,26 @@ import System.IO.Unsafe (unsafePerformIO)
 
 type AppM = ExceptT (RoguiError () Consoles Brushes) (LogT IO)
 
-type AppRogui = Rogui Consoles Brushes () YourState YourEvent CanvasContext WASMTexture AppM
+{-# NOINLINE wasmApp #-}
+wasmApp :: WasmApp
+wasmApp =
+  unsafePerformIO $
+    mkWasmApp wasmBackend (withoutLogging . runExceptT) config initialState
+  where
+    initialState = () -- your own initial state value
 
-{-# NOINLINE tickAction #-}
-tickAction :: IORef (IO Bool)
-tickAction = unsafePerformIO (newIORef (pure False))
+foreign export javascript "wasmInit" hsWasmInit :: IO ()
 
-foreign export javascript "wasmTick" wasmTickExport :: IO Bool
+hsWasmInit :: IO ()
+hsWasmInit = wasmAppInit wasmApp
 
-wasmTickExport :: IO Bool
-wasmTickExport = readIORef tickAction >>= id
+foreign export javascript "wasmTick" hsWasmTick :: IO Bool
 
-foreign export javascript "wasmInit" wasmInitExport :: IO ()
-
-wasmInitExport :: IO ()
-wasmInitExport = do
-  result <-
-    withoutLogging . runExceptT $
-      appInit wasmBackend config $ \rogui0 -> liftIO $ do
-        stateRef <- newIORef (rogui0, initialState) -- your own initial state value
-        writeIORef tickAction (runOneTick stateRef)
-  case result of
-    Left err -> print err
-    Right () -> pure ()
+hsWasmTick :: IO Bool
+hsWasmTick = wasmAppTick wasmApp
 
 main :: IO ()
 main = pure ()
-
-runOneTick :: IORef (AppRogui, YourState) -> IO Bool
-runOneTick stateRef = do
-  (rogui, st) <- readIORef stateRef
-  outcome <- withoutLogging . runExceptT $ appTick wasmBackend rogui st
-  case outcome of
-    Left err -> print err >> pure False
-    Right TickHalt -> pure False
-    Right (TickContinue newRogui newSt) -> do
-      writeIORef stateRef (newRogui, newSt)
-      pure True
 
 config :: RoguiConfig Consoles Brushes () YourState YourEvent AppM
 config = RoguiConfig { {- same fields you already have for the SDL build -} }
@@ -166,7 +149,13 @@ javascript` function. `main`/`_start` is WASI's synchronous,
 un-awaitable entry point; doing async work in its dynamic extent throws
 `WouldBlockException` at runtime. So `main` does nothing, and `wasmInit`
 (called and awaited by your HTML, right after `_start`) does the real
-setup.
+setup. `mkWasmApp` packages that split; see its Haddock for the details.
+
+If initialisation or a tick fails, `mkWasmApp` writes the reason to the
+browser console and throws, so `await wasmInit()` rejects (rather than the
+loop starting against a half-built state) and a tick error surfaces in
+`RoguiRuntime.startLoop`'s `.catch`. The `index.html` from step 7 shows
+that on the page instead of leaving a blank canvas.
 
 Everything else — `RoguiConfig`, your `drawingFunction`, your
 `eventFunction`, your components — is identical to your native app. This

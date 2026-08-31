@@ -6,37 +6,23 @@
 -- input) end to end. See ../../wasm.md at the repo root.
 --
 -- Unlike the SDL demos (`rogui-demos`), this can't call `bootAndPrintError`:
--- the browser owns the main thread, so there is no blocking game loop.
--- `appInit`/`appTick` are instead driven through two `foreign export
--- javascript` functions, `wasmInit` and `wasmTick`, called from
--- `index.html`/`RoguiRuntime.startLoop`.
---
--- Why two exports rather than doing it all in `main`: `appInit` loads the
--- default brush via an async (`safe`) FFI call (fetching and decoding the
--- tileset image), and that can only be awaited from a Haskell thread that
--- JS itself called and can suspend on -- i.e. a `foreign export
--- javascript`-exported function, which the generated glue lets JS `await`.
--- `main`/`_start` is WASI's synchronous, un-awaitable entry point; calling
--- an async FFI import from within it throws `WouldBlockException` (found by
--- actually running this in a browser -- see the "Implementation notes"
--- section of ../../wasm.md for the trace). So `main` does nothing, and
--- `wasmInit` (called and awaited by index.html right after `_start`) does
--- the real setup, stashing the resulting `Rogui` value in an `IORef` and
--- pointing `wasmTick` at a closure that runs one `appTick` per call.
+-- the browser owns the main thread, so there is no blocking game loop. The
+-- two-phase `wasmInit`/`wasmTick` split and all the state plumbing it needs
+-- live in `Rogui.Backend.WASM.Run`; see that module's header for why the
+-- split is mandatory. This file only supplies the app-specific config and
+-- the irreducible shim: one `NOINLINE` top-level `WasmApp` and the two
+-- `foreign export javascript` declarations pointing at its fields.
 module Main (main) where
 
 import Control.Monad.Except (ExceptT, runExceptT)
-import Control.Monad.IO.Class (liftIO)
-import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Map qualified as M
 import Linear (V2 (..))
 import Log (LogT)
 import Rogui.Application
 import Rogui.Backend.WASM (wasmBackend)
-import Rogui.Backend.WASM.FFI (CanvasContext, WASMTexture)
+import Rogui.Backend.WASM.Run (WasmApp (..), mkWasmApp)
 import Rogui.Components.Core (Component (..), emptyComponent)
 import Rogui.Graphics
-import Rogui.Types (Rogui)
 import System.IO.Unsafe (unsafePerformIO)
 
 data Consoles = Root
@@ -48,49 +34,29 @@ data Brushes = Charset
 -- | This demo never throws a custom `ApplicationError` and never fires a
 -- custom `AppEvent`, so both of `RoguiConfig`'s `err`/`event` type
 -- parameters are fixed to `()` here purely to pin them down for type
--- inference (`runOneTick`/`wasmTick` would otherwise leave them ambiguous).
+-- inference.
 type AppM = ExceptT (RoguiError () Consoles Brushes) (LogT IO)
 
-type AppRogui = Rogui Consoles Brushes () () () CanvasContext WASMTexture AppM
+-- | The single piece of process-wide state: built once (lazily, on first
+-- `foreign export` call), then read by both exports.
+{-# NOINLINE wasmApp #-}
+wasmApp :: WasmApp
+wasmApp =
+  unsafePerformIO $
+    mkWasmApp wasmBackend (withoutLogging . runExceptT) config ()
 
--- | The closure driving each frame, replaced once `appInit` has finished
--- setting things up. Starts out as a no-op that immediately halts, in case
--- `wasmTick` is somehow invoked before `main` has run.
-{-# NOINLINE tickAction #-}
-tickAction :: IORef (IO Bool)
-tickAction = unsafePerformIO (newIORef (pure False))
+foreign export javascript "wasmInit" hsWasmInit :: IO ()
 
-foreign export javascript "wasmTick" wasmTickExport :: IO Bool
+hsWasmInit :: IO ()
+hsWasmInit = wasmAppInit wasmApp
 
-wasmTickExport :: IO Bool
-wasmTickExport = readIORef tickAction >>= id
+foreign export javascript "wasmTick" hsWasmTick :: IO Bool
 
-foreign export javascript "wasmInit" wasmInitExport :: IO ()
-
-wasmInitExport :: IO ()
-wasmInitExport = do
-  result <-
-    withoutLogging . runExceptT $
-      appInit wasmBackend config $ \rogui0 -> liftIO $ do
-        stateRef <- newIORef (rogui0, ())
-        writeIORef tickAction (runOneTick stateRef)
-  case result of
-    Left err -> print err
-    Right () -> pure ()
+hsWasmTick :: IO Bool
+hsWasmTick = wasmAppTick wasmApp
 
 main :: IO ()
 main = pure ()
-
-runOneTick :: IORef (AppRogui, ()) -> IO Bool
-runOneTick stateRef = do
-  (rogui, st) <- readIORef stateRef
-  outcome <- withoutLogging . runExceptT $ appTick wasmBackend rogui st
-  case outcome of
-    Left err -> print err >> pure False
-    Right TickHalt -> pure False
-    Right (TickContinue newRogui newSt) -> do
-      writeIORef stateRef (newRogui, newSt)
-      pure True
 
 config :: RoguiConfig Consoles Brushes () () () AppM
 config =

@@ -9,27 +9,24 @@
 -- demo (`app/Main.hs`) doesn't: keyboard focus, mouse clicks against
 -- recorded extents, and `allowResize`.
 --
--- Structurally this is identical to `app/Main.hs` -- same `wasmInit`/
--- `wasmTick` export split, same `-no-hs-main` + `app/cbits/wasm_main.c`
--- (shared, not duplicated; see the cabal file) -- only `DemoState`/
--- `RoguiConfig`/the drawing and event functions differ, ported verbatim
--- from the SDL original. See ../../wasm.md and ../../howto.md.
+-- Structurally this is identical to `app/Main.hs` -- same `Rogui.Backend.WASM.Run`
+-- shim, same `-no-hs-main` + `app/cbits/wasm_main.c` (shared, not duplicated;
+-- see the cabal file) -- only `DemoState`/`RoguiConfig`/the drawing and event
+-- functions differ, ported verbatim from the SDL original. See ../../wasm.md
+-- and ../../howto.md.
 module Main (main) where
 
 import Control.Monad (when)
 import Control.Monad.Except (ExceptT, runExceptT)
-import Control.Monad.IO.Class (liftIO)
-import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Map qualified as M
 import Linear (V2 (..))
 import Log (LogT)
 import Rogui.Application
 import Rogui.Backend.WASM (wasmBackend)
-import Rogui.Backend.WASM.FFI (CanvasContext, WASMTexture)
+import Rogui.Backend.WASM.Run (WasmApp (..), mkWasmApp)
 import Rogui.Components.Core (Component (..), bordered, emptyComponent, vBox)
 import Rogui.Components.List
 import Rogui.Graphics
-import Rogui.Types (Rogui)
 import System.IO.Unsafe (unsafePerformIO)
 
 data Consoles = Root
@@ -45,43 +42,28 @@ newtype DemoState = DemoState {listState :: ListState}
 
 type AppM = ExceptT (RoguiError () Consoles Brushes) (LogT IO)
 
-type AppRogui = Rogui Consoles Brushes Names DemoState () CanvasContext WASMTexture AppM
+{-# NOINLINE wasmApp #-}
+wasmApp :: WasmApp
+wasmApp =
+  unsafePerformIO $
+    mkWasmApp
+      wasmBackend
+      (withoutLogging . runExceptT)
+      config
+      DemoState {listState = mkListState}
 
-{-# NOINLINE tickAction #-}
-tickAction :: IORef (IO Bool)
-tickAction = unsafePerformIO (newIORef (pure False))
+foreign export javascript "wasmInit" hsWasmInit :: IO ()
 
-foreign export javascript "wasmTick" wasmTickExport :: IO Bool
+hsWasmInit :: IO ()
+hsWasmInit = wasmAppInit wasmApp
 
-wasmTickExport :: IO Bool
-wasmTickExport = readIORef tickAction >>= id
+foreign export javascript "wasmTick" hsWasmTick :: IO Bool
 
-foreign export javascript "wasmInit" wasmInitExport :: IO ()
-
-wasmInitExport :: IO ()
-wasmInitExport = do
-  result <-
-    withoutLogging . runExceptT $
-      appInit wasmBackend config $ \rogui0 -> liftIO $ do
-        stateRef <- newIORef (rogui0, DemoState {listState = mkListState})
-        writeIORef tickAction (runOneTick stateRef)
-  case result of
-    Left err -> print err
-    Right () -> pure ()
+hsWasmTick :: IO Bool
+hsWasmTick = wasmAppTick wasmApp
 
 main :: IO ()
 main = pure ()
-
-runOneTick :: IORef (AppRogui, DemoState) -> IO Bool
-runOneTick stateRef = do
-  (rogui, st) <- readIORef stateRef
-  outcome <- withoutLogging . runExceptT $ appTick wasmBackend rogui st
-  case outcome of
-    Left err -> print err >> pure False
-    Right TickHalt -> pure False
-    Right (TickContinue newRogui newSt) -> do
-      writeIORef stateRef (newRogui, newSt)
-      pure True
 
 config :: RoguiConfig Consoles Brushes Names DemoState () AppM
 config =

@@ -72,6 +72,10 @@ module Rogui.Backend.WASM.FFI
     -- * String marshalling helpers (see the module note above)
     withUtf8,
     jsValToString,
+
+    -- * Diagnostics
+    consoleError,
+    js_consoleError,
   )
 where
 
@@ -263,3 +267,14 @@ jsValToString :: JSVal -> IO String
 jsValToString v = do
   n <- js_jsStringLength v
   traverse (fmap toEnum . js_jsStringCharCodeAt v) [0 .. n - 1]
+
+-- | Write a line to the browser console's error channel. The host page also
+-- wires WASI stdout/stderr to `console.*`, but that path only carries
+-- output a `foreign export` actually returned through; a thrown Haskell
+-- exception bypasses it, so failures worth seeing are logged here directly.
+consoleError :: String -> IO ()
+consoleError s = withUtf8 s js_consoleError
+
+foreign import javascript unsafe
+  "console.error(new TextDecoder('utf-8').decode(new Uint8Array(__exports.memory.buffer,$1,$2)))"
+  js_consoleError :: Ptr () -> Int -> IO ()
