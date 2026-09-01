@@ -256,9 +256,18 @@
       if (!canvas.hasAttribute("tabindex")) canvas.tabIndex = 0;
 
       const push = (e) => this._events.push(e);
+      // Pointer events give CSS-pixel offsets; the backend draws (and records
+      // click extents) in bitmap pixels. Scale by canvas.width/rect.width so
+      // clicks stay accurate even while the canvas is CSS-stretched (which it
+      // is between load and the first resize -- see syncSize below).
       const canvasPos = (e) => {
         const r = canvas.getBoundingClientRect();
-        return [Math.round(e.clientX - r.left), Math.round(e.clientY - r.top)];
+        const sx = r.width ? canvas.width / r.width : 1;
+        const sy = r.height ? canvas.height / r.height : 1;
+        return [
+          Math.round((e.clientX - r.left) * sx),
+          Math.round((e.clientY - r.top) * sy),
+        ];
       };
 
       // Kind codes must match Rogui.Backend.WASM.FFI.js_eventKind's haddock:
@@ -291,22 +300,31 @@
         push({ kind: 4, x, y, button: e.button });
       });
 
+      // Match the canvas bitmap resolution to its rendered CSS box (its own
+      // box, not its parent's) and tell the app about it. A no-op when they
+      // already agree. Run once now so the very first frame isn't a stretched
+      // 800x608 bitmap, and again on every window resize.
+      const syncSize = () => {
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.round(rect.width) || global.innerWidth;
+        const h = Math.round(rect.height) || global.innerHeight;
+        if (canvas.width === w && canvas.height === h) return;
+        canvas.width = w;
+        canvas.height = h;
+        // Keep the offscreen canvas (see setupOffscreen/present above) the
+        // same size as the visible one it gets blitted onto. On the initial
+        // call there is no offscreen yet -- setupOffscreen runs after
+        // installListeners and picks up the corrected canvas.width itself.
+        if (canvas.__roguiOffscreenCanvas) {
+          canvas.__roguiOffscreenCanvas.width = w;
+          canvas.__roguiOffscreenCanvas.height = h;
+        }
+        push({ kind: 5, w, h });
+      };
+
       if (allowResize) {
-        global.addEventListener("resize", () => {
-          // The canvas's own rendered CSS box, not its parent's.
-          const rect = canvas.getBoundingClientRect();
-          const w = Math.round(rect.width) || global.innerWidth;
-          const h = Math.round(rect.height) || global.innerHeight;
-          canvas.width = w;
-          canvas.height = h;
-          // Keep the offscreen canvas (see setupOffscreen/present above)
-          // the same size as the visible one it gets blitted onto.
-          if (canvas.__roguiOffscreenCanvas) {
-            canvas.__roguiOffscreenCanvas.width = w;
-            canvas.__roguiOffscreenCanvas.height = h;
-          }
-          push({ kind: 5, w, h });
-        });
+        syncSize();
+        global.addEventListener("resize", syncSize);
       }
     },
 
