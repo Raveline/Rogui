@@ -1,16 +1,6 @@
-// Small shared helpers for the browser checks in this directory. Nothing
-// here is a test framework -- each script is a plain Node script that
-// exits non-zero on failure, run directly with `node`. See README.md.
-
+// Small shared helpers for the browser checks in this directory.
 import { chromium } from "playwright-core";
 
-// We depend on `playwright-core`, not `playwright`: it has no
-// browser-download postinstall (so `npm install` needs no network and
-// isn't subject to that step's CVEs), and it's the last line that still
-// runs on the Node 18 this repo targets. The tradeoff is that it never
-// bundles a browser, so we drive one already installed on the machine:
-// $ROGUI_TEST_CHROME if set, otherwise Playwright's "chrome"/"chromium"
-// channels (system Google Chrome / Chromium), tried in turn.
 async function launchBrowser() {
   const explicit = process.env.ROGUI_TEST_CHROME;
   if (explicit) return chromium.launch({ executablePath: explicit });
@@ -47,10 +37,7 @@ export async function launch() {
   const unexpectedLogs = () =>
     logs.filter(
       (l) =>
-        // Noisy-but-harmless lines unrelated to anything these checks
-        // guard: the WASI shim's own debug output, a canvas perf hint,
-        // and the browser's automatic /favicon.ico probe (the demo pages
-        // don't ship one, so the static server 404s it).
+        // Noisy-but-harmless lines
         !l.includes("wasi:") &&
         !l.includes("willReadFrequently") &&
         !l.includes("/favicon.ico")
@@ -105,9 +92,9 @@ export async function waitFor(check, expected, { timeoutMs = 5000, intervalMs = 
 }
 
 // Converts canvas-relative (x, y) into page coordinates suitable for
-// page.mouse.*: the canvas isn't at the page origin (there's an
-// instructions paragraph above it), so page.mouse.click(x, y) with raw
-// canvas coordinates lands in the wrong place.
+// page.mouse.*: the canvas isn't at the page origin so
+// page.mouse.click(x, y) with raw canvas coordinates lands in the
+// wrong place.
 export async function canvasPoint(page, x, y) {
   const rect = await page.evaluate(() => {
     const r = document.querySelector("canvas").getBoundingClientRect();
@@ -128,8 +115,7 @@ export async function canvasPoint(page, x, y) {
 // backend: `present()`'s canvas blit used to leave stale selection
 // highlights on screen forever once superseded, because the default
 // "source-over" canvas compositing doesn't overwrite a destination pixel
-// where the source is transparent. See the comment on `present` in
-// jsbits/rogui-runtime.js for the full story.
+// where the source is transparent.
 export async function highlightedRows(page, { rowStartY = 16, rowHeight = 48, sampleX = 15 } = {}) {
   return page.evaluate(
     ({ rowStartY, rowHeight, sampleX }) => {

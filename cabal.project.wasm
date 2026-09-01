@@ -10,8 +10,4 @@ packages:
   rogui/rogui.cabal
   rogui-wasm-backend/rogui-wasm-backend.cabal
 
--- The wasm32-wasi cross GHC (currently 9.14.x, bundled by ghc-wasm-meta) is
--- newer than the native GHC these packages' `base` upper bounds were tuned
--- for (native is 9.12.2, base <4.22). Loosen only `base` for this project
--- rather than touching the packages' actual version bounds.
 allow-newer: base

@@ -50,10 +50,6 @@ library
     rogui >=0.1.0 && <0.2,
     text >=2.1.2 && <2.2
 
-  -- The JavaScript FFI (`foreign import javascript`) and the `GHC.Wasm.Prim`
-  -- module (JSVal, JSString, ...) used by this backend are only available
-  -- when actually compiling with the wasm32-wasi cross GHC. This package is
-  -- meaningless to build with a native GHC.
   if arch(wasm32)
     build-depends: ghc-experimental
   else
@@ -61,11 +57,6 @@ library
 
   hs-source-dirs: src
 
--- A minimal smoke-test/demo proving the backend end to end: `wasm32-wasi-cabal
--- build rogui-wasm-demo`, then run the toolchain's `post-link.mjs` on the
--- produced `.wasm` (see ../wasm.md) and open app/index.html through a local
--- HTTP server (not `file://`, `fetch()` of the tileset PNG needs a real
--- origin).
 executable rogui-wasm-demo
   import: warnings
   default-language: Haskell2010
@@ -83,25 +74,12 @@ executable rogui-wasm-demo
 
   if arch(wasm32)
     build-depends: ghc-experimental
-    -- Build a wasm32-wasi *reactor* module rather than the default
-    -- *command* module. A command module exports `_start`, which GHC wires
-    -- to `hs_init` -> `Main.main` -> `hs_exit`: the RTS is torn down as soon
-    -- as `main` returns, before JS can call the `foreign export javascript`
-    -- functions (`wasmInit`, `wasmTick`) this executable exists to expose. A
-    -- reactor module exports `_initialize` instead, which sets up the RTS
-    -- without running `main` and never calls `hs_exit`, leaving the instance
-    -- alive for the requestAnimationFrame driver. `-no-hs-main` drops GHC's
-    -- `main()`; the `--export` flags keep the two entry points.
     ghc-options:
       -no-hs-main -optl-mexec-model=reactor
       -optl-Wl,--export=wasmInit -optl-Wl,--export=wasmTick
   else
     buildable: False
 
--- A second, interactive demo: a port of rogui-demos' ListDemo (keyboard
--- navigation, mouse clicks, window resize) onto wasmBackend. Structurally
--- identical to rogui-wasm-demo above (same wasmInit/wasmTick export split,
--- same reactor-module ghc-options); see app-list/Main.hs and ../howto.md.
 executable rogui-wasm-list-demo
   import: warnings
   default-language: Haskell2010
@@ -119,7 +97,6 @@ executable rogui-wasm-list-demo
 
   if arch(wasm32)
     build-depends: ghc-experimental
-    -- See rogui-wasm-demo above for why this is a reactor module.
     ghc-options:
       -no-hs-main -optl-mexec-model=reactor
       -optl-Wl,--export=wasmInit -optl-Wl,--export=wasmTick

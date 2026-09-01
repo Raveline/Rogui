@@ -7,21 +7,11 @@
 --
 -- The browser owns the main thread, so a WASM app can't call
 -- `bootAndPrintError`/`appLoop`: there is no blocking game loop. Instead the
--- host page calls two `foreign export javascript` functions -- one to set
--- things up, one to run a single frame -- from a `requestAnimationFrame`
+-- host page calls two `foreign export javascript` functions - one to set
+-- things up, one to run a single frame - from a `requestAnimationFrame`
 -- driver (see @jsbits/rogui-runtime.js@, @RoguiRuntime.startLoop@).
 --
--- Splitting setup from the per-frame tick is not optional: `appInit` loads
--- the default brush through an async (@safe@) FFI call, and that can only be
--- awaited from a Haskell thread that JS itself called and can suspend on --
--- i.e. a `foreign export javascript`-exported function. So all the real work
--- happens in the exported @wasmInit@, called by the host page right after
--- the reactor module's @_initialize@ (which just sets the RTS up).
---
--- This module owns everything about that dance except the two `foreign
--- export javascript` declarations themselves (which must be monomorphic,
--- top-level, and live in the executable so the linker keeps them) and the
--- single top-level binding they read from. A WASM app reduces to:
+-- A WASM app reduces to:
 --
 -- @
 -- \{-\# NOINLINE wasmApp \#-\}
@@ -97,14 +87,13 @@ data StopReason
   deriving (Eq, Show)
 
 -- | Thrown out of `wasmAppInit`/`wasmAppTick` on failure so the condition
--- reaches JS as a rejected Promise instead of being swallowed.
+-- reaches JS as a rejected Promise.
 newtype WasmAppException = WasmAppException StopReason
   deriving (Show)
 
 instance Exception WasmAppException
 
 -- | Internal: what the driver's single mutable cell holds between frames.
--- Never escapes this module.
 data LoopState rc rb n s e m
   = -- | `wasmAppInit` has not completed. `wasmAppTick` no-ops (returns
     -- 'False'); the host page is expected to @await wasmInit()@ first.
@@ -118,10 +107,6 @@ data LoopState rc rb n s e m
 -- state and returns the two IO actions closing over it; run this once, at
 -- the top level, through `unsafePerformIO` with a @{-\# NOINLINE \#-}@
 -- pragma (see the module header for the full shim).
---
--- The rank-2 argument discharges the application monad down to `IO`,
--- surfacing errors as `Left`. For the usual @ExceptT (RoguiError ...) (LogT
--- IO)@ stack it is @'withoutLogging' . 'runExceptT'@.
 mkWasmApp ::
   forall rc rb n s e m err.
   ( Show rb,
@@ -134,8 +119,6 @@ mkWasmApp ::
     MonadError (RoguiError err rc rb) m,
     MonadLog m
   ) =>
-  -- | The backend event type is unified with the config's; `wasmBackend` is
-  -- polymorphic in it, so it takes whatever the application uses.
   Backend CanvasContext WASMTexture e ->
   -- | Discharge the application monad, e.g. @withoutLogging . runExceptT@.
   (forall a. m a -> IO (Either (RoguiError err rc rb) a)) ->
@@ -145,11 +128,9 @@ mkWasmApp ::
   IO WasmApp
 mkWasmApp backend runM config initialState = do
   stateRef <- newIORef (AwaitingInit :: LoopState rc rb n s e m)
-  -- Held while a tick's Haskell continuation is still in flight. A
-  -- `foreign export javascript` call into this RTS always returns a
-  -- Promise, and rogui-runtime.js's driver already chains on it, but the
-  -- read-modify-write of `stateRef` below is the thing that actually
-  -- depends on ticks not overlapping -- so guard it here too.
+  -- An MVar-as-mutex to ensure, if the promise mechanism of the FFI should ever
+  -- fail us, that we won't try to run two ticks at the same time if the first call
+  -- takes a bit too much time.
   gate <- newMVar ()
   let runInit :: IO ()
       runInit = do

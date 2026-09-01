@@ -2,12 +2,6 @@
 
 This is a practical guide for someone building a game or tool with Rogui
 who wants to also ship it as a browser build, using `rogui-wasm-backend`.
-It assumes you already have a working native (SDL) Rogui app. For the
-backend's own design and the toolchain gotchas behind the choices made
-here, see `wasm.md` at the repo root — this doc just tells you how to plug
-your own app into it. `rogui-wasm-backend/app/` (the backend's own smoke
-test) is a complete, working example of everything below; when in doubt,
-look at what it does.
 
 ## 1. Install the toolchain
 
@@ -44,9 +38,6 @@ packages:
 allow-newer: base
 ```
 
-(If you vendor `rogui`/`rogui-wasm-backend` via `source-repository-package`
-or a local path instead of Hackage, list those paths here too.)
-
 Build with:
 
 ```bash
@@ -80,9 +71,7 @@ executable your-wasm-app
 ```
 
 The `ghc-options`/`if arch(wasm32)` pieces are explained in step 5 below —
-they're not optional, so include them from the start. If you name your
-exports something other than `wasmInit`/`wasmTick`, adjust the `--export`
-flags to match.
+they're not optional, so include them from the start.
 
 ## 4. Write your app's `Main.hs`
 
@@ -99,7 +88,6 @@ the irreducible shim — one `NOINLINE` top-level binding and the two
 This template adapts directly from `rogui-wasm-backend/app/Main.hs`:
 
 ```haskell
-{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main (main) where
@@ -183,9 +171,6 @@ in the linked module. This is the standard setup for GHC wasm modules
 that use the JavaScript FFI — see the "JavaScript FFI" section of the GHC
 User's Guide.
 
-There is no app-specific code here: the three `ghc-options` in step 3 are
-all you need.
-
 ## 6. Assets (tilesets)
 
 `loadBrush`'s `Either ByteString FilePath` works the same way it does
@@ -259,14 +244,6 @@ the templates above instead of following them:
   reactor model you get a command module whose RTS shuts down the instant
   `_start` returns, and every subsequent `wasmTick` call fails with "RTS
   is not initialised".
-- **`JSString` doesn't work on at least some `wasm32-wasi-ghc` snapshots.**
-  If you write your own `foreign import javascript` declarations (for
-  custom browser APIs Rogui doesn't cover), avoid `GHC.Wasm.Prim.JSString`
-  in the signature; pass strings as UTF-8 bytes (`Ptr () -> Int`, see
-  `Rogui.Backend.WASM.FFI.withUtf8`) or read them back via `JSVal` +
-  `charCodeAt`, mirroring that module. Check whether this is still true on
-  whatever toolchain snapshot you're using before assuming you need the
-  workaround.
 - **Haskell `Bool` marshals to JS as `0`/`1`, not `true`/`false`.** Fine
   for truthiness checks; coerce with `!!` if you pass one into a
   strictly-typed Web API.

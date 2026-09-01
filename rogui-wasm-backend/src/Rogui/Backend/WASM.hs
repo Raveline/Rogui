@@ -2,8 +2,7 @@
 
 -- | A Rogui backend that renders to an HTML5 `<canvas>` element, targeting
 -- GHC's `wasm32-wasi` cross-compiler and its `foreign import javascript`
--- FFI. See ../../../wasm.md at the repo root for the full design and the
--- phased rollout plan this module follows.
+-- FFI.
 --
 -- Unlike the SDL backends, this one cannot drive a blocking game loop: the
 -- browser owns the main thread. Use `Rogui.Application.System.appInit` and
@@ -38,13 +37,8 @@ wasmBackend =
       getTicks = getWASMTicks,
       takeScreenshot = takeWASMScreenshot,
       -- `requestAnimationFrame` already paces frames to the browser's
-      -- refresh rate; sleeping here would additionally call `threadDelay`,
-      -- which forces a bound task servicing a `foreign export javascript`
-      -- call to await a nested async JSFFI thunk (the browser-only,
-      -- setTimeout-based `threadDelay` override) -- a pattern the wasm
-      -- backend's docs flag as unsupported for exported entry points and
-      -- which was observed to make `wasmTick`'s Promise hang or resolve
-      -- out of order. See ../../../wasm.md.
+      -- refresh rate: we should not try to threadDelay, which in any case
+      -- doesn't compose nicely and causes weird behaviour in the browser.
       frameSleep = const (pure ())
     }
 
@@ -62,15 +56,8 @@ initWASMBackend appName (V2 (Pixel w) (Pixel h)) allowResize withRenderer = do
   liftIO $ do
     js_setCanvasSize canvas w h
     js_setTitle (toJSString (T.unpack appName))
-    -- When `allowResize`, the installed `resize` listener grows/shrinks the
-    -- canvas backing store to match its container and reports the new size
-    -- as a `WindowResized` event, mirroring `SDL.WindowSizeChangedEvent`.
     js_installListeners canvas allowResize
-  -- Draw to an offscreen canvas and blit it in one shot on `presentFrame`,
-  -- rather than clearing and redrawing the visible canvas glyph by glyph.
-  -- Without this, a slow frame (a GC pause, a big redraw) can let the
-  -- browser composite a partially-drawn frame, which is visible as
-  -- flicker; this is the standard fix for that class of Canvas 2D issue.
+  -- Double buffering setup
   ctx <- liftIO $ js_setupOffscreen canvas
   _ <- withRenderer (CanvasContext ctx)
   pure ()

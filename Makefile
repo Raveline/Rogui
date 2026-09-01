@@ -4,18 +4,11 @@
         lint clean clean-all help
 
 # Path to the ghc-wasm-meta env script that puts wasm32-wasi-ghc/-cabal on
-# PATH. Only sourcing it in your interactive shell (as the ghc-wasm-meta
-# install instructions tell you to) doesn't help `make`: each recipe line
-# below runs in its own fresh, non-interactive subshell that doesn't
-# inherit it, so the wasm-* targets source it themselves instead.
+# PATH. 
 # Override on the command line (`make build-wasm GHC_WASM_ENV=/path/to/env`)
 # if yours isn't at the default ghc-wasm-meta location.
 GHC_WASM_ENV ?= $(HOME)/.ghc-wasm/env
 
-# npm, used to vendor @bjorn3/browser_wasi_shim (the browsers-ship-no-WASI
-# shim that the demo index.html files import) into each demo directory's
-# node_modules. Override if npm isn't on PATH in make's non-interactive
-# shell, e.g. `make build-wasm-list-demo NPM=$(HOME)/.nvm/versions/node/vX/bin/npm`.
 NPM ?= npm
 
 # Default target: build native (SDL) backend
@@ -55,11 +48,7 @@ rogui-wasm-backend/app-list/node_modules: rogui-wasm-backend/app-list/package.js
 	cd rogui-wasm-backend/app-list && $(NPM) install
 	@touch $@
 
-# Build the WASM demo and stage it, ready to serve, next to app/index.html:
-# the compiled .wasm, its post-link.mjs JS FFI glue, and a copy of
-# jsbits/rogui-runtime.js. The node_modules prerequisite vendors
-# @bjorn3/browser_wasi_shim (index.html's WASI implementation -- browsers
-# don't ship one); override NPM if npm isn't on make's PATH.
+# Build the WASM demo and stage it, ready to serve, next to app/index.html.
 build-wasm-demo: rogui-wasm-backend/app/node_modules
 	@test -f "$(GHC_WASM_ENV)" || { echo "GHC_WASM_ENV not found at $(GHC_WASM_ENV) -- install ghc-wasm-meta, or pass GHC_WASM_ENV=/path/to/env"; exit 1; }
 	. $(GHC_WASM_ENV) && wasm32-wasi-cabal build --project-file=cabal.project.wasm rogui-wasm-demo
@@ -72,9 +61,7 @@ build-wasm-demo: rogui-wasm-backend/app/node_modules
 	@echo "Staged in rogui-wasm-backend/app/. Run 'make serve-wasm-demo' (or serve that directory yourself) and open index.html."
 
 # Serve the staged WASM demo directory over HTTP (fetch() of the tileset
-# PNG needs a real origin, file:// won't work). Depends on node_modules so
-# `make serve-wasm-demo` on a fresh checkout doesn't 404 on the WASI shim
-# import; it does NOT rebuild the .wasm (run build-wasm-demo for that).
+# PNG needs a real origin, file:// won't work). 
 serve-wasm-demo: rogui-wasm-backend/app/node_modules
 	cd rogui-wasm-backend/app && python3 -m http.server 8000
 
