@@ -95,7 +95,7 @@
       // throws); show it on the page rather than leaving an unhandled
       // rejection and a blank canvas.
       try {
-        wasi.start(instance);
+        wasi.initialize(instance);
         await instance.exports.wasmInit();
         globalThis.RoguiRuntime.startLoop(() => instance.exports.wasmTick());
       } catch (e) {

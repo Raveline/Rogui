@@ -73,17 +73,18 @@
       });
       Object.assign(__exports, instance.exports);
 
-      // WASI "command" style: running _start performs RTS init and runs
-      // Haskell's (trivial) `main`. The real setup -- which needs to fetch
-      // and decode the tileset image, an async operation -- happens in the
-      // `wasmInit` export instead, awaited here; see the note atop
-      // app/Main.hs for why that can't live in `main` itself.
+      // Reactor module: `wasi.initialize` calls the `_initialize` export,
+      // which sets up the RTS without running `main` or ever tearing it
+      // down (see the cabal file). The real setup -- fetching and decoding
+      // the tileset image, an async operation -- then happens in the
+      // `wasmInit` export, awaited here; see the note atop
+      // Rogui.Backend.WASM.Run for why it can't happen before that.
       //
       // A failed `wasmInit` (Rogui.Backend.WASM.Run throws, so the awaited
       // Promise rejects) would otherwise be an unhandled rejection with a
       // frozen blank canvas and no on-page hint why; surface it instead.
       try {
-        wasi.start(instance);
+        wasi.initialize(instance);
         await instance.exports.wasmInit();
         globalThis.RoguiRuntime.startLoop(() => instance.exports.wasmTick());
       } catch (e) {

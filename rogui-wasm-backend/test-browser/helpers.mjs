@@ -2,21 +2,59 @@
 // here is a test framework -- each script is a plain Node script that
 // exits non-zero on failure, run directly with `node`. See README.md.
 
-import { chromium } from "playwright";
+import { chromium } from "playwright-core";
 
-// Launches Chromium, collects console messages and page errors, and hands
+// We depend on `playwright-core`, not `playwright`: it has no
+// browser-download postinstall (so `npm install` needs no network and
+// isn't subject to that step's CVEs), and it's the last line that still
+// runs on the Node 18 this repo targets. The tradeoff is that it never
+// bundles a browser, so we drive one already installed on the machine:
+// $ROGUI_TEST_CHROME if set, otherwise Playwright's "chrome"/"chromium"
+// channels (system Google Chrome / Chromium), tried in turn.
+async function launchBrowser() {
+  const explicit = process.env.ROGUI_TEST_CHROME;
+  if (explicit) return chromium.launch({ executablePath: explicit });
+
+  const errors = [];
+  for (const channel of ["chrome", "chromium", "msedge"]) {
+    try {
+      return await chromium.launch({ channel });
+    } catch (e) {
+      errors.push(`  ${channel}: ${e.message.split("\n")[0]}`);
+    }
+  }
+  throw new Error(
+    "could not launch a browser. Install Google Chrome or Chromium, or set " +
+      "ROGUI_TEST_CHROME to a Chromium-based browser binary. Tried:\n" +
+      errors.join("\n")
+  );
+}
+
+// Launches a browser, collects console messages and page errors, and hands
 // back a `{ browser, page, logs, unexpectedLogs }` where `unexpectedLogs`
 // is `logs` filtered to drop the noisy-but-harmless WASI debug lines
 // (`wasi: 0 0`, the willReadFrequently perf hint) that show up on every
 // run regardless of anything this is meant to catch.
 export async function launch() {
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   const page = await browser.newPage({ viewport: { width: 900, height: 700 } });
   const logs = [];
-  page.on("console", (msg) => logs.push(`[console:${msg.type()}] ${msg.text()}`));
+  page.on("console", (msg) => {
+    const url = msg.location()?.url;
+    logs.push(`[console:${msg.type()}] ${msg.text()}${url ? ` (${url})` : ""}`);
+  });
   page.on("pageerror", (err) => logs.push(`[pageerror] ${err.stack || err.message}`));
   const unexpectedLogs = () =>
-    logs.filter((l) => !l.includes("wasi:") && !l.includes("willReadFrequently"));
+    logs.filter(
+      (l) =>
+        // Noisy-but-harmless lines unrelated to anything these checks
+        // guard: the WASI shim's own debug output, a canvas perf hint,
+        // and the browser's automatic /favicon.ico probe (the demo pages
+        // don't ship one, so the static server 404s it).
+        !l.includes("wasi:") &&
+        !l.includes("willReadFrequently") &&
+        !l.includes("/favicon.ico")
+    );
   return { browser, page, logs, unexpectedLogs };
 }
 

@@ -1,39 +1,64 @@
 # Browser checks for the WASM backend
 
-Playwright scripts that actually load the compiled demos in headless
-Chromium and drive them, rather than just reading the code. Not a test
-framework — each script is a plain Node script, run directly, that exits
-non-zero on failure. They exist because most of the real bugs found while
-building this backend were only visible by actually running it in a
-browser; see `../../wasm.md`'s "Implementation notes" and the comments in
-`interaction-list.mjs` for the specific ones each check guards against.
+`playwright-core` scripts that actually load the compiled demos in a
+headless browser and drive them, rather than just reading the code. Not a
+test framework — each script is a plain Node script, run directly, that
+exits non-zero on failure. They exist because most of the real bugs found
+while building this backend were only visible by actually running it in a
+browser; see the comments in `interaction-list.mjs` for the specific ones
+each check guards against.
 
-## Setup
+## Running everything
+
+From the repo root:
 
 ```bash
-cd rogui-wasm-backend/test-browser && npm install
+make test-browser
 ```
 
-Then have the demos built, staged, and served (see the repo root
-`Makefile`):
+That builds and stages both WASM demos, serves each on a local port,
+runs both scripts against a real browser, and stops the servers again.
+It needs the `wasm32-wasi` toolchain (like the other `*-wasm-*` targets)
+and a Chromium-based browser — see Requirements below.
+
+## Running a single script by hand
+
+```bash
+cd rogui-wasm-backend/test-browser && npm install     # once
+```
+
+Stage and serve the demo(s) you want (each `serve-*` blocks, so use
+separate terminals):
 
 ```bash
 make build-wasm-demo      && make serve-wasm-demo       # http://localhost:8000
 make build-wasm-list-demo && make serve-wasm-list-demo  # http://localhost:8001
 ```
 
-(Run the two `serve-*` commands in separate terminals — they block.)
-
-## Running
-
 ```bash
-node smoke-hello.mjs                    # or pass a different URL as argv[1]
-node interaction-list.mjs
+node smoke-hello.mjs       http://localhost:8000/index.html
+node interaction-list.mjs  http://localhost:8001/index.html
 ```
+
+Both scripts default to `http://127.0.0.1:8000` / `:8001` if you omit the
+URL.
+
+## Requirements
+
+- **Node 18 or newer.** `package.json` pins `playwright-core` to the 1.54
+  line, the last that still runs on Node 18.
+- **Google Chrome or Chromium installed.** `playwright-core` ships no
+  browser of its own; `helpers.mjs` launches the system one via
+  Playwright's `chrome`/`chromium`/`msedge` channels. If none is on the
+  default path, point at one explicitly:
+
+  ```bash
+  ROGUI_TEST_CHROME=/usr/bin/chromium make test-browser
+  ```
 
 ## What's here
 
-- `helpers.mjs` — shared bits: launching Chromium and collecting
+- `helpers.mjs` — shared bits: launching the browser and collecting
   console/page errors, a non-black-pixel sanity check, canvas-relative
   mouse coordinates, `waitFor` (poll for an expected state instead of a
   fixed delay — how long a redraw actually takes depends on real

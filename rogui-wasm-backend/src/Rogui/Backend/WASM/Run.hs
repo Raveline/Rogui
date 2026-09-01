@@ -14,10 +14,9 @@
 -- Splitting setup from the per-frame tick is not optional: `appInit` loads
 -- the default brush through an async (@safe@) FFI call, and that can only be
 -- awaited from a Haskell thread that JS itself called and can suspend on --
--- i.e. a `foreign export javascript`-exported function. WASI's synchronous
--- @_start@/`main` cannot; calling an async FFI import from within it throws
--- @WouldBlockException@. So `main` does nothing and the exported @wasmInit@
--- does the real work.
+-- i.e. a `foreign export javascript`-exported function. So all the real work
+-- happens in the exported @wasmInit@, called by the host page right after
+-- the reactor module's @_initialize@ (which just sets the RTS up).
 --
 -- This module owns everything about that dance except the two `foreign
 -- export javascript` declarations themselves (which must be monomorphic,

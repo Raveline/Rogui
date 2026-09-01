@@ -61,7 +61,6 @@ In your WASM executable's `.cabal` stanza:
 executable your-wasm-app
   main-is: Main.hs
   hs-source-dirs: app
-  c-sources: app/cbits/wasm_main.c
   build-depends:
     base,
     containers,
@@ -73,13 +72,17 @@ executable your-wasm-app
 
   if arch(wasm32)
     build-depends: ghc-experimental
-    ghc-options: -no-hs-main
+    ghc-options:
+      -no-hs-main -optl-mexec-model=reactor
+      -optl-Wl,--export=wasmInit -optl-Wl,--export=wasmTick
   else
     buildable: False
 ```
 
-The `c-sources`/`-no-hs-main`/`if arch(wasm32)` pieces are explained in
-step 5 below — they're not optional, so include them from the start.
+The `ghc-options`/`if arch(wasm32)` pieces are explained in step 5 below —
+they're not optional, so include them from the start. If you name your
+exports something other than `wasmInit`/`wasmTick`, adjust the `--export`
+flags to match.
 
 ## 4. Write your app's `Main.hs`
 
@@ -145,11 +148,12 @@ config = RoguiConfig { {- same fields you already have for the SDL build -} }
 brush (an image), which — in the browser — is fetched and decoded
 asynchronously. That `await` can only happen inside a Haskell thread that
 JavaScript itself called and can suspend on, i.e. a `foreign export
-javascript` function. `main`/`_start` is WASI's synchronous,
-un-awaitable entry point; doing async work in its dynamic extent throws
-`WouldBlockException` at runtime. So `main` does nothing, and `wasmInit`
-(called and awaited by your HTML, right after `_start`) does the real
+javascript` function. A reactor module has no `main`/`_start` to do it in
+anyway (only `_initialize`, which just sets the RTS up). So `wasmInit`
+(called and awaited by your HTML, right after `_initialize`) does the real
 setup. `mkWasmApp` packages that split; see its Haddock for the details.
+`main` stays defined only because the module is called `Main`; it's never
+run.
 
 If initialisation or a tick fails, `mkWasmApp` writes the reason to the
 browser console and throws, so `await wasmInit()` rejects (rather than the
@@ -162,30 +166,25 @@ Everything else — `RoguiConfig`, your `drawingFunction`, your
 is the whole point of Rogui's `Backend` abstraction: only the bottom layer
 changes.
 
-## 5. The C shim (`app/cbits/wasm_main.c`)
+## 5. Why a reactor module (`-optl-mexec-model=reactor`)
 
-GHC's normal auto-generated `main()` calls `hs_init()`, runs your
-`Main.main`, then `hs_exit()` and `exit()` — tearing the RTS down again
-right after `main` returns, before JavaScript ever gets a chance to call
-`wasmInit`/`wasmTick`. Suppress it with `-no-hs-main` (already in the
-cabal stanza above) and supply your own, which never calls `hs_exit`:
+By default GHC links a wasm32-wasi *command* module: it exports `_start`,
+which runs `hs_init` → `Main.main` → `hs_exit` and tears the RTS down as
+soon as `main` returns — before JavaScript ever gets to call
+`wasmInit`/`wasmTick`. Every subsequent tick would then fail with "RTS is
+not initialised".
 
-```c
-// app/cbits/wasm_main.c
-#include <Rts.h>
+`-optl-mexec-model=reactor` links a *reactor* module instead: it exports
+`_initialize` (which sets the RTS up without running `main` and never
+calls `hs_exit`), and the instance stays alive for the
+`requestAnimationFrame` driver to keep calling into. `-no-hs-main` drops
+GHC's `main()`; the `-optl-Wl,--export=` flags keep your two entry points
+in the linked module. This is the standard setup for GHC wasm modules
+that use the JavaScript FFI — see the "JavaScript FFI" section of the GHC
+User's Guide.
 
-int main(int argc, char *argv[]) {
-  RtsConfig conf = defaultRtsConfig;
-  conf.rts_opts_enabled = RtsOptsAll;
-  hs_init_ghc(&argc, &argv, conf);
-  // Deliberately never call hs_exit(): the wasm instance keeps running,
-  // driven by requestAnimationFrame calling the exported `wasmTick`, long
-  // after this `_start` call returns to JS.
-  return 0;
-}
-```
-
-Copy this file verbatim; there's nothing app-specific in it.
+There is no app-specific code here: the three `ghc-options` in step 3 are
+all you need.
 
 ## 6. Assets (tilesets)
 
@@ -219,9 +218,9 @@ Then edit `index.html`'s one `import` line to point at your own compiled
 `.wasm`/`.jsffi.js` file names (rename `rogui-wasm-demo.wasm` /
 `rogui-wasm-demo.jsffi.js` to match your executable). Nothing else in that
 file is Rogui-app-specific — it just: instantiates your module with the
-WASI shim's imports plus the generated `ghc_wasm_jsffi` imports, runs
-`_start`, awaits `wasmInit`, then hands `wasmTick` to
-`RoguiRuntime.startLoop`.
+WASI shim's imports plus the generated `ghc_wasm_jsffi` imports, calls
+`wasi.initialize` (the reactor module's `_initialize`), awaits `wasmInit`,
+then hands `wasmTick` to `RoguiRuntime.startLoop`.
 
 ## 8. Build and run
 
@@ -251,14 +250,15 @@ These are explained in more depth in `wasm.md`'s "Implementation notes"
 section, but in short, because they'll bite you if you improvise around
 the templates above instead of following them:
 
-- **Don't call async (`safe`) FFI from `main`.** Only from a `foreign
-  export javascript` function JS awaits (see step 4). This mostly matters
-  if you add your own `foreign import javascript safe` calls (e.g. to load
-  additional assets) — keep them behind an exported, awaited entry point,
-  not in `main`'s call graph.
-- **Don't drop `-no-hs-main`/the C shim.** Without it, your module's RTS
-  shuts down the instant `main` returns and every subsequent `wasmTick`
-  call fails with "RTS is not initialised".
+- **Don't call async (`safe`) FFI outside an awaited export.** Only call
+  it from a `foreign export javascript` function JS awaits (see step 4).
+  This mostly matters if you add your own `foreign import javascript safe`
+  calls (e.g. to load additional assets) — keep them behind an exported,
+  awaited entry point.
+- **Don't drop `-no-hs-main -optl-mexec-model=reactor`.** Without the
+  reactor model you get a command module whose RTS shuts down the instant
+  `_start` returns, and every subsequent `wasmTick` call fails with "RTS
+  is not initialised".
 - **`JSString` doesn't work on at least some `wasm32-wasi-ghc` snapshots.**
   If you write your own `foreign import javascript` declarations (for
   custom browser APIs Rogui doesn't cover), avoid `GHC.Wasm.Prim.JSString`

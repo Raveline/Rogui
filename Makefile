@@ -1,6 +1,7 @@
 .PHONY: all build build-sdl build-wasm build-wasm-demo serve-wasm-demo \
         build-wasm-list-demo serve-wasm-list-demo build-lib \
-        build-backends build-demos run-demo docs docs-open test lint clean clean-all help
+        build-backends build-demos run-demo docs docs-open test test-browser \
+        lint clean clean-all help
 
 # Path to the ghc-wasm-meta env script that puts wasm32-wasi-ghc/-cabal on
 # PATH. Only sourcing it in your interactive shell (as the ghc-wasm-meta
@@ -110,6 +111,36 @@ docs-open: docs
 test:
 	cabal test all
 
+# npm install for the headless-browser checks. Real file target, like the
+# demo node_modules above: reruns only when package.json changes.
+rogui-wasm-backend/test-browser/node_modules: rogui-wasm-backend/test-browser/package.json
+	cd rogui-wasm-backend/test-browser && $(NPM) install
+	@touch $@
+
+# Run the headless-browser checks (rogui-wasm-backend/test-browser/): build
+# and stage both WASM demos, serve each on a local port, drive it with a
+# real browser via playwright-core, then tear the servers down. Needs
+# Google Chrome or Chromium on PATH (playwright-core ships no browser of
+# its own); override with ROGUI_TEST_CHROME=/path/to/chromium if neither
+# is found. Ports 8100/8101 (not the serve-* targets' 8000/8001) so it
+# doesn't collide with a demo you're already serving by hand.
+test-browser: build-wasm-demo build-wasm-list-demo rogui-wasm-backend/test-browser/node_modules
+	@set -e; \
+	python3 -m http.server 8100 --bind 127.0.0.1 -d rogui-wasm-backend/app      >/dev/null 2>&1 & p1=$$!; \
+	python3 -m http.server 8101 --bind 127.0.0.1 -d rogui-wasm-backend/app-list >/dev/null 2>&1 & p2=$$!; \
+	trap 'kill $$p1 $$p2 2>/dev/null || true' EXIT; \
+	for port in 8100 8101; do \
+	  ok=; \
+	  for _ in $$(seq 1 50); do \
+	    curl -sf -o /dev/null "http://127.0.0.1:$$port/index.html" && { ok=1; break; }; \
+	    sleep 0.1; \
+	  done; \
+	  test -n "$$ok" || { echo "server on port $$port never came up"; exit 1; }; \
+	done; \
+	cd rogui-wasm-backend/test-browser; \
+	node smoke-hello.mjs      http://127.0.0.1:8100/index.html; \
+	node interaction-list.mjs http://127.0.0.1:8101/index.html
+
 # Run hlint on source files
 lint:
 	@echo "Linting core library..."
@@ -128,7 +159,8 @@ clean:
 clean-all:
 	cabal clean
 	rm -rf dist-newstyle
-	rm -rf rogui-wasm-backend/app/node_modules rogui-wasm-backend/app-list/node_modules
+	rm -rf rogui-wasm-backend/app/node_modules rogui-wasm-backend/app-list/node_modules \
+	       rogui-wasm-backend/test-browser/node_modules
 	rm -f rogui-wasm-backend/app/rogui-wasm-demo.wasm \
 	      rogui-wasm-backend/app/rogui-wasm-demo.jsffi.js \
 	      rogui-wasm-backend/app/rogui-runtime.js \
@@ -153,7 +185,8 @@ help:
 	@echo "  make docs-open      - Generate and open documentation in browser"
 	@echo ""
 	@echo "Quality:"
-	@echo "  make test           - Run test suite"
+	@echo "  make test           - Run the Haskell test suite (cabal test all)"
+	@echo "  make test-browser   - Build the WASM demos and run the headless-browser checks"
 	@echo "  make lint           - Run hlint on all source code"
 	@echo ""
 	@echo "Cleaning:"
