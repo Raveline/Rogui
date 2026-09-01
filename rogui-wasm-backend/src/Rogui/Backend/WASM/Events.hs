@@ -75,7 +75,7 @@ data RawEvent = RawEvent
 readRawEvent :: JSVal -> IO RawEvent
 readRawEvent ev = do
   rawKind <- js_eventKind ev
-  rawKey <- jsValToString =<< js_eventKey ev
+  rawKey <- fromJSString <$> js_eventKey ev
   rawRepeat <- js_eventRepeat ev
   rawShift <- js_eventShift ev
   rawCtrl <- js_eventCtrl ev

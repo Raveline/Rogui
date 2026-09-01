@@ -6,11 +6,9 @@
 -- but issuing `drawImage`/`fillRect`/`clip` calls (via
 -- `Rogui.Backend.WASM.Primitives`) instead of SDL ones.
 --
--- One structural difference from the SDL version: SDL applies the
--- foreground colour as texture-mutating state before each draw (and skips
--- re-applying it when unchanged, as an optimisation). Canvas 2D draws are
--- stateless, so here the current foreground colour is simply threaded
--- through and passed to every `printCharAt` call directly.
+-- Unlike SDL, which mutates texture state to set the foreground colour,
+-- Canvas 2D draws are stateless: the colour is threaded through and passed
+-- to each `printCharAt` call.
 module Rogui.Backend.WASM.Eval
   ( evalWASMInstructions,
   )

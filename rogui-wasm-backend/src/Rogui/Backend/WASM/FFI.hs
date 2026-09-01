@@ -8,18 +8,6 @@
 -- just call into it. That keeps the browser-side algorithms (glyph tinting,
 -- the event queue, ...) in ordinary, debuggable JavaScript rather than
 -- string-quoted inside Haskell source.
---
--- One deliberate wrinkle: no declaration here uses `GHC.Wasm.Prim.JSString`.
--- The `wasm32-wasi-ghc` snapshot this backend was built against generates a
--- C stub for `JSString`-typed imports that calls @rts_mkJSString@ /
--- @rts_getJSString@, neither of which is declared by the RTS headers this
--- toolchain ships (`RtsAPI.h` has no trace of them, unlike the `JSVal`
--- counterparts, which do work). So every string crossing the FFI boundary
--- here goes as raw UTF-8 bytes in wasm linear memory instead (`Ptr () ->
--- Int`, decoded JS-side with `TextDecoder`), or, coming back, as a `JSVal`
--- read character-by-character with `js_jsStringLength`/
--- `js_jsStringCharCodeAt`. If a future toolchain fixes this, `JSString` can
--- replace this plumbing.
 module Rogui.Backend.WASM.FFI
   ( CanvasContext (..),
     WASMTexture (..),
@@ -69,21 +57,17 @@ module Rogui.Backend.WASM.FFI
     js_eventW,
     js_eventH,
 
-    -- * String marshalling helpers (see the module note above)
-    withUtf8,
-    jsValToString,
+    -- * String marshalling
+    toJSString,
+    fromJSString,
 
     -- * Diagnostics
     consoleError,
-    js_consoleError,
   )
 where
 
-import Data.ByteString.Unsafe (unsafeUseAsCStringLen)
-import Data.Text qualified as T
-import Data.Text.Encoding qualified as TE
-import Foreign.Ptr (Ptr, castPtr)
-import GHC.Wasm.Prim (JSVal)
+import Foreign.Ptr (Ptr)
+import GHC.Wasm.Prim (JSString (..), JSVal, fromJSString, toJSString)
 
 -- | Wraps the 2d rendering context obtained from the backing `<canvas>`.
 newtype CanvasContext = CanvasContext JSVal
@@ -92,15 +76,6 @@ newtype CanvasContext = CanvasContext JSVal
 -- colour-key transparency can be baked in once at load time and every later
 -- `drawImage` call has a uniform source type).
 newtype WASMTexture = WASMTexture JSVal
-
--- | Expose a `String` to a JS FFI snippet as `(pointer, byteLength)` into
--- wasm linear memory, UTF-8 encoded. The pointer is only valid for the
--- duration of the call: for a `safe` (async) import, only read it before
--- the first `await` (see `js_loadImageFromBytes` and
--- `RoguiRuntime.loadImageFromURLBytes` for the pattern of copying it out
--- synchronously).
-withUtf8 :: String -> (Ptr () -> Int -> IO a) -> IO a
-withUtf8 s f = unsafeUseAsCStringLen (TE.encodeUtf8 (T.pack s)) $ \(ptr, len) -> f (castPtr ptr) len
 
 foreign import javascript unsafe "document.getElementById('rogui-canvas')"
   js_findCanvas :: IO JSVal
@@ -129,9 +104,8 @@ foreign import javascript unsafe "globalThis.RoguiRuntime.setupOffscreen($1)"
 foreign import javascript unsafe "globalThis.RoguiRuntime.present($1)"
   js_presentFrame :: JSVal -> IO ()
 
-foreign import javascript unsafe
-  "document.title = new TextDecoder('utf-8').decode(new Uint8Array(__exports.memory.buffer,$1,$2))"
-  js_setTitle :: Ptr () -> Int -> IO ()
+foreign import javascript unsafe "document.title = $1"
+  js_setTitle :: JSString -> IO ()
 
 foreign import javascript unsafe "globalThis.RoguiRuntime.clearFrame($1)"
   js_clearRect :: JSVal -> IO ()
@@ -143,12 +117,10 @@ foreign import javascript unsafe "globalThis.RoguiRuntime.clearFrame($1)"
 foreign import javascript unsafe "globalThis.RoguiRuntime.monotonicTicks()"
   js_monotonicTicks :: IO Int
 
--- | Load an image from a URL (relative to the host page), given as UTF-8
--- bytes in wasm memory. Resolves once decoding has finished, so the
--- returned `JSVal` always has real dimensions.
-foreign import javascript safe
-  "globalThis.RoguiRuntime.loadImageFromURLBytes(__exports.memory.buffer,$1,$2)"
-  js_loadImageFromURL :: Ptr () -> Int -> IO JSVal
+-- | Load an image from a URL (relative to the host page). Resolves once
+-- decoding has finished, so the returned `JSVal` always has real dimensions.
+foreign import javascript safe "globalThis.RoguiRuntime.loadImageFromURL($1)"
+  js_loadImageFromURL :: JSString -> IO JSVal
 
 -- | Load an image from raw bytes living in wasm linear memory (e.g. an
 -- embedded PNG). The bytes are copied into a `Blob` before any `await`, so
@@ -211,10 +183,10 @@ foreign import javascript unsafe "globalThis.RoguiRuntime.clipToRect($1,$2,$3,$4
   js_clipToRect :: JSVal -> Int -> Int -> Int -> Int -> IO ()
 
 -- | Trigger a client-side download of the canvas backing the given 2d
--- context, as a PNG, suggesting the given (UTF-8 encoded) file name.
+-- context, as a PNG, suggesting the given file name.
 foreign import javascript unsafe
-  "globalThis.RoguiRuntime.downloadCanvas($1.canvas, new TextDecoder('utf-8').decode(new Uint8Array(__exports.memory.buffer,$2,$3)))"
-  js_downloadCanvas :: JSVal -> Ptr () -> Int -> IO ()
+  "globalThis.RoguiRuntime.downloadCanvas($1.canvas, $2)"
+  js_downloadCanvas :: JSVal -> JSString -> IO ()
 
 -- | Install keyboard/mouse/resize listeners on the given canvas (a no-op if
 -- already installed). The second argument mirrors `allowResize`.
@@ -231,7 +203,7 @@ foreign import javascript unsafe "globalThis.RoguiRuntime.popEvent()"
 -- 5 = resize. Kept in sync with `RoguiRuntime`'s event objects.
 foreign import javascript unsafe "$1.kind|0" js_eventKind :: JSVal -> IO Int
 
-foreign import javascript unsafe "$1.key || ''" js_eventKey :: JSVal -> IO JSVal
+foreign import javascript unsafe "$1.key || ''" js_eventKey :: JSVal -> IO JSString
 
 foreign import javascript unsafe "!!$1.repeat" js_eventRepeat :: JSVal -> IO Bool
 
@@ -255,26 +227,12 @@ foreign import javascript unsafe "$1.w|0" js_eventW :: JSVal -> IO Int
 
 foreign import javascript unsafe "$1.h|0" js_eventH :: JSVal -> IO Int
 
-foreign import javascript unsafe "$1.length" js_jsStringLength :: JSVal -> IO Int
-
-foreign import javascript unsafe "$1.charCodeAt($2)" js_jsStringCharCodeAt :: JSVal -> Int -> IO Int
-
--- | Read a JS string value (e.g. from `js_eventKey`) into a `String`, one
--- UTF-16 code unit at a time. `KeyboardEvent.key` values are always either
--- a single BMP character or an ASCII name like @"ArrowLeft"@, so the lack
--- of surrogate-pair handling here is not a real limitation for this use.
-jsValToString :: JSVal -> IO String
-jsValToString v = do
-  n <- js_jsStringLength v
-  traverse (fmap toEnum . js_jsStringCharCodeAt v) [0 .. n - 1]
-
 -- | Write a line to the browser console's error channel. The host page also
 -- wires WASI stdout/stderr to `console.*`, but that path only carries
 -- output a `foreign export` actually returned through; a thrown Haskell
 -- exception bypasses it, so failures worth seeing are logged here directly.
 consoleError :: String -> IO ()
-consoleError s = withUtf8 s js_consoleError
+consoleError = js_consoleError . toJSString
 
-foreign import javascript unsafe
-  "console.error(new TextDecoder('utf-8').decode(new Uint8Array(__exports.memory.buffer,$1,$2)))"
-  js_consoleError :: Ptr () -> Int -> IO ()
+foreign import javascript unsafe "console.error($1)"
+  js_consoleError :: JSString -> IO ()

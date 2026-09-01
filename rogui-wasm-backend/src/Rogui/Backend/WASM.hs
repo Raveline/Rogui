@@ -61,7 +61,7 @@ initWASMBackend appName (V2 (Pixel w) (Pixel h)) allowResize withRenderer = do
       else pure found
   liftIO $ do
     js_setCanvasSize canvas w h
-    withUtf8 (T.unpack appName) js_setTitle
+    js_setTitle (toJSString (T.unpack appName))
     -- When `allowResize`, the installed `resize` listener grows/shrinks the
     -- canvas backing store to match its container and reports the new size
     -- as a `WindowResized` event, mirroring `SDL.WindowSizeChangedEvent`.

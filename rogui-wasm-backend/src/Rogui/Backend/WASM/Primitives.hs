@@ -38,7 +38,7 @@ import Rogui.Backend.WASM.FFI
     js_loadImageFromBytes,
     js_loadImageFromURL,
     js_overlayRect,
-    withUtf8,
+    toJSString,
   )
 import Rogui.Graphics
 
@@ -150,7 +150,7 @@ loadWASMBrush ::
   m (Brush, WASMTexture)
 loadWASMBrush _ctx TileSize {..} source transparency = liftIO $ do
   img <- case source of
-    Right url -> withUtf8 url js_loadImageFromURL
+    Right url -> js_loadImageFromURL (toJSString url)
     Left bs -> unsafeUseAsCStringLen bs $ \(ptr, len) -> js_loadImageFromBytes (castPtr ptr) len
   let (hasKey, keyPacked) = maybe (False, 0) ((,) True . packRGB) transparency
   texture <- js_imageToTexture img hasKey keyPacked
@@ -171,4 +171,4 @@ loadWASMBrush _ctx TileSize {..} source transparency = liftIO $ do
 -- `toDataURL` and triggers a client-side download instead of writing to
 -- the given path (used verbatim as the suggested download file name).
 takeWASMScreenshot :: (MonadIO m) => CanvasContext -> V2 Int -> FilePath -> m ()
-takeWASMScreenshot (CanvasContext ctx) _size fp = liftIO $ withUtf8 fp (js_downloadCanvas ctx)
+takeWASMScreenshot (CanvasContext ctx) _size fp = liftIO $ js_downloadCanvas ctx (toJSString fp)
