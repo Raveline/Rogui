@@ -1,1 +1,13 @@
 dist-newstyle/
+
+rogui-wasm-backend/app/node_modules/
+rogui-wasm-backend/app/rogui-wasm-demo.wasm
+rogui-wasm-backend/app/rogui-wasm-demo.jsffi.js
+rogui-wasm-backend/app/rogui-runtime.js
+
+rogui-wasm-backend/app-list/node_modules/
+rogui-wasm-backend/app-list/rogui-wasm-list-demo.wasm
+rogui-wasm-backend/app-list/rogui-wasm-list-demo.jsffi.js
+rogui-wasm-backend/app-list/rogui-runtime.js
+
+rogui-wasm-backend/test-browser/node_modules/

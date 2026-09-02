@@ -1,0 +1,13 @@
+{
+  "name": "rogui-wasm-backend-browser-tests",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Headless-browser checks that actually run the WASM demos in a browser. See README.md.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "playwright-core": "~1.54.0"
+  }
+}

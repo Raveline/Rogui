@@ -3,6 +3,7 @@ module Rogui.Backend.SDLOpenGL
   )
 where
 
+import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.ByteString (ByteString)
@@ -40,7 +41,8 @@ sdlOpenGLBackend =
       evalInstructions = evalGLInstructions,
       getTicks = SDL.ticks,
       pollEvents = getSDLEvents,
-      takeScreenshot = glTakeScreenshot
+      takeScreenshot = glTakeScreenshot,
+      frameSleep = liftIO . threadDelay . (* 1000) . fromIntegral
     }
 
 initGLBackend :: (MonadIO m) => Text -> V2 Pixel -> Bool -> (GLRenderer -> m a) -> m ()

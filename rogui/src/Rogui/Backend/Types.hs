@@ -22,5 +22,10 @@ data Backend renderer texture event = Backend
     evalInstructions :: forall m. (MonadIO m) => renderer -> M.Map Brush texture -> Console -> Brush -> Instructions -> m (),
     pollEvents :: forall m. (MonadIO m) => Brush -> m [Event event],
     getTicks :: forall m. (MonadIO m) => m Word32,
-    takeScreenshot :: forall m. (MonadIO m) => renderer -> V2 Int -> FilePath -> m ()
+    takeScreenshot :: forall m. (MonadIO m) => renderer -> V2 Int -> FilePath -> m (),
+    -- | Sleep for (approximately) the given number of milliseconds to pace
+    -- frames to the target frame rate. Backends whose frame pacing is
+    -- already driven externally (e.g. `requestAnimationFrame` on WASM)
+    -- should make this a no-op rather than actually sleeping.
+    frameSleep :: forall m. (MonadIO m) => Word32 -> m ()
   }

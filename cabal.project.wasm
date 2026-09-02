@@ -1,0 +1,13 @@
+-- Separate project file for the wasm32-wasi cross build. The wasm backend
+-- needs a different compiler entirely (wasm32-wasi-ghc, via ghc-wasm-meta),
+-- and none of the native-only packages (SDL, OpenGL) can cross-compile, so
+-- they're deliberately left out rather than folded into the root
+-- cabal.project.
+--
+-- Usage:
+--   wasm32-wasi-cabal build --project-file=cabal.project.wasm all
+packages:
+  rogui/rogui.cabal
+  rogui-wasm-backend/rogui-wasm-backend.cabal
+
+allow-newer: base

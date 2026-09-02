@@ -1,0 +1,104 @@
+cabal-version: 3.0
+name: rogui-wasm-backend
+synopsis: A browser backend rendering to a HTML5 canvas, targeting GHC's wasm32-wasi backend
+version: 0.1.0.0
+license: BSD-3-Clause
+license-file: LICENSE
+author: Raveline
+maintainer: eraveline@gmail.com
+category: Game
+build-type: Simple
+extra-doc-files: CHANGELOG.md
+tested-with: ghc ==9.12.2
+
+flag devel
+  description: enable development mode (i.e. disable -Werror)
+  default: False
+
+common warnings
+  ghc-options: -Wall
+
+  if !flag(devel)
+    ghc-options:
+      -Wall
+      -Werror
+  default-extensions:
+    FlexibleContexts
+    OverloadedStrings
+    RecordWildCards
+    TypeApplications
+
+library
+  import: warnings
+  default-language: Haskell2010
+
+  exposed-modules:
+    Rogui.Backend.WASM
+    Rogui.Backend.WASM.Eval
+    Rogui.Backend.WASM.Events
+    Rogui.Backend.WASM.FFI
+    Rogui.Backend.WASM.Primitives
+    Rogui.Backend.WASM.Run
+
+  build-depends:
+    base >=4.21.0 && <4.22,
+    bytestring >=0.12.2 && <0.13,
+    containers >=0.7 && <0.8,
+    linear >=1.23.3 && <1.24,
+    log-base >=0.12 && <0.13,
+    mtl >=2.3.1 && <2.4,
+    rogui >=0.1.0 && <0.2,
+    text >=2.1.2 && <2.2
+
+  if arch(wasm32)
+    build-depends: ghc-experimental
+  else
+    buildable: False
+
+  hs-source-dirs: src
+
+executable rogui-wasm-demo
+  import: warnings
+  default-language: Haskell2010
+  main-is: Main.hs
+  hs-source-dirs: app
+
+  build-depends:
+    base,
+    containers,
+    linear,
+    log-base,
+    mtl,
+    rogui,
+    rogui-wasm-backend
+
+  if arch(wasm32)
+    build-depends: ghc-experimental
+    ghc-options:
+      -no-hs-main -optl-mexec-model=reactor
+      -optl-Wl,--export=wasmInit -optl-Wl,--export=wasmTick
+  else
+    buildable: False
+
+executable rogui-wasm-list-demo
+  import: warnings
+  default-language: Haskell2010
+  main-is: Main.hs
+  hs-source-dirs: app-list
+
+  build-depends:
+    base,
+    containers,
+    linear,
+    log-base,
+    mtl,
+    rogui,
+    rogui-wasm-backend
+
+  if arch(wasm32)
+    build-depends: ghc-experimental
+    ghc-options:
+      -no-hs-main -optl-mexec-model=reactor
+      -optl-Wl,--export=wasmInit -optl-Wl,--export=wasmTick
+  else
+    buildable: False
